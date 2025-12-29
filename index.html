@@ -177,28 +177,37 @@
                     this.breaks.splice(index, 1);
                 },
 
-                saveSchedule() {
-                    const payload = {
-                        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
-                        dates: this.selectedDates,
-                        start: this.startTime,
-                        end: this.endTime,
-                        breaks: this.breaks // Отправляем массив перерывов
-                    };
+               saveSchedule() {
+    const payload = {
+        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
+        dates: this.selectedDates,
+        start: this.startTime,
+        end: this.endTime,
+        breaks: this.breaks
+    };
 
-                    fetch(WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(res => {
-                        tg.showAlert('График сохранен! ✅');
-                        setTimeout(() => tg.close(), 500);
-                    })
-                    .catch(err => {
-                        tg.showAlert('Ошибка: ' + err);
-                    });
-                }
+    fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        // 1. Показываем уведомление
+        tg.showAlert(`Готово! Сохранено дней: ${this.selectedDates.length}`);
+        
+        // 2. Сбрасываем выбор, чтобы можно было выбрать новые дни
+        this.selectedDates = [];
+        
+        // 3. Сбрасываем перерывы (или оставьте, если хотите, чтобы они сохранялись для следующих дней)
+        this.breaks = []; 
+        
+        // 4. Возвращаемся на календарь
+        this.step = 1; 
+    })
+    .catch(err => {
+        tg.showAlert('Ошибка: ' + err);
+    });
+}
             }
         }).mount('#app');
     </script>

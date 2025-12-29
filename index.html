@@ -8,7 +8,6 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root {
-            /* Базовые цвета Telegram */
             --tg-bg: var(--tg-theme-bg-color, #ffffff);
             --tg-text: var(--tg-theme-text-color, #000000);
             --tg-hint: var(--tg-theme-hint-color, #999999);
@@ -22,12 +21,12 @@
             background-color: var(--tg-bg);
             color: var(--tg-text);
             margin: 0;
-            padding: 16px;
+            padding: 10px; /* Меньше отступов по краям */
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            box-sizing: border-box; /* Важно для отступов */
+            box-sizing: border-box;
         }
 
         .header {
@@ -35,49 +34,44 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 380px;
-            margin-bottom: 24px;
-            font-size: 20px;
-            font-weight: 600;
-            padding: 0 10px;
-            box-sizing: border-box;
+            margin-bottom: 15px;
+            font-size: 22px; /* Шрифт крупнее */
+            font-weight: 700;
+            padding: 10px 0;
         }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 10px; /* Чуть больше расстояние */
+            gap: 4px; /* Минимальный зазор, чтобы кнопки были огромными */
             width: 100%;
-            max-width: 380px;
         }
 
         .weekday {
             text-align: center;
             font-size: 14px;
             color: var(--tg-hint);
-            padding: 5px;
-            cursor: pointer;
+            padding-bottom: 5px;
+            font-weight: 500;
         }
 
         .day {
-            aspect-ratio: 1;
+            aspect-ratio: 1; /* Квадратные */
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
-            /* Цвет фона ячейки: адаптируется под тему */
+            border-radius: 8px;
             background-color: var(--tg-secondary-bg); 
             color: var(--tg-text);
-            font-size: 17px;
-            font-weight: 500;
+            font-size: 20px; /* Крупные цифры */
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.1s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
 
         .day:active {
-            transform: scale(0.95);
+            opacity: 0.7;
         }
 
         .day.selected {
@@ -90,37 +84,32 @@
             cursor: default;
         }
 
-        /* Контейнер для кнопок снизу */
+        /* Кнопка внизу */
         .controls {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 20px 16px 30px 16px; /* Больше отступ снизу для iPhone */
-            background: var(--tg-bg); /* Чтобы контент не просвечивал */
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: center;
+            padding: 15px;
+            background: var(--tg-bg);
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
             z-index: 10;
         }
 
         .btn {
             width: 100%;
-            max-width: 380px;
-            padding: 16px; /* Кнопка выше */
+            padding: 18px; /* Жирная кнопка */
             border: none;
             border-radius: 14px;
             background-color: var(--tg-btn);
             color: var(--tg-btn-text);
-            font-size: 17px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             cursor: pointer;
-            text-align: center;
         }
 
         .btn:disabled {
             opacity: 0.5;
-            cursor: not-allowed;
         }
 
         /* Модалка */
@@ -134,39 +123,29 @@
             z-index: 100;
         }
 
-        .time-label {
-            font-size: 16px;
-            color: var(--tg-hint);
-            margin-top: 20px;
-            margin-bottom: 8px;
-        }
-
         .time-input {
-            font-size: 28px;
-            padding: 12px;
+            font-size: 32px;
+            padding: 15px;
             width: 100%;
             box-sizing: border-box;
             background-color: var(--tg-secondary-bg);
             color: var(--tg-text);
             border: none;
             border-radius: 12px;
-            outline: none;
-        }
-        
-        /* Скрываем нативный селект времени в темной теме (для красоты) */
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(0.5);
+            margin-top: 10px;
+            margin-bottom: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- Экран 1: Календарь -->
-        <div v-if="step === 1" style="width: 100%; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px;">
+        <!-- Календарь -->
+        <div v-if="step === 1" style="width: 100%; padding-bottom: 100px;">
             <div class="header">
-                <span @click="changeMonth(-1)" style="cursor: pointer; padding: 10px;">&#9664;</span>
-                <span>{{ currentMonthName }} {{ currentYear }}</span>
-                <span @click="changeMonth(1)" style="cursor: pointer; padding: 10px;">&#9654;</span>
+                <span @click="changeMonth(-1)" style="padding: 10px;">&#9664;</span>
+                <span>{{ currentMonthName }}</span>
+                <span @click="changeMonth(1)" style="padding: 10px;">&#9654;</span>
             </div>
 
             <div class="calendar-grid">
@@ -190,22 +169,22 @@
             </div>
         </div>
 
-        <!-- Экран 2: Время -->
+        <!-- Настройки -->
         <div v-if="step === 2" class="modal">
-            <h2 style="text-align: center;">Настройка времени</h2>
-            <p style="text-align: center; color: var(--tg-hint);">Выбрано дней: {{ selectedDates.length }}</p>
+            <h2 style="text-align: center; margin-bottom: 5px;">Время работы</h2>
+            <p style="text-align: center; color: var(--tg-hint); margin-bottom: 30px;">
+                Дней выбрано: {{ selectedDates.length }}
+            </p>
             
-            <div class="time-label">Начало работы</div>
+            <label style="font-weight: bold; color: var(--tg-hint);">С КОТОРОГО ЧАСА</label>
             <input type="time" v-model="startTime" class="time-input">
             
-            <div class="time-label">Конец работы</div>
+            <label style="font-weight: bold; color: var(--tg-hint);">ДО КОТОРОГО ЧАСА</label>
             <input type="time" v-model="endTime" class="time-input">
 
-            <div class="controls">
-                <div style="width: 100%; max-width: 380px; display: flex; gap: 10px;">
-                    <button class="btn" @click="step = 1" style="background-color: var(--tg-secondary-bg); color: var(--tg-text);">Назад</button>
-                    <button class="btn" @click="saveSchedule">Сохранить</button>
-                </div>
+            <div style="margin-top: auto; display: flex; gap: 10px;">
+                <button class="btn" @click="step = 1" style="background-color: var(--tg-secondary-bg); color: var(--tg-text);">Назад</button>
+                <button class="btn" @click="saveSchedule">Сохранить</button>
             </div>
         </div>
     </div>
@@ -213,10 +192,13 @@
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
-        
-        // Сообщаем Телеграму, что приложение готово и цвета надо брать из темы
         tg.ready();
         tg.expand();
+
+        // --- ВАЖНО: ВСТАВЬТЕ СЮДА ВАШ URL ---
+        // Если используете Test URL - нажмите Execute в n8n.
+        // Если Production - включите Active в n8n.
+        const WEBHOOK_URL = 'https://aireminder.ru/webhook/save-schedule'; 
 
         createApp({
             data() {
@@ -278,9 +260,7 @@
                         });
                     }
                 },
-                goToSettings() {
-                    this.step = 2;
-                },
+                goToSettings() { this.step = 2; },
                 saveSchedule() {
                     const payload = {
                         master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
@@ -289,32 +269,18 @@
                         end: this.endTime
                     };
 
-                    // ВСТАВЬТЕ СЮДА ВАШУ ССЫЛКУ ИЗ N8N
-                    const WEBHOOK_URL = 'https://aireminder.ru/webhook/save-schedule';
-
                     fetch(WEBHOOK_URL, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     })
-                    .then(response => {
-                        // Даже если ответ "CORS error", запрос часто доходит до n8n.
-                        // Но лучше проверить статус
-                        if (response.ok || response.type === 'opaque') {
-                            tg.showAlert('График сохранен! ✅');
-                            setTimeout(() => tg.close(), 1000);
-                        } else {
-                            throw new Error('Server error');
-                        }
+                    .then(res => {
+                        // Любой ответ считаем успехом, если сеть работает
+                        tg.showAlert('График сохранен! ✅');
+                        setTimeout(() => tg.close(), 500);
                     })
                     .catch(err => {
-                        // Игнорируем ошибку CORS, если данные дошли (визуально для юзера)
-                        // В идеале настроить CORS в n8n
-                        console.error(err);
-                        tg.showAlert('Отправлено! (Если ошибка не исчезнет, проверьте n8n)');
-                        tg.close();
+                        tg.showAlert('Ошибка сети: ' + err);
                     });
                 }
             }

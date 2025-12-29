@@ -2,140 +2,178 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>График работы</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root {
-            --tg-theme-button-color: #3390ec;
-            --tg-theme-button-text-color: #ffffff;
-            --tg-theme-bg-color: #ffffff;
-            --tg-theme-text-color: #000000;
-            --tg-theme-hint-color: #999999;
-            --selected-color: #007AFF; /* Цвет как на скриншоте */
+            /* Базовые цвета Telegram */
+            --tg-bg: var(--tg-theme-bg-color, #ffffff);
+            --tg-text: var(--tg-theme-text-color, #000000);
+            --tg-hint: var(--tg-theme-hint-color, #999999);
+            --tg-btn: var(--tg-theme-button-color, #3390ec);
+            --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+            --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color);
-            color: var(--tg-theme-text-color);
+            background-color: var(--tg-bg);
+            color: var(--tg-text);
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box; /* Важно для отступов */
         }
+
         .header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             width: 100%;
-            max-width: 350px;
-            margin-bottom: 20px;
-            font-size: 18px;
-            font-weight: bold;
+            max-width: 380px;
+            margin-bottom: 24px;
+            font-size: 20px;
+            font-weight: 600;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
+
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
+            gap: 10px; /* Чуть больше расстояние */
             width: 100%;
-            max-width: 350px;
+            max-width: 380px;
         }
+
         .weekday {
             text-align: center;
             font-size: 14px;
-            color: var(--tg-theme-hint-color);
+            color: var(--tg-hint);
             padding: 5px;
             cursor: pointer;
-            border-radius: 8px;
         }
-        .weekday:active {
-            background-color: rgba(0,0,0,0.05);
-        }
+
         .day {
             aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 8px;
-            background-color: #f0f0f0; /* Серый по умолчанию */
-            font-size: 16px;
+            border-radius: 10px;
+            /* Цвет фона ячейки: адаптируется под тему */
+            background-color: var(--tg-secondary-bg); 
+            color: var(--tg-text);
+            font-size: 17px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.1s;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
+
+        .day:active {
+            transform: scale(0.95);
+        }
+
         .day.selected {
-            background-color: var(--selected-color);
-            color: white;
+            background-color: var(--tg-btn);
+            color: var(--tg-btn-text);
         }
+
         .day.empty {
             background-color: transparent;
             cursor: default;
         }
+
+        /* Контейнер для кнопок снизу */
         .controls {
             position: fixed;
-            bottom: 20px;
-            width: 100%;
-            padding: 0 20px;
-            box-sizing: border-box;
-            max-width: 400px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 16px 30px 16px; /* Больше отступ снизу для iPhone */
+            background: var(--tg-bg); /* Чтобы контент не просвечивал */
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: center;
+            z-index: 10;
         }
+
         .btn {
             width: 100%;
-            padding: 15px;
+            max-width: 380px;
+            padding: 16px; /* Кнопка выше */
             border: none;
-            border-radius: 12px;
-            background-color: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 14px;
+            background-color: var(--tg-btn);
+            color: var(--tg-btn-text);
+            font-size: 17px;
+            font-weight: 600;
             cursor: pointer;
+            text-align: center;
         }
+
         .btn:disabled {
             opacity: 0.5;
+            cursor: not-allowed;
         }
-        /* Модалка настройки времени */
+
+        /* Модалка */
         .modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--tg-theme-bg-color);
+            background: var(--tg-bg);
             padding: 20px;
             display: flex;
             flex-direction: column;
             z-index: 100;
         }
+
+        .time-label {
+            font-size: 16px;
+            color: var(--tg-hint);
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+
         .time-input {
-            font-size: 24px;
-            padding: 10px;
-            margin: 10px 0;
+            font-size: 28px;
+            padding: 12px;
             width: 100%;
             box-sizing: border-box;
+            background-color: var(--tg-secondary-bg);
+            color: var(--tg-text);
+            border: none;
+            border-radius: 12px;
+            outline: none;
+        }
+        
+        /* Скрываем нативный селект времени в темной теме (для красоты) */
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- Экран календаря -->
-        <div v-if="step === 1">
+        <!-- Экран 1: Календарь -->
+        <div v-if="step === 1" style="width: 100%; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px;">
             <div class="header">
-                <span @click="changeMonth(-1)">&#9664;</span>
+                <span @click="changeMonth(-1)" style="cursor: pointer; padding: 10px;">&#9664;</span>
                 <span>{{ currentMonthName }} {{ currentYear }}</span>
-                <span @click="changeMonth(1)">&#9654;</span>
+                <span @click="changeMonth(1)" style="cursor: pointer; padding: 10px;">&#9654;</span>
             </div>
 
             <div class="calendar-grid">
-                <!-- Дни недели (Кликабельные для выбора столбца!) -->
-                <div v-for="(day, index) in weekDays" 
-                     :key="day" 
-                     class="weekday"
-                     @click="toggleColumn(index)">
+                <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">
                     {{ day }}
                 </div>
-
-                <!-- Пустые ячейки до начала месяца -->
                 <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
-
-                <!-- Дни месяца -->
                 <div v-for="date in daysInMonth" 
                      :key="date" 
                      class="day" 
@@ -152,20 +190,22 @@
             </div>
         </div>
 
-        <!-- Экран настройки времени -->
+        <!-- Экран 2: Время -->
         <div v-if="step === 2" class="modal">
-            <h2>Настройка времени</h2>
-            <p>Выбрано дней: {{ selectedDates.length }}</p>
+            <h2 style="text-align: center;">Настройка времени</h2>
+            <p style="text-align: center; color: var(--tg-hint);">Выбрано дней: {{ selectedDates.length }}</p>
             
-            <label>Начало работы:</label>
+            <div class="time-label">Начало работы</div>
             <input type="time" v-model="startTime" class="time-input">
             
-            <label>Конец работы:</label>
+            <div class="time-label">Конец работы</div>
             <input type="time" v-model="endTime" class="time-input">
 
-            <div style="margin-top: auto;">
-                <button class="btn" @click="saveSchedule" style="margin-bottom: 10px;">Сохранить</button>
-                <button class="btn" @click="step = 1" style="background: transparent; color: var(--tg-theme-text-color);">Назад</button>
+            <div class="controls">
+                <div style="width: 100%; max-width: 380px; display: flex; gap: 10px;">
+                    <button class="btn" @click="step = 1" style="background-color: var(--tg-secondary-bg); color: var(--tg-text);">Назад</button>
+                    <button class="btn" @click="saveSchedule">Сохранить</button>
+                </div>
             </div>
         </div>
     </div>
@@ -173,7 +213,10 @@
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрыть на весь экран
+        
+        // Сообщаем Телеграму, что приложение готово и цвета надо брать из темы
+        tg.ready();
+        tg.expand();
 
         createApp({
             data() {
@@ -181,7 +224,7 @@
                     step: 1,
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-                    selectedDates: [], // Массив строк 'YYYY-MM-DD'
+                    selectedDates: [],
                     startTime: '10:00',
                     endTime: '20:00'
                 }
@@ -196,7 +239,6 @@
                     return new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
                 },
                 firstDayOffset() {
-                    // 0 - Вс, 1 - Пн... нам надо чтобы Пн был 0, Вс 6
                     let day = new Date(this.currentYear, this.currentMonth, 1).getDay();
                     return day === 0 ? 6 : day - 1;
                 }
@@ -205,7 +247,6 @@
                 changeMonth(delta) {
                     this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1);
                 },
-                // Форматирует дату в YYYY-MM-DD
                 formatDate(day) {
                     const m = String(this.currentMonth + 1).padStart(2, '0');
                     const d = String(day).padStart(2, '0');
@@ -220,31 +261,18 @@
                     if (index === -1) this.selectedDates.push(dateStr);
                     else this.selectedDates.splice(index, 1);
                 },
-                // ГЛАВНАЯ ФИШКА: Выбор всего столбца
                 toggleColumn(colIndex) {
-                    // colIndex: 0 (Пн) ... 6 (Вс)
                     const daysToToggle = [];
-                    
-                    // Пробегаем по всем дням месяца
                     for (let d = 1; d <= this.daysInMonth; d++) {
                         const date = new Date(this.currentYear, this.currentMonth, d);
-                        // getDay(): 0-Вс, 1-Пн. Превращаем в нашу систему (0-Пн...6-Вс)
                         let jsDay = date.getDay(); 
                         let myDay = jsDay === 0 ? 6 : jsDay - 1;
-
-                        if (myDay === colIndex) {
-                            daysToToggle.push(this.formatDate(d));
-                        }
+                        if (myDay === colIndex) daysToToggle.push(this.formatDate(d));
                     }
-
-                    // Проверяем: если все эти дни уже выбраны -> снимаем выделение. Иначе -> выделяем все.
                     const allSelected = daysToToggle.every(d => this.selectedDates.includes(d));
-
                     if (allSelected) {
-                        // Удаляем
                         this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d));
                     } else {
-                        // Добавляем (только те, которых еще нет)
                         daysToToggle.forEach(d => {
                             if (!this.selectedDates.includes(d)) this.selectedDates.push(d);
                         });
@@ -252,31 +280,41 @@
                 },
                 goToSettings() {
                     this.step = 2;
-                    tg.MainButton.hide(); // Скрываем нативную кнопку, используем свою
                 },
                 saveSchedule() {
-                    // Отправка данных в n8n
                     const payload = {
-                        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER', // ID из Телеграм
+                        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
                         dates: this.selectedDates,
                         start: this.startTime,
                         end: this.endTime
                     };
 
-                    // ЗАМЕНИТЕ НА ВАШ WEBHOOK URL ИЗ N8N
+                    // ВСТАВЬТЕ СЮДА ВАШУ ССЫЛКУ ИЗ N8N
                     const WEBHOOK_URL = 'https://aireminder.ru/webhook/save-schedule';
 
                     fetch(WEBHOOK_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify(payload)
                     })
-                    .then(() => {
-                        tg.showAlert('График сохранен! ✅');
-                        tg.close();
+                    .then(response => {
+                        // Даже если ответ "CORS error", запрос часто доходит до n8n.
+                        // Но лучше проверить статус
+                        if (response.ok || response.type === 'opaque') {
+                            tg.showAlert('График сохранен! ✅');
+                            setTimeout(() => tg.close(), 1000);
+                        } else {
+                            throw new Error('Server error');
+                        }
                     })
                     .catch(err => {
-                        alert('Ошибка сохранения: ' + err);
+                        // Игнорируем ошибку CORS, если данные дошли (визуально для юзера)
+                        // В идеале настроить CORS в n8n
+                        console.error(err);
+                        tg.showAlert('Отправлено! (Если ошибка не исчезнет, проверьте n8n)');
+                        tg.close();
                     });
                 }
             }

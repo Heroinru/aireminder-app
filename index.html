@@ -8,12 +8,15 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root {
+            /* Цвета Telegram */
             --tg-bg: var(--tg-theme-bg-color, #ffffff);
             --tg-text: var(--tg-theme-text-color, #000000);
             --tg-hint: var(--tg-theme-hint-color, #999999);
             --tg-btn: var(--tg-theme-button-color, #3390ec);
             --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
-            --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            
+            /* Фон ячеек: светло-серый для светлой темы, темно-серый для темной */
+            --cell-bg: var(--tg-theme-secondary-bg-color, #efeff4);
         }
 
         body {
@@ -21,59 +24,78 @@
             background-color: var(--tg-bg);
             color: var(--tg-text);
             margin: 0;
-            padding: 10px;
+            padding: 12px; /* Небольшой отступ от краев экрана */
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* Заголовок месяца */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             font-size: 20px;
             font-weight: 600;
+            text-transform: capitalize; /* Первая буква заглавная */
         }
 
+        .arrow-btn {
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--tg-btn); /* Стрелки синие, как в iOS */
+        }
+
+        /* Сетка календаря */
         .calendar-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px; /* Маленький зазор = большие ячейки */
+            grid-template-columns: repeat(7, 1fr); /* 7 равных колонок */
+            gap: 6px; /* Расстояние между ячейками */
             width: 100%;
         }
 
+        /* Дни недели */
         .weekday {
             text-align: center;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--tg-hint);
-            padding-bottom: 5px;
+            padding-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
         }
 
+        /* Ячейка дня */
         .day {
-            aspect-ratio: 1;
+            aspect-ratio: 1; /* Делает ячейку строго квадратной */
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
-            background-color: var(--tg-secondary-bg); 
+            border-radius: 8px; /* Скругление углов */
+            background-color: var(--cell-bg); /* Серый фон */
             color: var(--tg-text);
-            font-size: 18px;
-            font-weight: 400; /* ВЕРНУЛИ ТОНКИЙ ШРИФТ */
+            font-size: 20px; /* Крупный шрифт цифр */
+            font-weight: 400; /* Обычная толщина (не жирный) */
             cursor: pointer;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.1s;
         }
 
         .day:active {
             opacity: 0.7;
         }
 
+        /* Выбранный день */
         .day.selected {
-            background-color: var(--tg-btn);
-            color: var(--tg-btn-text);
-            font-weight: 600; /* Выделенные делаем жирными */
+            background-color: var(--tg-btn); /* Синий фон */
+            color: var(--tg-btn-text); /* Белый текст */
+            font-weight: 500;
         }
 
         .day.empty {
@@ -81,39 +103,115 @@
             cursor: default;
         }
 
-        /* Остальные стили без изменений */
-        .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px; background: var(--tg-bg); box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 10; }
-        .btn { width: 100%; padding: 18px; border: none; border-radius: 14px; background-color: var(--tg-btn); color: var(--tg-btn-text); font-size: 18px; font-weight: 700; cursor: pointer; }
-        .btn:disabled { opacity: 0.5; }
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; }
-        .time-input { font-size: 32px; padding: 15px; width: 100%; box-sizing: border-box; background-color: var(--tg-secondary-bg); color: var(--tg-text); border: none; border-radius: 12px; margin-top: 10px; margin-bottom: 20px; text-align: center; }
+        /* Кнопка внизу */
+        .controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background: var(--tg-bg);
+            /* Размытие фона под кнопкой (как в iOS) */
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--tg-btn);
+            color: var(--tg-btn-text);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+        }
+
+        /* Модальное окно настроек */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--tg-bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .time-input {
+            font-size: 36px;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: var(--cell-bg);
+            color: var(--tg-text);
+            border: none;
+            border-radius: 12px;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 300;
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- HTML структура без изменений -->
+        <!-- ЭКРАН 1: КАЛЕНДАРЬ -->
         <div v-if="step === 1" style="width: 100%; padding-bottom: 100px;">
             <div class="header">
-                <span @click="changeMonth(-1)" style="padding: 10px;">&#9664;</span>
+                <span class="arrow-btn" @click="changeMonth(-1)">&#9664;</span>
                 <span>{{ currentMonthName }}</span>
-                <span @click="changeMonth(1)" style="padding: 10px;">&#9654;</span>
+                <span class="arrow-btn" @click="changeMonth(1)">&#9654;</span>
             </div>
+
             <div class="calendar-grid">
-                <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">{{ day }}</div>
-                <div v-for="n in firstDayOffset" class="day empty"></div>
-                <div v-for="date in daysInMonth" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">{{ date }}</div>
+                <!-- Дни недели (Кликабельные) -->
+                <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">
+                    {{ day }}
+                </div>
+
+                <!-- Пустые ячейки -->
+                <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
+
+                <!-- Числа -->
+                <div v-for="date in daysInMonth" 
+                     :key="date" 
+                     class="day" 
+                     :class="{ selected: isSelected(date) }"
+                     @click="toggleDay(date)">
+                    {{ date }}
+                </div>
             </div>
-            <div class="controls"><button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">Настроить ({{ selectedDates.length }})</button></div>
+
+            <div class="controls">
+                <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+                    Настроить ({{ selectedDates.length }})
+                </button>
+            </div>
         </div>
+
+        <!-- ЭКРАН 2: ВРЕМЯ -->
         <div v-if="step === 2" class="modal">
-            <h2 style="text-align: center;">Время работы</h2>
-            <p style="text-align: center; color: var(--tg-hint);">Дней: {{ selectedDates.length }}</p>
-            <label style="font-weight: bold; color: var(--tg-hint);">С</label>
+            <h2 style="text-align: center; font-weight: 600;">Настройка времени</h2>
+            <p style="text-align: center; color: var(--tg-hint); margin-bottom: 40px;">
+                Выбрано дней: {{ selectedDates.length }}
+            </p>
+            
+            <div style="font-weight: 500; color: var(--tg-hint); margin-bottom: 5px;">НАЧАЛО РАБОТЫ</div>
             <input type="time" v-model="startTime" class="time-input">
-            <label style="font-weight: bold; color: var(--tg-hint);">ДО</label>
+            
+            <div style="font-weight: 500; color: var(--tg-hint); margin-bottom: 5px;">КОНЕЦ РАБОТЫ</div>
             <input type="time" v-model="endTime" class="time-input">
+
             <div style="margin-top: auto; display: flex; gap: 10px;">
-                <button class="btn" @click="step = 1" style="background-color: var(--tg-secondary-bg); color: var(--tg-text);">Назад</button>
+                <button class="btn" @click="step = 1" style="background-color: var(--cell-bg); color: var(--tg-text);">Назад</button>
                 <button class="btn" @click="saveSchedule">Сохранить</button>
             </div>
         </div>
@@ -122,42 +220,100 @@
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
+        
         tg.ready();
-        tg.expand();
+        tg.expand(); // Раскрыть на весь экран
 
-        // --- ВАШ URL ИЗ N8N ---
+        // --- ВСТАВЬТЕ СЮДА ВАШ PRODUCTION URL ИЗ N8N ---
         const WEBHOOK_URL = 'https://aireminder.ru/webhook/save-schedule'; 
 
         createApp({
-            data() { return { step: 1, currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'], selectedDates: [], startTime: '10:00', endTime: '20:00' } },
+            data() {
+                return {
+                    step: 1,
+                    currentDate: new Date(),
+                    weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                    selectedDates: [],
+                    startTime: '10:00',
+                    endTime: '20:00'
+                }
+            },
             computed: {
                 currentYear() { return this.currentDate.getFullYear(); },
                 currentMonth() { return this.currentDate.getMonth(); },
-                currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long' }); },
-                daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
-                firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; }
+                currentMonthName() {
+                    // Пишем месяц и год (Декабрь 2025)
+                    return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', '');
+                },
+                daysInMonth() {
+                    return new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+                },
+                firstDayOffset() {
+                    let day = new Date(this.currentYear, this.currentMonth, 1).getDay();
+                    return day === 0 ? 6 : day - 1;
+                }
             },
             methods: {
-                changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
-                formatDate(day) { const m = String(this.currentMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); return `${this.currentYear}-${m}-${d}`; },
-                isSelected(day) { return this.selectedDates.includes(this.formatDate(day)); },
-                toggleDay(day) { const dateStr = this.formatDate(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
-                toggleColumn(colIndex) { const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
-                goToSettings() { this.step = 2; },
+                changeMonth(delta) {
+                    this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1);
+                },
+                formatDate(day) {
+                    const m = String(this.currentMonth + 1).padStart(2, '0');
+                    const d = String(day).padStart(2, '0');
+                    return `${this.currentYear}-${m}-${d}`;
+                },
+                isSelected(day) {
+                    return this.selectedDates.includes(this.formatDate(day));
+                },
+                toggleDay(day) {
+                    const dateStr = this.formatDate(day);
+                    const index = this.selectedDates.indexOf(dateStr);
+                    if (index === -1) this.selectedDates.push(dateStr);
+                    else this.selectedDates.splice(index, 1);
+                },
+                toggleColumn(colIndex) {
+                    const daysToToggle = [];
+                    for (let d = 1; d <= this.daysInMonth; d++) {
+                        const date = new Date(this.currentYear, this.currentMonth, d);
+                        let jsDay = date.getDay(); 
+                        let myDay = jsDay === 0 ? 6 : jsDay - 1;
+                        if (myDay === colIndex) daysToToggle.push(this.formatDate(d));
+                    }
+                    const allSelected = daysToToggle.every(d => this.selectedDates.includes(d));
+                    if (allSelected) {
+                        this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d));
+                    } else {
+                        daysToToggle.forEach(d => {
+                            if (!this.selectedDates.includes(d)) this.selectedDates.push(d);
+                        });
+                    }
+                },
+                goToSettings() {
+                    this.step = 2;
+                },
                 saveSchedule() {
-                    const payload = { master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER', dates: this.selectedDates, start: this.startTime, end: this.endTime };
+                    const payload = {
+                        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
+                        dates: this.selectedDates,
+                        start: this.startTime,
+                        end: this.endTime
+                    };
 
-                    // --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+                    // Обычный POST запрос (без no-cors)
                     fetch(WEBHOOK_URL, {
                         method: 'POST',
-                        mode: 'no-cors', // Говорим браузеру "просто отправь и забудь"
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify(payload)
+                    })
+                    .then(res => {
+                        tg.showAlert('График сохранен! ✅');
+                        setTimeout(() => tg.close(), 500);
+                    })
+                    .catch(err => {
+                        tg.showAlert('Ошибка: ' + err);
                     });
-                    
-                    // Так как мы не ждем ответа, сразу показываем успех
-                    tg.showAlert('График сохранен! ✅');
-                    setTimeout(() => tg.close(), 500);
                 }
             }
         }).mount('#app');

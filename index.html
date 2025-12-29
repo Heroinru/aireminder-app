@@ -15,47 +15,33 @@
             --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
             --tg-red: #ff3b30;
             --cell-bg: var(--tg-theme-secondary-bg-color, #efeff4);
+            --has-data-color: #34c759; /* Зеленый для заполненных дней */
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-bg);
-            color: var(--tg-text);
-            margin: 0;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
-
-        /* Календарь */
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--tg-bg); color: var(--tg-text); margin: 0; padding: 12px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; }
         .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; font-size: 20px; font-weight: 600; text-transform: capitalize; }
         .arrow-btn { padding: 10px 20px; font-size: 20px; cursor: pointer; color: var(--tg-btn); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
         .weekday { text-align: center; font-size: 13px; color: var(--tg-hint); padding-bottom: 8px; font-weight: 500; text-transform: uppercase; }
-        .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; background-color: var(--cell-bg); color: var(--tg-text); font-size: 20px; font-weight: 400; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        .day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; background-color: var(--cell-bg); color: var(--tg-text); font-size: 20px; font-weight: 400; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; position: relative; }
         .day.selected { background-color: var(--tg-btn); color: var(--tg-btn-text); font-weight: 500; }
-        .day.empty { background-color: transparent; cursor: default; }
+        
+        /* Индикатор наличия графика (точка) */
+        .dot { width: 6px; height: 6px; background-color: var(--has-data-color); border-radius: 50%; position: absolute; bottom: 6px; }
+        .day.selected .dot { background-color: white; }
 
-        /* Кнопки управления */
+        .day.empty { background-color: transparent; cursor: default; }
         .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; }
         .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; background-color: var(--tg-btn); color: var(--tg-btn-text); font-size: 17px; font-weight: 600; cursor: pointer; }
         .btn:disabled { opacity: 0.5; }
-        .btn-outline { background-color: transparent; border: 2px solid var(--tg-btn); color: var(--tg-btn); margin-bottom: 10px; }
-        .btn-danger { background-color: var(--tg-red); color: white; width: auto; padding: 10px 15px; font-size: 14px; }
-
-        /* Модалка */
         .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
-        
         .time-row { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
         .time-group { flex: 1; }
         .label { font-size: 14px; color: var(--tg-hint); margin-bottom: 5px; font-weight: 500; }
         .time-input { font-size: 22px; padding: 12px; width: 100%; box-sizing: border-box; background-color: var(--cell-bg); color: var(--tg-text); border: none; border-radius: 10px; text-align: center; }
-        
         .breaks-list { margin-top: 20px; margin-bottom: 20px; }
-        .break-item { background-color: var(--cell-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; position: relative; }
+        .break-item { background-color: var(--cell-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
         .break-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .break-title { font-weight: 600; font-size: 15px; }
     </style>
@@ -72,58 +58,50 @@
             <div class="calendar-grid">
                 <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">{{ day }}</div>
                 <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
-                <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">{{ date }}</div>
+                <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">
+                    {{ date }}
+                    <!-- Точка, если есть данные -->
+                    <div v-if="hasData(date)" class="dot"></div>
+                </div>
             </div>
             <div class="controls">
-                <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">Настроить ({{ selectedDates.length }})</button>
+                <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+                    {{ selectedDates.length > 0 ? 'Настроить (' + selectedDates.length + ')' : 'Выберите дни' }}
+                </button>
             </div>
         </div>
 
-        <!-- ЭКРАН 2: ВРЕМЯ И ПЕРЕРЫВЫ -->
+        <!-- ЭКРАН 2: НАСТРОЙКИ -->
         <div v-if="step === 2" class="modal">
             <h2 style="text-align: center; margin-top: 0;">Настройка смены</h2>
-            <p style="text-align: center; color: var(--tg-hint); margin-bottom: 20px;">Выбрано дней: {{ selectedDates.length }}</p>
+            <p style="text-align: center; color: var(--tg-hint); margin-bottom: 20px;">
+                {{ selectedDates.length === 1 ? 'Настройка для ' + formatDateRu(selectedDates[0]) : 'Выбрано дней: ' + selectedDates.length }}
+            </p>
             
-            <!-- Основное время -->
             <div class="time-row">
-                <div class="time-group">
-                    <div class="label">НАЧАЛО</div>
-                    <input type="time" v-model="startTime" class="time-input">
-                </div>
-                <div class="time-group">
-                    <div class="label">КОНЕЦ</div>
-                    <input type="time" v-model="endTime" class="time-input">
-                </div>
+                <div class="time-group"><div class="label">НАЧАЛО</div><input type="time" v-model="startTime" class="time-input"></div>
+                <div class="time-group"><div class="label">КОНЕЦ</div><input type="time" v-model="endTime" class="time-input"></div>
             </div>
 
             <hr style="border: 0; border-top: 1px solid var(--cell-bg); width: 100%; margin: 20px 0;">
 
-            <!-- Перерывы -->
             <div class="breaks-list">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <span style="font-weight: 600; font-size: 18px;">Перерывы</span>
                     <button class="btn" @click="addBreak" style="width: auto; padding: 8px 12px; font-size: 14px; background-color: var(--cell-bg); color: var(--tg-btn);">+ Добавить</button>
                 </div>
-
                 <div v-for="(brk, index) in breaks" :key="index" class="break-item">
                     <div class="break-header">
                         <span class="break-title">Перерыв {{ index + 1 }}</span>
                         <span @click="removeBreak(index)" style="color: var(--tg-red); cursor: pointer; font-weight: 500;">Удалить</span>
                     </div>
                     <div class="time-row" style="margin-bottom: 0;">
-                        <div class="time-group">
-                            <input type="time" v-model="brk.start" class="time-input">
-                        </div>
+                        <div class="time-group"><input type="time" v-model="brk.start" class="time-input"></div>
                         <div style="padding-top: 10px;">-</div>
-                        <div class="time-group">
-                            <input type="time" v-model="brk.end" class="time-input">
-                        </div>
+                        <div class="time-group"><input type="time" v-model="brk.end" class="time-input"></div>
                     </div>
                 </div>
-                
-                <div v-if="breaks.length === 0" style="text-align: center; color: var(--tg-hint); padding: 10px;">
-                    Нет перерывов
-                </div>
+                <div v-if="breaks.length === 0" style="text-align: center; color: var(--tg-hint); padding: 10px;">Нет перерывов</div>
             </div>
 
             <div style="margin-top: auto; padding-top: 20px; display: flex; gap: 10px;">
@@ -136,8 +114,7 @@
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        tg.ready(); tg.expand();
 
         // --- ВАШ URL ---
         const WEBHOOK_URL = 'https://aireminder.ru/webhook/save-schedule'; 
@@ -151,7 +128,8 @@
                     selectedDates: [],
                     startTime: '10:00',
                     endTime: '20:00',
-                    breaks: [] // Массив перерывов: [{start: '13:00', end: '14:00'}]
+                    breaks: [],
+                    dbData: {} // Здесь храним загруженный график: { "2025-01-01": {start:.., end:.., breaks:..} }
                 }
             },
             computed: {
@@ -161,53 +139,96 @@
                 daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; }
             },
+            mounted() {
+                this.loadSchedule(); // Загружаем данные при старте
+            },
             methods: {
+                // Загрузка данных из n8n
+                loadSchedule() {
+                    const masterId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
+                    fetch(`${WEBHOOK_URL}?master_id=${masterId}`, { method: 'GET' })
+                    .then(res => res.json())
+                    .then(data => {
+                        // Преобразуем массив из БД в удобный объект
+                        data.forEach(row => {
+                            let brk = [];
+                            try { brk = JSON.parse(row.breaks); } catch(e) {}
+                            
+                            this.dbData[row.work_date] = {
+                                start: row.start_time,
+                                end: row.end_time,
+                                breaks: brk
+                            };
+                        });
+                    })
+                    .catch(err => console.error('Load error:', err));
+                },
+                
+                hasData(day) {
+                    return !!this.dbData[this.formatDate(day)];
+                },
+
+                goToSettings() {
+                    // Если выбран ОДИН день и для него есть данные -> подгружаем их
+                    if (this.selectedDates.length === 1) {
+                        const date = this.selectedDates[0];
+                        if (this.dbData[date]) {
+                            this.startTime = this.dbData[date].start;
+                            this.endTime = this.dbData[date].end;
+                            this.breaks = JSON.parse(JSON.stringify(this.dbData[date].breaks)); // Клон массива
+                        } else {
+                            // Сброс к дефолту, если данных нет
+                            this.startTime = '10:00';
+                            this.endTime = '20:00';
+                            this.breaks = [];
+                        }
+                    } 
+                    // Если выбрано МНОГО дней -> оставляем как есть (или сбрасываем), чтобы применить массово
+                    
+                    this.step = 2;
+                },
+
+                saveSchedule() {
+                    const payload = {
+                        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
+                        dates: this.selectedDates,
+                        start: this.startTime,
+                        end: this.endTime,
+                        breaks: this.breaks
+                    };
+
+                    fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => {
+                        tg.showAlert('Сохранено!');
+                        
+                        // Обновляем локальные данные (чтобы появились точки без перезагрузки)
+                        this.selectedDates.forEach(date => {
+                            this.dbData[date] = {
+                                start: this.startTime,
+                                end: this.endTime,
+                                breaks: JSON.parse(JSON.stringify(this.breaks))
+                            };
+                        });
+
+                        this.selectedDates = [];
+                        this.step = 1;
+                    })
+                    .catch(err => tg.showAlert('Ошибка: ' + err));
+                },
+
+                // Вспомогательные функции
                 changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
                 formatDate(day) { const m = String(this.currentMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); return `${this.currentYear}-${m}-${d}`; },
+                formatDateRu(dateStr) { const d = new Date(dateStr); return d.toLocaleDateString('ru', {day: 'numeric', month: 'long'}); },
                 isSelected(day) { return this.selectedDates.includes(this.formatDate(day)); },
                 toggleDay(day) { const dateStr = this.formatDate(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
                 toggleColumn(colIndex) { const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
-                goToSettings() { this.step = 2; },
-                
-                // --- Управление перерывами ---
-                addBreak() {
-                    this.breaks.push({ start: '13:00', end: '14:00' });
-                },
-                removeBreak(index) {
-                    this.breaks.splice(index, 1);
-                },
-
-               saveSchedule() {
-    const payload = {
-        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
-        dates: this.selectedDates,
-        start: this.startTime,
-        end: this.endTime,
-        breaks: this.breaks
-    };
-
-    fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        // 1. Показываем уведомление
-        tg.showAlert(`Готово! Сохранено дней: ${this.selectedDates.length}`);
-        
-        // 2. Сбрасываем выбор, чтобы можно было выбрать новые дни
-        this.selectedDates = [];
-        
-        // 3. Сбрасываем перерывы (или оставьте, если хотите, чтобы они сохранялись для следующих дней)
-        this.breaks = []; 
-        
-        // 4. Возвращаемся на календарь
-        this.step = 1; 
-    })
-    .catch(err => {
-        tg.showAlert('Ошибка: ' + err);
-    });
-}
+                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
+                removeBreak(index) { this.breaks.splice(index, 1); }
             }
         }).mount('#app');
     </script>

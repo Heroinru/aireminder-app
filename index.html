@@ -128,7 +128,7 @@
         // --- URL ВЕБХУКОВ ---
         const API_BASE = 'https://aireminder.ru/webhook'; 
         const SAVE_URL = `${API_BASE}/save-schedule`;
-        const SLOTS_URL = `${API_BASE}/get-free-slots`; // Новый вебхук в C1
+        const SLOTS_URL = `${API_BASE}/get-free-slots`;
 
         createApp({
             data() {
@@ -139,7 +139,7 @@
                     selectedDates: [],
                     startTime: '10:00',
                     endTime: '20:00',
-                    slotDuration: 60,
+                    slotDuration: 60, // Значение по умолчанию
                     breaks: [],
                     dbData: {} 
                 }
@@ -160,24 +160,38 @@
                     fetch(`${SAVE_URL}?master_id=${masterId}`, { method: 'GET' })
                     .then(res => res.json())
                     .then(data => {
-                        data.forEach(row => {
+                        // 1. Считываем глобальную настройку длительности (если есть)
+                        // Поддержка нового формата { settings: {...}, schedule: [...] }
+                        if (!Array.isArray(data) && data.settings) {
+                            if (data.settings.slot_duration) {
+                                this.slotDuration = parseInt(data.settings.slot_duration);
+                            }
+                        }
+
+                        // 2. Считываем график
+                        // Если data - массив (старый формат), используем его. Если объект (новый), берем data.schedule
+                        const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+                        
+                        scheduleList.forEach(row => {
                             let brk = [];
                             try { brk = JSON.parse(row.breaks); } catch(e) {}
-                            this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                            
+                            this.dbData[row.work_date] = {
+                                start: row.start_time,
+                                end: row.end_time,
+                                breaks: brk
+                            };
                         });
-                    });
+                    })
+                    .catch(err => console.error('Load error:', err));
                 },
                 
                 hasData(day) { return !!this.dbData[this.formatDate(day)]; },
 
-                // --- НОВАЯ ФУНКЦИЯ: ЗАПРОС СЛОТОВ ---
                 getFreeSlots() {
                     const masterId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
-                    
-                    // Сортируем даты, чтобы было красиво
                     const sortedDates = [...this.selectedDates].sort();
 
-                    // Отправляем запрос в n8n (C1)
                     fetch(SLOTS_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -187,7 +201,6 @@
                         })
                     })
                     .then(() => {
-                        // Закрываем приложение, бот пришлет ответ в чат
                         tg.close();
                     })
                     .catch(err => tg.showAlert('Ошибка: ' + err));
@@ -206,6 +219,7 @@
                             this.breaks = [];
                         }
                     }
+                    // slotDuration не сбрасываем, он глобальный
                     this.step = 2;
                 },
 

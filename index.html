@@ -30,8 +30,9 @@
         .day.selected .dot { background-color: white; }
         .day.empty { background-color: transparent; cursor: default; }
         
-        .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; }
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; background-color: var(--tg-btn); color: var(--tg-btn-text); font-size: 17px; font-weight: 600; cursor: pointer; }
+        .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 16px; border: none; border-radius: 12px; background-color: var(--tg-btn); color: var(--tg-btn-text); font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; }
+        .btn.secondary { background-color: var(--cell-bg); color: var(--tg-btn); }
         .btn:disabled { opacity: 0.5; }
         
         .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
@@ -43,7 +44,6 @@
         .breaks-list { margin-top: 20px; margin-bottom: 20px; }
         .break-item { background-color: var(--cell-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
         .break-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .break-title { font-weight: 600; font-size: 15px; }
     </style>
 </head>
 <body>
@@ -64,36 +64,37 @@
                 </div>
             </div>
             <div class="controls">
+                <!-- Кнопка Свободные окошки -->
+                <button class="btn secondary" @click="getFreeSlots" :disabled="selectedDates.length === 0">
+                    🔍 Окошки
+                </button>
+                <!-- Кнопка Настроить -->
                 <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
-                    {{ selectedDates.length > 0 ? 'Настроить (' + selectedDates.length + ')' : 'Выберите дни' }}
+                    ⚙️ Настроить
                 </button>
             </div>
         </div>
 
         <!-- ЭКРАН 2: НАСТРОЙКИ -->
         <div v-if="step === 2" class="modal">
-            <h2 style="text-align: center; margin-top: 0;">Настройка смены</h2>
+            <h2 style="text-align: center; margin-top: 0;">Настройка</h2>
             <p style="text-align: center; color: var(--tg-hint); margin-bottom: 20px;">
-                {{ selectedDates.length === 1 ? 'Настройка для ' + formatDateRu(selectedDates[0]) : 'Выбрано дней: ' + selectedDates.length }}
+                {{ selectedDates.length === 1 ? formatDateRu(selectedDates[0]) : 'Дней: ' + selectedDates.length }}
             </p>
             
-            <!-- ВРЕМЯ РАБОТЫ -->
             <div class="time-row">
                 <div class="time-group"><div class="label">НАЧАЛО</div><input type="time" v-model="startTime" class="time-input"></div>
                 <div class="time-group"><div class="label">КОНЕЦ</div><input type="time" v-model="endTime" class="time-input"></div>
             </div>
-
-            <!-- ДЛИТЕЛЬНОСТЬ ПРИЕМА (НОВОЕ ПОЛЕ) -->
             <div class="time-row">
                 <div class="time-group">
-                    <div class="label">ДЛИТЕЛЬНОСТЬ ПРИЕМА (МИН)</div>
+                    <div class="label">ДЛИТЕЛЬНОСТЬ (МИН)</div>
                     <input type="number" v-model="slotDuration" step="15" min="15" class="time-input" placeholder="60">
                 </div>
             </div>
 
             <hr style="border: 0; border-top: 1px solid var(--cell-bg); width: 100%; margin: 20px 0;">
 
-            <!-- ПЕРЕРЫВЫ -->
             <div class="breaks-list">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <span style="font-weight: 600; font-size: 18px;">Перерывы</span>
@@ -101,8 +102,8 @@
                 </div>
                 <div v-for="(brk, index) in breaks" :key="index" class="break-item">
                     <div class="break-header">
-                        <span class="break-title">Перерыв {{ index + 1 }}</span>
-                        <span @click="removeBreak(index)" style="color: var(--tg-red); cursor: pointer; font-weight: 500;">Удалить</span>
+                        <span style="font-weight: 600;">Перерыв {{ index + 1 }}</span>
+                        <span @click="removeBreak(index)" style="color: var(--tg-red); cursor: pointer;">Удалить</span>
                     </div>
                     <div class="time-row" style="margin-bottom: 0;">
                         <div class="time-group"><input type="time" v-model="brk.start" class="time-input"></div>
@@ -110,11 +111,10 @@
                         <div class="time-group"><input type="time" v-model="brk.end" class="time-input"></div>
                     </div>
                 </div>
-                <div v-if="breaks.length === 0" style="text-align: center; color: var(--tg-hint); padding: 10px;">Нет перерывов</div>
             </div>
 
             <div style="margin-top: auto; padding-top: 20px; display: flex; gap: 10px;">
-                <button class="btn" @click="step = 1" style="background-color: var(--cell-bg); color: var(--tg-text);">Назад</button>
+                <button class="btn secondary" @click="step = 1">Назад</button>
                 <button class="btn" @click="saveSchedule">Сохранить</button>
             </div>
         </div>
@@ -125,8 +125,10 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
-        // --- ВАШ URL ---
-        const WEBHOOK_URL = 'https://aireminder.ru/webhook/save-schedule'; 
+        // --- URL ВЕБХУКОВ ---
+        const API_BASE = 'https://aireminder.ru/webhook'; 
+        const SAVE_URL = `${API_BASE}/save-schedule`;
+        const SLOTS_URL = `${API_BASE}/get-free-slots`; // Новый вебхук в C1
 
         createApp({
             data() {
@@ -137,7 +139,7 @@
                     selectedDates: [],
                     startTime: '10:00',
                     endTime: '20:00',
-                    slotDuration: 60, // Новое поле: длительность по умолчанию
+                    slotDuration: 60,
                     breaks: [],
                     dbData: {} 
                 }
@@ -155,26 +157,41 @@
             methods: {
                 loadSchedule() {
                     const masterId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
-                    fetch(`${WEBHOOK_URL}?master_id=${masterId}`, { method: 'GET' })
+                    fetch(`${SAVE_URL}?master_id=${masterId}`, { method: 'GET' })
                     .then(res => res.json())
                     .then(data => {
                         data.forEach(row => {
                             let brk = [];
                             try { brk = JSON.parse(row.breaks); } catch(e) {}
-                            
-                            this.dbData[row.work_date] = {
-                                start: row.start_time,
-                                end: row.end_time,
-                                breaks: brk
-                                // Мы не сохраняем duration в день, так как договорились о глобальной настройке,
-                                // но отправляем его при сохранении.
-                            };
+                            this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
                         });
-                    })
-                    .catch(err => console.error('Load error:', err));
+                    });
                 },
                 
                 hasData(day) { return !!this.dbData[this.formatDate(day)]; },
+
+                // --- НОВАЯ ФУНКЦИЯ: ЗАПРОС СЛОТОВ ---
+                getFreeSlots() {
+                    const masterId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
+                    
+                    // Сортируем даты, чтобы было красиво
+                    const sortedDates = [...this.selectedDates].sort();
+
+                    // Отправляем запрос в n8n (C1)
+                    fetch(SLOTS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            master_id: masterId,
+                            dates: sortedDates
+                        })
+                    })
+                    .then(() => {
+                        // Закрываем приложение, бот пришлет ответ в чат
+                        tg.close();
+                    })
+                    .catch(err => tg.showAlert('Ошибка: ' + err));
+                },
 
                 goToSettings() {
                     if (this.selectedDates.length === 1) {
@@ -189,7 +206,6 @@
                             this.breaks = [];
                         }
                     }
-                    // slotDuration оставляем глобальным (какой ввели последний раз, такой и висит)
                     this.step = 2;
                 },
 
@@ -200,10 +216,10 @@
                         start: this.startTime,
                         end: this.endTime,
                         breaks: this.breaks,
-                        slot_duration: this.slotDuration // Отправляем длительность
+                        slot_duration: this.slotDuration
                     };
 
-                    fetch(WEBHOOK_URL, {
+                    fetch(SAVE_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -211,11 +227,7 @@
                     .then(res => {
                         tg.showAlert('Сохранено!');
                         this.selectedDates.forEach(date => {
-                            this.dbData[date] = {
-                                start: this.startTime,
-                                end: this.endTime,
-                                breaks: JSON.parse(JSON.stringify(this.breaks))
-                            };
+                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) };
                         });
                         this.selectedDates = [];
                         this.step = 1;

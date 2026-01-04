@@ -3,44 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>График работы</title>
+    <title>Запись</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        :root {
-            --tg-bg: var(--tg-theme-bg-color, #ffffff);
-            --tg-text: var(--tg-theme-text-color, #000000);
-            --tg-hint: var(--tg-theme-hint-color, #999999);
-            --tg-btn: var(--tg-theme-button-color, #3390ec);
-            --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
-            --tg-red: #ff3b30;
-            --cell-bg: var(--tg-theme-secondary-bg-color, #efeff4);
-            --has-data-color: #34c759;
-        }
-
+        /* ... (Стили те же, что и были, без изменений) ... */
+        :root { --tg-bg: var(--tg-theme-bg-color, #ffffff); --tg-text: var(--tg-theme-text-color, #000000); --tg-hint: var(--tg-theme-hint-color, #999999); --tg-btn: var(--tg-theme-button-color, #3390ec); --tg-btn-text: var(--tg-theme-button-text-color, #ffffff); --tg-red: #ff3b30; --cell-bg: var(--tg-theme-secondary-bg-color, #efeff4); --has-data-color: #34c759; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--tg-bg); color: var(--tg-text); margin: 0; padding: 12px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; }
         .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; font-size: 20px; font-weight: 600; text-transform: capitalize; }
         .arrow-btn { padding: 10px 20px; font-size: 20px; cursor: pointer; color: var(--tg-btn); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
         .weekday { text-align: center; font-size: 13px; color: var(--tg-hint); padding-bottom: 8px; font-weight: 500; text-transform: uppercase; }
-        
         .day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; background-color: var(--cell-bg); color: var(--tg-text); font-size: 20px; font-weight: 400; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; position: relative; }
         .day.selected { background-color: var(--tg-btn); color: var(--tg-btn-text); font-weight: 500; }
         .dot { width: 6px; height: 6px; background-color: var(--has-data-color); border-radius: 50%; position: absolute; bottom: 6px; }
         .day.selected .dot { background-color: white; }
         .day.empty { background-color: transparent; cursor: default; }
-        
         .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
         .btn { flex: 1; padding: 16px; border: none; border-radius: 12px; background-color: var(--tg-btn); color: var(--tg-btn-text); font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; }
         .btn.secondary { background-color: var(--cell-bg); color: var(--tg-btn); }
         .btn:disabled { opacity: 0.5; }
-        
         .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
         .time-row { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
         .time-group { flex: 1; }
         .label { font-size: 14px; color: var(--tg-hint); margin-bottom: 5px; font-weight: 500; }
         .time-input { font-size: 22px; padding: 12px; width: 100%; box-sizing: border-box; background-color: var(--cell-bg); color: var(--tg-text); border: none; border-radius: 10px; text-align: center; }
-        
         .breaks-list { margin-top: 20px; margin-bottom: 20px; }
         .break-item { background-color: var(--cell-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
         .break-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -64,18 +51,19 @@
                 </div>
             </div>
             <div class="controls">
-                <!-- Кнопка Свободные окошки -->
-                <button class="btn secondary" @click="getFreeSlots" :disabled="selectedDates.length === 0">
-                    🔍 Окошки
+                <!-- Кнопка Окошки (Видна всем) -->
+                <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">
+                    {{ isClientMode ? 'Показать время' : '🔍 Окошки' }}
                 </button>
-                <!-- Кнопка Настроить -->
-                <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+                
+                <!-- Кнопка Настроить (Только для Мастера) -->
+                <button v-if="!isClientMode" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0">
                     ⚙️ Настроить
                 </button>
             </div>
         </div>
 
-        <!-- ЭКРАН 2: НАСТРОЙКИ -->
+        <!-- ЭКРАН 2: НАСТРОЙКИ (Только для Мастера) -->
         <div v-if="step === 2" class="modal">
             <h2 style="text-align: center; margin-top: 0;">Настройка</h2>
             <p style="text-align: center; color: var(--tg-hint); margin-bottom: 20px;">
@@ -92,9 +80,7 @@
                     <input type="number" v-model="slotDuration" step="15" min="15" class="time-input" placeholder="60">
                 </div>
             </div>
-
             <hr style="border: 0; border-top: 1px solid var(--cell-bg); width: 100%; margin: 20px 0;">
-
             <div class="breaks-list">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <span style="font-weight: 600; font-size: 18px;">Перерывы</span>
@@ -112,7 +98,6 @@
                     </div>
                 </div>
             </div>
-
             <div style="margin-top: auto; padding-top: 20px; display: flex; gap: 10px;">
                 <button class="btn secondary" @click="step = 1">Назад</button>
                 <button class="btn" @click="saveSchedule">Сохранить</button>
@@ -125,7 +110,6 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
-        // --- URL ВЕБХУКОВ ---
         const API_BASE = 'https://aireminder.ru/webhook'; 
         const SAVE_URL = `${API_BASE}/save-schedule`;
         const SLOTS_URL = `${API_BASE}/get-free-slots`;
@@ -137,11 +121,11 @@
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
                     selectedDates: [],
-                    startTime: '10:00',
-                    endTime: '20:00',
-                    slotDuration: 60, // Значение по умолчанию
-                    breaks: [],
-                    dbData: {} 
+                    startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
+                    dbData: {},
+                    // Параметры режима
+                    isClientMode: false,
+                    targetMasterId: null
                 }
             },
             computed: {
@@ -152,44 +136,46 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; }
             },
             mounted() {
+                // ПАРСИНГ URL ПАРАМЕТРОВ
+                const urlParams = new URLSearchParams(window.location.search);
+                const mode = urlParams.get('mode');
+                const masterIdParam = urlParams.get('master_id');
+
+                if (mode === 'client' && masterIdParam) {
+                    this.isClientMode = true;
+                    this.targetMasterId = masterIdParam;
+                }
+
                 this.loadSchedule();
             },
             methods: {
                 loadSchedule() {
-                    const masterId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
-                    fetch(`${SAVE_URL}?master_id=${masterId}`, { method: 'GET' })
+                    // Если клиент -> грузим график Мастера. Если мастер -> грузим свой.
+                    const idToLoad = this.isClientMode ? this.targetMasterId : (tg.initDataUnsafe?.user?.id || 'TEST_USER');
+                    
+                    fetch(`${SAVE_URL}?master_id=${idToLoad}`, { method: 'GET' })
                     .then(res => res.json())
                     .then(data => {
-                        // 1. Считываем глобальную настройку длительности (если есть)
-                        // Поддержка нового формата { settings: {...}, schedule: [...] }
-                        if (!Array.isArray(data) && data.settings) {
-                            if (data.settings.slot_duration) {
-                                this.slotDuration = parseInt(data.settings.slot_duration);
-                            }
+                        if (!Array.isArray(data) && data.settings && data.settings.slot_duration) {
+                            this.slotDuration = parseInt(data.settings.slot_duration);
                         }
-
-                        // 2. Считываем график
-                        // Если data - массив (старый формат), используем его. Если объект (новый), берем data.schedule
                         const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
-                        
                         scheduleList.forEach(row => {
                             let brk = [];
                             try { brk = JSON.parse(row.breaks); } catch(e) {}
-                            
-                            this.dbData[row.work_date] = {
-                                start: row.start_time,
-                                end: row.end_time,
-                                breaks: brk
-                            };
+                            this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
                         });
-                    })
-                    .catch(err => console.error('Load error:', err));
+                    });
                 },
                 
                 hasData(day) { return !!this.dbData[this.formatDate(day)]; },
 
                 getFreeSlots() {
-                    const masterId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
+                    // Кто запрашивает?
+                    const clientId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
+                    // Чей график?
+                    const masterId = this.isClientMode ? this.targetMasterId : clientId;
+                    
                     const sortedDates = [...this.selectedDates].sort();
 
                     fetch(SLOTS_URL, {
@@ -197,16 +183,17 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             master_id: masterId,
+                            client_id: this.isClientMode ? clientId : null, // Если клиент, передаем его ID
                             dates: sortedDates
                         })
                     })
-                    .then(() => {
-                        tg.close();
-                    })
+                    .then(() => { tg.close(); })
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
 
+                // Остальные методы (goToSettings, saveSchedule) работают только для мастера
                 goToSettings() {
+                    if (this.isClientMode) return; // Защита
                     if (this.selectedDates.length === 1) {
                         const date = this.selectedDates[0];
                         if (this.dbData[date]) {
@@ -214,47 +201,33 @@
                             this.endTime = this.dbData[date].end;
                             this.breaks = JSON.parse(JSON.stringify(this.dbData[date].breaks));
                         } else {
-                            this.startTime = '10:00';
-                            this.endTime = '20:00';
-                            this.breaks = [];
+                            this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
                         }
                     }
-                    // slotDuration не сбрасываем, он глобальный
                     this.step = 2;
                 },
-
                 saveSchedule() {
+                    if (this.isClientMode) return;
                     const payload = {
                         master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
-                        dates: this.selectedDates,
-                        start: this.startTime,
-                        end: this.endTime,
-                        breaks: this.breaks,
-                        slot_duration: this.slotDuration
+                        dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration
                     };
-
-                    fetch(SAVE_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    })
+                    fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(res => {
                         tg.showAlert('Сохранено!');
                         this.selectedDates.forEach(date => {
                             this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) };
                         });
-                        this.selectedDates = [];
-                        this.step = 1;
+                        this.selectedDates = []; this.step = 1;
                     })
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
-
                 changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
                 formatDate(day) { const m = String(this.currentMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); return `${this.currentYear}-${m}-${d}`; },
                 formatDateRu(dateStr) { const d = new Date(dateStr); return d.toLocaleDateString('ru', {day: 'numeric', month: 'long'}); },
                 isSelected(day) { return this.selectedDates.includes(this.formatDate(day)); },
                 toggleDay(day) { const dateStr = this.formatDate(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
-                toggleColumn(colIndex) { const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
+                toggleColumn(colIndex) { if(this.isClientMode) return; /* Клиенту не даем выделять колонки, только дни */ const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); }
             }

@@ -125,7 +125,9 @@
                     dbData: {},
                     // Параметры режима
                     isClientMode: false,
-                    targetMasterId: null
+                    targetMasterId: null,
+                    // Добавили переменную для хранения ID из ссылки
+                    urlMasterId: null 
                 }
             },
             computed: {
@@ -133,13 +135,28 @@
                 currentMonth() { return this.currentDate.getMonth(); },
                 currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
                 daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
-                firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; }
+                firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+                
+                // ГЛАВНОЕ ИСПРАВЛЕНИЕ: Универсальный способ получить ID
+                myUserId() {
+                    // 1. Пробуем взять из Телеграма (самое надежное)
+                    if (tg.initDataUnsafe?.user?.id) return tg.initDataUnsafe.user.id;
+                    // 2. Если нет, берем из ссылки (то, что мы чинили в n8n)
+                    if (this.urlMasterId) return this.urlMasterId;
+                    // 3. Если совсем ничего нет
+                    return 'TEST_USER';
+                }
             },
             mounted() {
                 // ПАРСИНГ URL ПАРАМЕТРОВ
                 const urlParams = new URLSearchParams(window.location.search);
                 const mode = urlParams.get('mode');
                 const masterIdParam = urlParams.get('master_id');
+
+                // Сохраняем ID из ссылки в переменную
+                if (masterIdParam) {
+                    this.urlMasterId = masterIdParam;
+                }
 
                 if (mode === 'client' && masterIdParam) {
                     this.isClientMode = true;
@@ -150,8 +167,8 @@
             },
             methods: {
                 loadSchedule() {
-                    // Если клиент -> грузим график Мастера. Если мастер -> грузим свой.
-                    const idToLoad = this.isClientMode ? this.targetMasterId : (tg.initDataUnsafe?.user?.id || 'TEST_USER');
+                    // ИСПРАВЛЕНО: Используем myUserId вместо жесткой проверки
+                    const idToLoad = this.isClientMode ? this.targetMasterId : this.myUserId;
                     
                     fetch(`${SAVE_URL}?master_id=${idToLoad}`, { method: 'GET' })
                     .then(res => res.json())
@@ -171,9 +188,8 @@
                 hasData(day) { return !!this.dbData[this.formatDate(day)]; },
 
                 getFreeSlots() {
-                    // Кто запрашивает?
-                    const clientId = tg.initDataUnsafe?.user?.id || 'TEST_USER';
-                    // Чей график?
+                    // ИСПРАВЛЕНО: Используем myUserId
+                    const clientId = this.myUserId;
                     const masterId = this.isClientMode ? this.targetMasterId : clientId;
                     
                     const sortedDates = [...this.selectedDates].sort();
@@ -183,7 +199,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             master_id: masterId,
-                            client_id: this.isClientMode ? clientId : null, // Если клиент, передаем его ID
+                            client_id: this.isClientMode ? clientId : null,
                             dates: sortedDates
                         })
                     })
@@ -191,9 +207,8 @@
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
 
-                // Остальные методы (goToSettings, saveSchedule) работают только для мастера
                 goToSettings() {
-                    if (this.isClientMode) return; // Защита
+                    if (this.isClientMode) return;
                     if (this.selectedDates.length === 1) {
                         const date = this.selectedDates[0];
                         if (this.dbData[date]) {
@@ -208,8 +223,10 @@
                 },
                 saveSchedule() {
                     if (this.isClientMode) return;
+                    
+                    // ИСПРАВЛЕНО: Используем myUserId при сохранении
                     const payload = {
-                        master_id: tg.initDataUnsafe?.user?.id || 'TEST_USER',
+                        master_id: this.myUserId, 
                         dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration
                     };
                     fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -227,7 +244,7 @@
                 formatDateRu(dateStr) { const d = new Date(dateStr); return d.toLocaleDateString('ru', {day: 'numeric', month: 'long'}); },
                 isSelected(day) { return this.selectedDates.includes(this.formatDate(day)); },
                 toggleDay(day) { const dateStr = this.formatDate(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
-                toggleColumn(colIndex) { if(this.isClientMode) return; /* Клиенту не даем выделять колонки, только дни */ const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
+                toggleColumn(colIndex) { if(this.isClientMode) return; const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); }
             }

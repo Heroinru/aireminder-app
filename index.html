@@ -272,32 +272,20 @@
                 }
             },
             methods: {
-                // --- УМНАЯ ЧИСТКА ДАТЫ (Fix для битых данных) ---
-                cleanDate(isoStr) {
-                    if (!isoStr) return null;
-                    // Если строка выглядит как "2026-01-2026-01-10T...", ищем настоящее начало ISO
-                    // Ищем паттерн: Год-Месяц-ДеньT
-                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/);
-                    if (match) {
-                        return new Date(match[0]); // Берем только правильную часть
-                    }
-                    return new Date(isoStr); // Пробуем как есть
-                },
-
                 formatShortTime(timeStr) {
                     if (!timeStr) return '';
                     const [h, m] = timeStr.split(':');
                     return m === '00' ? h : `${h}:${m}`;
                 },
                 getWorkHours(day) {
-                    const dateStr = this.formatDateKey(day); // Используем спец. метод для ключа
+                    const dateStr = this.formatDate(day);
                     const data = this.dbData[dateStr];
                     if (!data) return null;
                     if (!data.start || !data.end) return 'ВЫХ';
                     return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
                 },
                 hasBreaks(day) {
-                    const dateStr = this.formatDateKey(day);
+                    const dateStr = this.formatDate(day);
                     const data = this.dbData[dateStr];
                     return data && data.breaks && data.breaks.length > 0;
                 },
@@ -328,23 +316,15 @@
                     .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
                 },
                 
-                // --- ФОРМАТИРОВАНИЕ ДЛЯ ИНТЕРФЕЙСА ---
+                // --- ИСПРАВЛЕННЫЕ МЕТОДЫ ФОРМАТИРОВАНИЯ ---
                 formatTime(isoStr) { 
-                    const d = this.cleanDate(isoStr);
-                    if (!d || isNaN(d)) return '??:??'; 
-                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
+                    if (!isoStr) return '??:??'; 
+                    return new Date(isoStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
                 },
                 formatDate(isoStr) { 
-                    const d = this.cleanDate(isoStr);
-                    if (!d || isNaN(d)) return isoStr; // Если совсем беда, выводим как есть
-                    // Красивый формат: 10 января, сб
-                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
-                },
-                // Спец. метод для ключей словаря (YYYY-MM-DD), чтобы не путать с красивым выводом
-                formatDateKey(day) { 
-                    const m = String(this.currentMonth + 1).padStart(2, '0'); 
-                    const d = String(day).padStart(2, '0'); 
-                    return `${this.currentYear}-${m}-${d}`; 
+                    if (!isoStr) return ''; 
+                    // Формат: 10 января, сб
+                    return new Date(isoStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
                 },
                 
                 loadSchedule() {
@@ -359,7 +339,7 @@
                         });
                     });
                 },
-                hasData(day) { return !!this.dbData[this.formatDateKey(day)]; },
+                hasData(day) { return !!this.dbData[this.formatDate(day)]; },
                 getFreeSlots() {
                     const sortedDates = [...this.selectedDates].sort();
                     fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null, dates: sortedDates }) })
@@ -393,10 +373,13 @@
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
                 changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
-                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                toggleDay(day) { const dateStr = this.formatDateKey(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
-                toggleColumn(colIndex) { if(this.isClientView) return; const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
-                addBreak() { this.breaks.push({ start
+                formatDate(day) { const m = String(this.currentMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); return `${this.currentYear}-${m}-${d}`; },
+                isSelected(day) { return this.selectedDates.includes(this.formatDate(day)); },
+                toggleDay(day) { const dateStr = this.formatDate(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
+                toggleColumn(colIndex) { if(this.isClientView) return; const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
+                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
+                removeBreak(index) { this.breaks.splice(index, 1); }
+            }
         }).mount('#app');
     </script>
 </body>

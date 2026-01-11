@@ -20,7 +20,7 @@
         }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--tg-bg); color: var(--tg-text); margin: 0; padding: 12px; display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; }
         
-        /* СТИЛИ ДЛЯ КАРТОЧЕК ВИЗИТОВ (НОВОЕ) */
+        /* СТИЛИ ДЛЯ КАРТОЧЕК ВИЗИТОВ */
         .visit-card { background-color: var(--tg-bg); border: 1px solid var(--cell-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .visit-time { font-size: 18px; font-weight: 700; color: var(--tg-btn); }
@@ -30,7 +30,6 @@
         /* ПЕРЕКЛЮЧАТЕЛЬ СТАТУСОВ */
         .status-toggle { display: flex; background-color: var(--cell-bg); border-radius: 8px; padding: 2px; margin-top: 12px; }
         .status-btn { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all 0.2s; user-select: none; }
-        
         .status-btn.active-pending { background-color: #fff; color: var(--tg-text); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .status-btn.active-confirmed { background-color: var(--tg-green); color: white; }
         .status-btn.active-noshow { background-color: var(--tg-red); color: white; }
@@ -40,16 +39,46 @@
         .btn:disabled { opacity: 0.5; }
         .loading { text-align: center; color: var(--tg-hint); margin-top: 50px; }
         
-        /* СТИЛИ КАЛЕНДАРЯ (СТАРЫЕ) */
+        /* СТИЛИ КАЛЕНДАРЯ (ОБНОВЛЕННЫЕ) */
         .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; font-size: 20px; font-weight: 600; text-transform: capitalize; }
         .arrow-btn { padding: 10px 20px; font-size: 20px; cursor: pointer; color: var(--tg-btn); }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
         .weekday { text-align: center; font-size: 13px; color: var(--tg-hint); padding-bottom: 8px; font-weight: 500; text-transform: uppercase; }
-        .day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; background-color: var(--cell-bg); color: var(--tg-text); font-size: 20px; font-weight: 400; cursor: pointer; position: relative; }
-        .day.selected { background-color: var(--tg-btn); color: var(--tg-btn-text); font-weight: 500; }
-        .dot { width: 6px; height: 6px; background-color: var(--tg-green); border-radius: 50%; position: absolute; bottom: 6px; }
-        .day.selected .dot { background-color: white; }
+        
+        /* ЯЧЕЙКА ДНЯ */
+        .day { 
+            aspect-ratio: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; /* Число сверху */
+            padding-top: 6px;
+            border-radius: 8px; 
+            background-color: var(--cell-bg); 
+            color: var(--tg-text); 
+            font-size: 18px; 
+            font-weight: 500; 
+            cursor: pointer; 
+            position: relative; 
+            box-sizing: border-box;
+        }
+        .day.selected { background-color: var(--tg-btn); color: var(--tg-btn-text); }
         .day.empty { background-color: transparent; cursor: default; }
+        
+        /* ВРЕМЯ В ЯЧЕЙКЕ */
+        .day-time {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--tg-green);
+            margin-top: auto; /* Прижать к низу */
+            margin-bottom: 6px;
+            line-height: 1.1;
+            text-align: center;
+            white-space: nowrap;
+        }
+        /* Если день выбран, текст времени становится белым */
+        .day.selected .day-time { color: rgba(255, 255, 255, 0.9); }
+
         .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
         .btn.secondary { background-color: var(--cell-bg); color: var(--tg-btn); }
         .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
@@ -62,7 +91,7 @@
 <body>
     <div id="app">
         
-        <!-- РЕЖИМ 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ (НОВОЕ) -->
+        <!-- РЕЖИМ 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
         <div v-if="mode === 'confirm'" style="padding-bottom: 80px;">
             <h2 style="margin-top: 0; margin-bottom: 20px;">Визиты за сегодня</h2>
             
@@ -80,23 +109,10 @@
                 <div class="visit-name">{{ visit.client_name || 'Без имени' }}</div>
                 <div class="visit-service">{{ visit.service_type || 'Услуга не указана' }}</div>
                 
-                <!-- Переключатель статусов -->
                 <div class="status-toggle">
-                    <div class="status-btn" 
-                         :class="{ 'active-pending': visit.visit_status === 'pending' }"
-                         @click="visit.visit_status = 'pending'">
-                        ⏳ Ожидание
-                    </div>
-                    <div class="status-btn" 
-                         :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }"
-                         @click="visit.visit_status = 'confirmed'">
-                        ✅ Был
-                    </div>
-                    <div class="status-btn" 
-                         :class="{ 'active-noshow': visit.visit_status === 'no_show' }"
-                         @click="visit.visit_status = 'no_show'">
-                        ⛔️ Не был
-                    </div>
+                    <div class="status-btn" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳ Ожидание</div>
+                    <div class="status-btn" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">✅ Был</div>
+                    <div class="status-btn" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Не был</div>
                 </div>
             </div>
 
@@ -107,7 +123,7 @@
             </div>
         </div>
 
-        <!-- РЕЖИМ 2: КАЛЕНДАРЬ (СТАРОЕ, скрыто если mode=confirm) -->
+        <!-- РЕЖИМ 2: КАЛЕНДАРЬ -->
         <div v-if="mode === 'calendar' && step === 1" style="width: 100%; padding-bottom: 100px;">
             <div class="header">
                 <span class="arrow-btn" @click="changeMonth(-1)">&#9664;</span>
@@ -117,9 +133,14 @@
             <div class="calendar-grid">
                 <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">{{ day }}</div>
                 <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
+                
+                <!-- ЯЧЕЙКА ДНЯ С ВРЕМЕНЕМ -->
                 <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">
-                    {{ date }}
-                    <div v-if="hasData(date)" class="dot"></div>
+                    <span>{{ date }}</span>
+                    <!-- Вывод времени, если есть данные -->
+                    <div v-if="getWorkHours(date)" class="day-time">
+                        {{ getWorkHours(date) }}
+                    </div>
                 </div>
             </div>
             <div class="controls">
@@ -132,7 +153,7 @@
             </div>
         </div>
 
-        <!-- РЕЖИМ 2: НАСТРОЙКИ КАЛЕНДАРЯ -->
+        <!-- РЕЖИМ 2: НАСТРОЙКИ -->
         <div v-if="mode === 'calendar' && step === 2" class="modal">
             <h2 style="text-align: center; margin-top: 0;">Настройка</h2>
             <div class="time-row">
@@ -155,29 +176,23 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
 
-        // --- КОНФИГУРАЦИЯ API ---
         const API_BASE = 'https://aireminder.ru/webhook'; 
         const URLS = {
             SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
             GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
-            GET_VISITS: `${API_BASE}/get-visits-dev`, // НОВЫЙ
-            SAVE_VISITS: `${API_BASE}/save-visits-dev` // НОВЫЙ
+            GET_VISITS: `${API_BASE}/get-visits-dev`,
+            SAVE_VISITS: `${API_BASE}/save-visits-dev`
         };
 
         createApp({
             data() {
                 return {
-                    // Общее
-                    mode: 'calendar', // 'calendar' | 'confirm'
+                    mode: 'calendar',
                     masterId: null,
                     isClientView: false,
-                    
-                    // Для режима Confirm
                     visits: [],
                     isLoading: false,
                     isSaving: false,
-
-                    // Для режима Calendar
                     step: 1,
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -194,28 +209,25 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
-                // 1. Парсим параметры URL
                 const urlParams = new URLSearchParams(window.location.search);
-                const urlMode = urlParams.get('mode'); // 'master', 'client', 'confirm'
+                const urlMode = urlParams.get('mode');
                 const urlId = urlParams.get('master_id');
 
-                // 2. Определяем ID
                 if (tg.initDataUnsafe?.user?.id) {
                     this.masterId = tg.initDataUnsafe.user.id;
                 } else if (urlId) {
                     this.masterId = urlId;
                 } else {
-                    this.masterId = 'TEST_USER'; // Фолбек для тестов в браузере
+                    this.masterId = 'TEST_USER';
                 }
 
-                // 3. Определяем режим
                 if (urlMode === 'confirm') {
                     this.mode = 'confirm';
                     this.loadVisits();
                 } else if (urlMode === 'client') {
                     this.mode = 'calendar';
                     this.isClientView = true;
-                    this.masterId = urlId; // В режиме клиента ID берем строго из ссылки
+                    this.masterId = urlId;
                     this.loadSchedule();
                 } else {
                     this.mode = 'calendar';
@@ -223,66 +235,50 @@
                 }
             },
             methods: {
-                // --- МЕТОДЫ РЕЖИМА CONFIRM ---
+                // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ВРЕМЕНИ ---
+                formatShortTime(timeStr) {
+                    // "10:00" -> "10", "10:30" -> "10:30"
+                    if (!timeStr) return '';
+                    const [h, m] = timeStr.split(':');
+                    return m === '00' ? h : `${h}:${m}`;
+                },
+                getWorkHours(day) {
+                    const dateStr = this.formatDate(day);
+                    const data = this.dbData[dateStr];
+                    if (!data) return null;
+                    // Возвращаем строку вида "10-20" или "10:30-22"
+                    return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
+                },
+
+                // --- ЛОГИКА CONFIRM ---
                 loadVisits() {
                     this.isLoading = true;
                     fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
                         .then(res => res.json())
                         .then(data => {
-                            // Добавляем локальное поле visit_status если его нет
-                            this.visits = (data.visits || []).map(v => ({
-                                ...v,
-                                visit_status: v.visit_status || 'pending'
-                            }));
+                            this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' }));
                         })
-                        .catch(err => tg.showAlert('Ошибка загрузки: ' + err))
+                        .catch(err => tg.showAlert('Ошибка: ' + err))
                         .finally(() => this.isLoading = false);
                 },
                 saveVisits() {
                     this.isSaving = true;
-                    // Отправляем только измененные или все записи
-                    const updates = this.visits.map(v => ({
-                        event_id: v.event_id,
-                        status: v.visit_status
-                    }));
-
-                    fetch(URLS.SAVE_VISITS, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ updates: updates })
-                    })
-                    .then(() => {
-                        tg.showAlert('✅ Статусы обновлены!');
-                        tg.close();
-                    })
-                    .catch(err => {
-                        tg.showAlert('Ошибка сохранения: ' + err);
-                        this.isSaving = false;
-                    });
+                    const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status }));
+                    fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
+                    .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
+                    .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
                 },
-                formatTime(isoStr) {
-                    if (!isoStr) return '??:??';
-                    const d = new Date(isoStr);
-                    return d.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
-                },
-                formatDate(isoStr) {
-                    if (!isoStr) return '';
-                    const d = new Date(isoStr);
-                    return d.toLocaleDateString('ru', { day: 'numeric', month: 'long' });
-                },
-
-                // --- МЕТОДЫ РЕЖИМА CALENDAR (Старые) ---
+                formatTime(isoStr) { if (!isoStr) return '??:??'; return new Date(isoStr).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }); },
+                
+                // --- ЛОГИКА CALENDAR ---
                 loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })
                     .then(res => res.json())
                     .then(data => {
-                        if (!Array.isArray(data) && data.settings?.slot_duration) {
-                            this.slotDuration = parseInt(data.settings.slot_duration);
-                        }
+                        if (!Array.isArray(data) && data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
                         const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
                         scheduleList.forEach(row => {
-                            let brk = [];
-                            try { brk = JSON.parse(row.breaks); } catch(e) {}
+                            let brk = []; try { brk = JSON.parse(row.breaks); } catch(e) {}
                             this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
                         });
                     });
@@ -290,41 +286,35 @@
                 hasData(day) { return !!this.dbData[this.formatDate(day)]; },
                 getFreeSlots() {
                     const sortedDates = [...this.selectedDates].sort();
-                    fetch(URLS.GET_SLOTS, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            master_id: this.masterId,
-                            client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null,
-                            dates: sortedDates
-                        })
-                    })
+                    fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null, dates: sortedDates }) })
                     .then(() => { tg.close(); })
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
+                
+                // ИСПРАВЛЕННАЯ ФУНКЦИЯ НАСТРОЕК (ИЗ ПРОШЛОГО ОТВЕТА)
                 goToSettings() {
-                    if (this.selectedDates.length === 1) {
-                        const date = this.selectedDates[0];
-                        if (this.dbData[date]) {
-                            this.startTime = this.dbData[date].start;
-                            this.endTime = this.dbData[date].end;
-                        } else {
-                            this.startTime = '10:00'; this.endTime = '20:00';
-                        }
+                    if (this.isClientMode) return;
+                    let existingData = null;
+                    const sortedSelection = [...this.selectedDates].sort();
+                    for (const date of sortedSelection) {
+                        if (this.dbData[date]) { existingData = this.dbData[date]; break; }
+                    }
+                    if (existingData) {
+                        this.startTime = existingData.start;
+                        this.endTime = existingData.end;
+                        this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
+                    } else {
+                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
                     }
                     this.step = 2;
                 },
+                
                 saveSchedule() {
-                    const payload = {
-                        master_id: this.masterId, 
-                        dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: [], slot_duration: this.slotDuration
-                    };
+                    const payload = { master_id: this.masterId, dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: [], slot_duration: this.slotDuration };
                     fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(res => {
                         tg.showAlert('Сохранено!');
-                        this.selectedDates.forEach(date => {
-                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: [] };
-                        });
+                        this.selectedDates.forEach(date => { this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: [] }; });
                         this.selectedDates = []; this.step = 1;
                     })
                     .catch(err => tg.showAlert('Ошибка: ' + err));

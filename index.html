@@ -22,14 +22,15 @@
         
         /* СТИЛИ ДЛЯ КАРТОЧЕК ВИЗИТОВ */
         .visit-card { background-color: var(--tg-bg); border: 1px solid var(--cell-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .visit-time { font-size: 18px; font-weight: 700; color: var(--tg-btn); }
-        .visit-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--cell-bg); padding-bottom: 8px; }
+        .visit-time { font-size: 20px; font-weight: 700; color: var(--tg-text); }
+        .visit-date { font-size: 14px; color: var(--tg-btn); font-weight: 500; text-transform: capitalize; }
+        .visit-name { font-size: 17px; font-weight: 600; margin-bottom: 4px; margin-top: 8px; }
         .visit-service { font-size: 14px; color: var(--tg-hint); }
         
         /* ПЕРЕКЛЮЧАТЕЛЬ СТАТУСОВ */
-        .status-toggle { display: flex; background-color: var(--cell-bg); border-radius: 8px; padding: 2px; margin-top: 12px; }
-        .status-btn { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all 0.2s; user-select: none; }
+        .status-toggle { display: flex; background-color: var(--cell-bg); border-radius: 8px; padding: 2px; margin-top: 16px; }
+        .status-btn { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all 0.2s; user-select: none; }
         .status-btn.active-pending { background-color: #fff; color: var(--tg-text); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .status-btn.active-confirmed { background-color: var(--tg-green); color: white; }
         .status-btn.active-noshow { background-color: var(--tg-red); color: white; }
@@ -80,7 +81,7 @@
         .day-off {
             font-size: 10px;
             font-weight: 700;
-            color: var(--tg-red); /* Красный цвет */
+            color: var(--tg-red);
             margin-top: auto;
             margin-bottom: 6px;
             line-height: 1.1;
@@ -111,10 +112,13 @@
             <h2 style="margin-top: 0; margin-bottom: 20px;">Визиты за сегодня</h2>
             <div v-if="isLoading" class="loading">Загрузка...</div>
             <div v-else-if="visits.length === 0" class="loading">🎉 На сегодня визитов нет или все уже отмечены!</div>
+            
+            <!-- КАРТОЧКА ВИЗИТА -->
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
                     <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div style="font-size: 12px; color: var(--tg-hint);">{{ formatDate(visit.appointment_time) }}</div>
+                    <!-- Красивая дата: 10 января, сб -->
+                    <div class="visit-date">{{ formatDate(visit.appointment_time) }}</div>
                 </div>
                 <div class="visit-name">{{ visit.client_name || 'Без имени' }}</div>
                 <div class="visit-service">{{ visit.service_type || 'Услуга не указана' }}</div>
@@ -124,6 +128,7 @@
                     <div class="status-btn" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Не был</div>
                 </div>
             </div>
+
             <div class="controls" v-if="visits.length > 0">
                 <button class="btn" @click="saveVisits" :disabled="isSaving">{{ isSaving ? 'Сохраняем...' : 'Сохранить изменения' }}</button>
             </div>
@@ -143,7 +148,6 @@
                 <!-- ЯЧЕЙКА ДНЯ -->
                 <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">
                     <span>{{ date }}</span>
-                    <!-- Время и иконка кофе ИЛИ Выходной -->
                     <div v-if="getWorkHours(date)" :class="isDayOff(date) ? 'day-off' : 'day-time'">
                         {{ getWorkHours(date) }} <span v-if="hasBreaks(date) && !isDayOff(date)">☕</span>
                     </div>
@@ -159,7 +163,6 @@
         <div v-if="mode === 'calendar' && step === 2" class="modal">
             <h2 style="text-align: center; margin-top: 0;">Настройка</h2>
             
-            <!-- КНОПКА ВЫХОДНОГО -->
             <div style="margin-bottom: 20px;">
                 <button v-if="startTime" class="btn" style="background-color: var(--tg-red); margin-top: 0;" @click="setDayOff">
                     Сделать выходным 🏖
@@ -178,7 +181,6 @@
                 <div class="time-group"><div class="label">ДЛИТЕЛЬНОСТЬ (МИН)</div><input type="number" v-model="slotDuration" step="15" class="time-input"></div>
             </div>
             
-            <!-- БЛОК ПЕРЕРЫВОВ -->
             <hr style="border: 0; border-top: 1px solid var(--cell-bg); width: 100%; margin: 20px 0;">
             <div class="breaks-list">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -279,7 +281,6 @@
                     const dateStr = this.formatDate(day);
                     const data = this.dbData[dateStr];
                     if (!data) return null;
-                    // Если время пустое - это выходной
                     if (!data.start || !data.end) return 'ВЫХ';
                     return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
                 },
@@ -288,11 +289,9 @@
                     const data = this.dbData[dateStr];
                     return data && data.breaks && data.breaks.length > 0;
                 },
-                // Проверка на выходной для CSS
                 isDayOff(day) {
                     return this.getWorkHours(day) === 'ВЫХ';
                 },
-                // Установка выходного
                 setDayOff() {
                     this.startTime = '';
                     this.endTime = '';
@@ -316,8 +315,17 @@
                     .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
                     .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
                 },
-                formatTime(isoStr) { if (!isoStr) return '??:??'; return new Date(isoStr).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }); },
-                formatDate(isoStr) { if (!isoStr) return ''; return new Date(isoStr).toLocaleDateString('ru', { day: 'numeric', month: 'long' }); },
+                
+                // --- ИСПРАВЛЕННЫЕ МЕТОДЫ ФОРМАТИРОВАНИЯ ---
+                formatTime(isoStr) { 
+                    if (!isoStr) return '??:??'; 
+                    return new Date(isoStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
+                },
+                formatDate(isoStr) { 
+                    if (!isoStr) return ''; 
+                    // Формат: 10 января, сб
+                    return new Date(isoStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
+                },
                 
                 loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })

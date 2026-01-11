@@ -76,9 +76,20 @@
             text-align: center;
             white-space: nowrap;
         }
-        .day.selected .day-time { color: rgba(255, 255, 255, 0.9); }
+        /* СТИЛЬ ДЛЯ ВЫХОДНОГО */
+        .day-off {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--tg-red); /* Красный цвет */
+            margin-top: auto;
+            margin-bottom: 6px;
+            line-height: 1.1;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .day.selected .day-time, .day.selected .day-off { color: rgba(255, 255, 255, 0.9); }
 
-        /* СТИЛИ ДЛЯ НАСТРОЕК (ПЕРЕРЫВЫ) */
+        /* СТИЛИ ДЛЯ НАСТРОЕК */
         .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
         .btn.secondary { background-color: var(--cell-bg); color: var(--tg-btn); }
         .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
@@ -132,9 +143,9 @@
                 <!-- ЯЧЕЙКА ДНЯ -->
                 <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">
                     <span>{{ date }}</span>
-                    <!-- Время и иконка кофе -->
-                    <div v-if="getWorkHours(date)" class="day-time">
-                        {{ getWorkHours(date) }} <span v-if="hasBreaks(date)">☕</span>
+                    <!-- Время и иконка кофе ИЛИ Выходной -->
+                    <div v-if="getWorkHours(date)" :class="isDayOff(date) ? 'day-off' : 'day-time'">
+                        {{ getWorkHours(date) }} <span v-if="hasBreaks(date) && !isDayOff(date)">☕</span>
                     </div>
                 </div>
             </div>
@@ -144,9 +155,21 @@
             </div>
         </div>
 
-        <!-- РЕЖИМ 2: НАСТРОЙКИ (ВЕРНУЛ ПЕРЕРЫВЫ) -->
+        <!-- РЕЖИМ 2: НАСТРОЙКИ -->
         <div v-if="mode === 'calendar' && step === 2" class="modal">
             <h2 style="text-align: center; margin-top: 0;">Настройка</h2>
+            
+            <!-- КНОПКА ВЫХОДНОГО -->
+            <div style="margin-bottom: 20px;">
+                <button v-if="startTime" class="btn" style="background-color: var(--tg-red); margin-top: 0;" @click="setDayOff">
+                    Сделать выходным 🏖
+                </button>
+                <div v-else style="text-align: center; color: var(--tg-red); font-weight: bold; font-size: 18px; padding: 10px; border: 2px dashed var(--tg-red); border-radius: 12px;">
+                    ВЫХОДНОЙ ДЕНЬ
+                    <div style="font-size: 12px; color: var(--tg-text); font-weight: normal; margin-top: 5px;">Установите время ниже, чтобы сделать рабочим</div>
+                </div>
+            </div>
+
             <div class="time-row">
                 <div class="time-group"><div class="label">НАЧАЛО</div><input type="time" v-model="startTime" class="time-input"></div>
                 <div class="time-group"><div class="label">КОНЕЦ</div><input type="time" v-model="endTime" class="time-input"></div>
@@ -256,13 +279,24 @@
                     const dateStr = this.formatDate(day);
                     const data = this.dbData[dateStr];
                     if (!data) return null;
+                    // Если время пустое - это выходной
+                    if (!data.start || !data.end) return 'ВЫХ';
                     return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
                 },
-                // НОВЫЙ МЕТОД: Проверка наличия перерывов
                 hasBreaks(day) {
                     const dateStr = this.formatDate(day);
                     const data = this.dbData[dateStr];
                     return data && data.breaks && data.breaks.length > 0;
+                },
+                // Проверка на выходной для CSS
+                isDayOff(day) {
+                    return this.getWorkHours(day) === 'ВЫХ';
+                },
+                // Установка выходного
+                setDayOff() {
+                    this.startTime = '';
+                    this.endTime = '';
+                    this.breaks = [];
                 },
 
                 loadVisits() {

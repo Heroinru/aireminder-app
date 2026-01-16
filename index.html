@@ -273,16 +273,26 @@
                 }
             },
             methods: {
-                // --- УМНАЯ ЧИСТКА ДАТЫ (Fix для битых данных) ---
-                cleanDate(isoStr) {
-                    if (!isoStr) return null;
-                    // Ищем паттерн: Год-Месяц-ДеньT
-                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
-                    if (match) {
-                        return new Date(match[0]); // Берем только правильную часть
-                    }
-                    return new Date(isoStr); // Пробуем как есть
-                },
+                // --- УМНАЯ ЧИСТКА ДАТЫ (Fix для битых данных + Поддержка UTC) ---
+cleanDate(isoStr) {
+    if (!isoStr) return null;
+    
+    // 1. Если дата нормальная (не дублируется), просто возвращаем её
+    // Это предотвратит ошибки парсинга, если строка уже чистая
+    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) {
+         return new Date(isoStr);
+    }
+
+    // 2. Если дата битая (2026-01-2026-01...), вырезаем кусок
+    // Ищем: YYYY-MM-DD T HH:mm:ss .ms (опционально) Z (опционально)
+    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
+    
+    if (match) {
+        return new Date(match[0]); 
+    }
+    
+    return new Date(isoStr);
+},
 
                 // --- ФОРМАТИРОВАНИЕ ДЛЯ ИНТЕРФЕЙСА ---
                 formatTime(isoStr) { 

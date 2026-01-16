@@ -301,8 +301,10 @@
                 getFreeSlots() {
                     const sortedDates = [...this.selectedDates].sort();
                     fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null, dates: sortedDates }) })
-                    .then(() => { tg.close(); })
-                    .catch(err => tg.showAlert('Ошибка: ' + err));
+                    .then(() => { 
+        alert('✅ Свободные окошки отправлены в чат! Вернитесь в диалог.');
+        tg.close();
+    })
                 },
                 goToSettings() {
                     if (this.isClientMode) return;

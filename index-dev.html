@@ -102,8 +102,12 @@
             <div v-else-if="visits.length === 0" class="loading">🎉 На сегодня визитов нет или все уже отмечены!</div>
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
-                    <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div style="font-size: 12px; color: var(--tg-hint);">{{ formatDate(visit.appointment_time) }}</div>
+    <!-- Время (20:00) -->
+    <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
+    <!-- Красивая дата (10 января, сб) -->
+    <div class="visit-date" style="font-size: 15px; color: var(--tg-btn); font-weight: 600; text-transform: capitalize;">
+        {{ formatDatePretty(visit.appointment_time) }}
+    </div>
                 </div>
                 <div class="visit-name">{{ visit.client_name || 'Без имени' }}</div>
                 <div class="visit-service">{{ visit.service_type || 'Услуга не указана' }}</div>

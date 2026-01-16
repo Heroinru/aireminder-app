@@ -102,12 +102,9 @@
             <div v-else-if="visits.length === 0" class="loading">🎉 На сегодня визитов нет или все уже отмечены!</div>
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
-    <!-- Время (20:00) -->
-    <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-    <!-- Красивая дата (10 января, сб) -->
-    <div class="visit-date" style="font-size: 15px; color: var(--tg-btn); font-weight: 600; text-transform: capitalize;">
-        {{ formatDatePretty(visit.appointment_time) }}
-    </div>
+                    <!-- ИСПОЛЬЗУЕМ НОВЫЕ МЕТОДЫ ДЛЯ ВРЕМЕНИ И ДАТЫ -->
+                    <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
+                    <div style="font-size: 14px; color: var(--tg-btn); font-weight: 600; text-transform: capitalize;">{{ formatDatePretty(visit.appointment_time) }}</div>
                 </div>
                 <div class="visit-name">{{ visit.client_name || 'Без имени' }}</div>
                 <div class="visit-service">{{ visit.service_type || 'Услуга не указана' }}</div>
@@ -251,20 +248,50 @@
                 }
             },
             methods: {
+                // --- УМНАЯ ЧИСТКА ДАТЫ (Fix для битых данных) ---
+                cleanDate(isoStr) {
+                    if (!isoStr) return null;
+                    // Ищем паттерн: Год-Месяц-ДеньT...
+                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+                    if (match) {
+                        return new Date(match[0]); // Берем только правильную часть
+                    }
+                    return new Date(isoStr); // Пробуем как есть
+                },
+
+                // --- ФОРМАТИРОВАНИЕ ДЛЯ ИНТЕРФЕЙСА ---
+                formatTime(isoStr) { 
+                    const d = this.cleanDate(isoStr);
+                    if (!d || isNaN(d)) return '??:??'; 
+                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
+                },
+                formatDatePretty(isoStr) { 
+                    const d = this.cleanDate(isoStr);
+                    if (!d || isNaN(d)) return isoStr; 
+                    // Красивый формат: 10 января, сб
+                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
+                },
+
+                // Внутренний ключ для словаря (YYYY-MM-DD)
+                formatDateKey(day) { 
+                    const m = String(this.currentMonth + 1).padStart(2, '0'); 
+                    const d = String(day).padStart(2, '0'); 
+                    return `${this.currentYear}-${m}-${d}`; 
+                },
+
                 formatShortTime(timeStr) {
                     if (!timeStr) return '';
                     const [h, m] = timeStr.split(':');
                     return m === '00' ? h : `${h}:${m}`;
                 },
                 getWorkHours(day) {
-                    const dateStr = this.formatDate(day);
+                    const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
                     if (!data) return null;
                     return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
                 },
-                // НОВЫЙ МЕТОД: Проверка наличия перерывов
                 hasBreaks(day) {
-                    const dateStr = this.formatDate(day);
+                    const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
                     return data && data.breaks && data.breaks.length > 0;
                 },
@@ -286,8 +313,6 @@
                     .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
                     .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
                 },
-                formatTime(isoStr) { if (!isoStr) return '??:??'; return new Date(isoStr).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }); },
-                formatDate(isoStr) { if (!isoStr) return ''; return new Date(isoStr).toLocaleDateString('ru', { day: 'numeric', month: 'long' }); },
                 
                 loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })
@@ -301,14 +326,14 @@
                         });
                     });
                 },
-                hasData(day) { return !!this.dbData[this.formatDate(day)]; },
+                hasData(day) { return !!this.dbData[this.formatDateKey(day)]; },
                 getFreeSlots() {
                     const sortedDates = [...this.selectedDates].sort();
                     fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null, dates: sortedDates }) })
                     .then(() => { 
-        alert('✅ Свободные окошки отправлены в чат! Вернитесь в диалог.');
-        tg.close();
-    })
+                        alert('✅ Свободные окошки отправлены в чат! Вернитесь в диалог.');
+                        tg.close();
+                    })
                 },
                 goToSettings() {
                     if (this.isClientMode) return;
@@ -337,10 +362,9 @@
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
                 changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
-                formatDate(day) { const m = String(this.currentMonth + 1).padStart(2, '0'); const d = String(day).padStart(2, '0'); return `${this.currentYear}-${m}-${d}`; },
-                isSelected(day) { return this.selectedDates.includes(this.formatDate(day)); },
-                toggleDay(day) { const dateStr = this.formatDate(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
-                toggleColumn(colIndex) { if(this.isClientView) return; const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDate(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
+                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
+                toggleDay(day) { const dateStr = this.formatDateKey(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
+                toggleColumn(colIndex) { if(this.isClientView) return; const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); }
             }

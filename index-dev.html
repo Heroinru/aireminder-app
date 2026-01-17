@@ -3,129 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIReminder</title>
+    <title>Remi App</title>
+    
+    <!-- Подключаем скрипты -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <style>
-        /* БАЗОВЫЕ СТИЛИ */
-        :root { 
-            --tg-bg: var(--tg-theme-bg-color, #ffffff); 
-            --tg-text: var(--tg-theme-text-color, #000000); 
-            --tg-hint: var(--tg-theme-hint-color, #999999); 
-            --tg-btn: var(--tg-theme-button-color, #3390ec); 
-            --tg-btn-text: var(--tg-theme-button-text-color, #ffffff); 
-            --tg-red: #ff3b30; 
-            --tg-green: #34c759;
-            --cell-bg: var(--tg-theme-secondary-bg-color, #efeff4); 
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--tg-bg); color: var(--tg-text); margin: 0; padding: 12px; display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; }
-        
-        /* СТИЛИ ДЛЯ КАРТОЧЕК ВИЗИТОВ */
-        .visit-card { background-color: var(--tg-bg); border: 1px solid var(--cell-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .visit-time { font-size: 18px; font-weight: 700; color: var(--tg-btn); }
-        .visit-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-        .visit-service { font-size: 14px; color: var(--tg-hint); }
-        
-        /* ПЕРЕКЛЮЧАТЕЛЬ СТАТУСОВ */
-        .status-toggle { display: flex; background-color: var(--cell-bg); border-radius: 8px; padding: 2px; margin-top: 12px; }
-        .status-btn { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all 0.2s; user-select: none; }
-        .status-btn.active-pending { background-color: #fff; color: var(--tg-text); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .status-btn.active-confirmed { background-color: var(--tg-green); color: white; }
-        .status-btn.active-noshow { background-color: var(--tg-red); color: white; }
+    
+    <!-- Подключаем шрифт Manrope -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        /* ОБЩИЕ КНОПКИ */
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; background-color: var(--tg-btn); color: var(--tg-btn-text); font-size: 16px; font-weight: 600; cursor: pointer; text-align: center; margin-top: 20px; }
-        .btn:disabled { opacity: 0.5; }
-        .loading { text-align: center; color: var(--tg-hint); margin-top: 50px; }
+    <style>
+        /* --- BRAND VARIABLES (Совпадают с сайтом) --- */
+        :root { 
+            --bg-color: #FFF9F5;          /* Brand-50 */
+            --card-bg: #FFFFFF;
+            --primary: #FF9478;           /* Brand-500 (Coral) */
+            --primary-gradient: linear-gradient(135deg, #FF9478, #E66E50);
+            --text-main: #2E1065;         /* Brand-900 (Deep Violet) */
+            --text-secondary: #6B7280;    /* Gray */
+            --success: #10B981;           /* Green */
+            --error: #EF4444;             /* Red */
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.04);
+            --shadow-card: 0 4px 12px rgba(0,0,0,0.03);
+            --radius-xl: 24px;
+            --radius-md: 16px;
+        }
+
+        body { 
+            font-family: 'Manrope', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 0; /* Padding убрал, контент сам отступит */
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- HEADER & LOGO --- */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(255, 249, 245, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+        }
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+            transform: rotate(3deg);
+            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
+        }
+        .logo-text {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        /* --- CONTENT WRAPPER --- */
+        #app {
+            padding: 20px;
+            flex: 1;
+        }
+
+        /* --- TITLES --- */
+        h2 {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0 0 16px 0;
+            color: var(--text-main);
+        }
+
+        /* --- VISIT CARD (Редизайн) --- */
+        .visit-card { 
+            background-color: var(--card-bg); 
+            border-radius: var(--radius-xl); 
+            padding: 20px; 
+            margin-bottom: 16px; 
+            box-shadow: var(--shadow-card);
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: transform 0.1s;
+        }
+        .visit-card:active { transform: scale(0.99); }
         
-        /* СТИЛИ КАЛЕНДАРЯ */
-        .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; font-size: 20px; font-weight: 600; text-transform: capitalize; }
-        .arrow-btn { padding: 10px 20px; font-size: 20px; cursor: pointer; color: var(--tg-btn); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
-        .weekday { text-align: center; font-size: 13px; color: var(--tg-hint); padding-bottom: 8px; font-weight: 500; text-transform: uppercase; }
+        .visit-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            margin-bottom: 12px; 
+        }
+        .visit-time { 
+            font-size: 24px; 
+            font-weight: 800; 
+            color: var(--text-main); 
+            line-height: 1;
+        }
+        .visit-date-badge {
+            background: #FFF0EB;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        .visit-name { 
+            font-size: 17px; 
+            font-weight: 700; 
+            margin-bottom: 4px; 
+            color: var(--text-main);
+        }
+        .visit-service { 
+            font-size: 14px; 
+            color: var(--text-secondary); 
+            font-weight: 500;
+        }
+
+        /* --- STATUS TOGGLES (Pills) --- */
+        .status-toggle { 
+            display: flex; 
+            background-color: #F3F4F6; 
+            border-radius: 12px; 
+            padding: 4px; 
+            margin-top: 16px; 
+            gap: 4px;
+        }
+        .status-btn { 
+            flex: 1; 
+            padding: 10px 0; 
+            text-align: center; 
+            font-size: 12px; 
+            font-weight: 600; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            color: var(--text-secondary);
+        }
+        .status-btn.active-pending { background-color: white; color: var(--text-main); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .status-btn.active-confirmed { background-color: var(--success); color: white; }
+        .status-btn.active-noshow { background-color: var(--error); color: white; }
+
+        /* --- BUTTONS (Gradient Style) --- */
+        .btn { 
+            width: 100%; 
+            padding: 18px; 
+            border: none; 
+            border-radius: 20px; 
+            background: var(--primary-gradient); 
+            color: white; 
+            font-size: 16px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            text-align: center; 
+            margin-top: 10px; 
+            box-shadow: 0 10px 20px rgba(255, 148, 120, 0.3);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn:disabled { background: #E5E7EB; color: #9CA3AF; box-shadow: none; }
         
-        /* ЯЧЕЙКА ДНЯ */
+        .btn.secondary { 
+            background: white; 
+            color: var(--text-main); 
+            border: 1px solid #E5E7EB;
+            box-shadow: none; 
+        }
+
+        /* --- CALENDAR --- */
+        .calendar-controls {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+        }
+        .month-title { font-size: 20px; font-weight: 800; text-transform: capitalize; color: var(--text-main); }
+        .arrow-btn { 
+            width: 40px; height: 40px; 
+            display: flex; align-items: center; justify-content: center;
+            background: white; border-radius: 12px; 
+            box-shadow: var(--shadow-card);
+            color: var(--primary); 
+            cursor: pointer; font-size: 18px;
+        }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; width: 100%; margin-bottom: 100px; }
+        .weekday { text-align: center; font-size: 12px; color: var(--text-secondary); padding-bottom: 10px; font-weight: 600; text-transform: uppercase; opacity: 0.7; }
+        
+        /* День календаря */
         .day { 
             aspect-ratio: 1; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start;
-            padding-top: 6px;
-            border-radius: 8px; 
-            background-color: var(--cell-bg); 
-            color: var(--tg-text); 
-            font-size: 18px; 
-            font-weight: 500; 
-            cursor: pointer; 
+            justify-content: center;
+            border-radius: 14px; 
+            background-color: white; 
+            color: var(--text-main); 
+            font-size: 16px; 
+            font-weight: 600; 
             position: relative; 
-            box-sizing: border-box;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+            border: 2px solid transparent;
         }
-        .day.selected { background-color: var(--tg-btn); color: var(--tg-btn-text); }
-        .day.empty { background-color: transparent; cursor: default; }
+        .day.selected { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 8px 15px rgba(255, 148, 120, 0.4);
+            transform: translateY(-2px);
+        }
+        .day.empty { background: transparent; box-shadow: none; }
         
-        /* ВРЕМЯ В ЯЧЕЙКЕ */
+        /* Метка времени в календаре */
         .day-time {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--tg-green);
-            margin-top: auto;
-            margin-bottom: 6px;
-            line-height: 1.1;
-            text-align: center;
-            white-space: nowrap;
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-top: 2px;
+            background: #FFF0EB;
+            padding: 2px 4px;
+            border-radius: 6px;
         }
-        .day.selected .day-time { color: rgba(255, 255, 255, 0.9); }
+        .day.selected .day-time { 
+            color: var(--primary); 
+            background: white; 
+        }
 
-        /* СТИЛИ ДЛЯ НАСТРОЕК (ПЕРЕРЫВЫ) */
-        .controls { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; background: var(--tg-bg); border-top: 1px solid rgba(0,0,0,0.05); z-index: 10; display: flex; gap: 10px; }
-        .btn.secondary { background-color: var(--cell-bg); color: var(--tg-btn); }
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--tg-bg); padding: 20px; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
-        .time-row { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
-        .time-group { flex: 1; }
-        .label { font-size: 14px; color: var(--tg-hint); margin-bottom: 5px; font-weight: 500; }
-        .time-input { font-size: 22px; padding: 12px; width: 100%; box-sizing: border-box; background-color: var(--cell-bg); color: var(--tg-text); border: none; border-radius: 10px; text-align: center; }
+        /* --- SETTINGS / MODAL --- */
+        .modal { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: var(--bg-color); 
+            padding: 24px; 
+            display: flex; flex-direction: column; 
+            z-index: 100; overflow-y: auto; 
+        }
+        .controls { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            padding: 16px 20px 30px 20px; 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.05); 
+            z-index: 10; display: flex; gap: 12px; 
+        }
         
-        .breaks-list { margin-top: 20px; margin-bottom: 20px; }
-        .break-item { background-color: var(--cell-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
-        .break-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .time-row { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+        .time-group { flex: 1; }
+        .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .time-input { 
+            font-family: 'Manrope', sans-serif;
+            font-size: 20px; font-weight: 700;
+            padding: 16px; width: 100%; box-sizing: border-box; 
+            background-color: white; 
+            color: var(--text-main); 
+            border: 1px solid #E5E7EB; 
+            border-radius: 16px; 
+            text-align: center; 
+            box-shadow: var(--shadow-card);
+            outline: none;
+        }
+        .time-input:focus { border-color: var(--primary); }
+
+        .break-item { 
+            background-color: white; 
+            padding: 16px; 
+            border-radius: 16px; 
+            margin-bottom: 12px; 
+            box-shadow: var(--shadow-card);
+            border: 1px solid #F3F4F6;
+        }
+        
+        .loading { text-align: center; color: var(--text-secondary); margin-top: 50px; font-weight: 500; }
+        hr { border: 0; border-top: 1px solid #E5E7EB; margin: 24px 0; }
     </style>
 </head>
 <body>
+
+    <!-- ШАПКА С ЛОГОТИПОМ (Brand Identity) -->
+    <div class="app-header">
+        <div class="logo-icon">R</div>
+        <div class="logo-text">Remi</div>
+    </div>
+
     <div id="app">
         
         <!-- РЕЖИМ 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
-        <div v-if="mode === 'confirm'" style="padding-bottom: 80px;">
-            <h2 style="margin-top: 0; margin-bottom: 20px;">Визиты за сегодня</h2>
-            <div v-if="isLoading" class="loading">Загрузка...</div>
-            <div v-else-if="visits.length === 0" class="loading">🎉 На сегодня визитов нет или все уже отмечены!</div>
+        <div v-if="mode === 'confirm'" style="padding-bottom: 100px;">
+            <h2>Визиты за сегодня</h2>
+            
+            <div v-if="isLoading" class="loading">Загрузка данных...</div>
+            <div v-else-if="visits.length === 0" class="loading">
+                <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
+                На сегодня визитов нет<br>или все уже отмечены!
+            </div>
+            
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
-                    <!-- ИСПОЛЬЗУЕМ НОВЫЕ МЕТОДЫ ДЛЯ ВРЕМЕНИ И ДАТЫ -->
                     <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div style="font-size: 14px; color: var(--tg-btn); font-weight: 600; text-transform: capitalize;">{{ formatDatePretty(visit.appointment_time) }}</div>
+                    <div class="visit-date-badge">{{ formatDatePretty(visit.appointment_time) }}</div>
                 </div>
                 <div class="visit-name">{{ visit.client_name || 'Без имени' }}</div>
                 <div class="visit-service">{{ visit.service_type || 'Услуга не указана' }}</div>
+                
                 <div class="status-toggle">
-                    <div class="status-btn" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳ Ожидание</div>
+                    <div class="status-btn" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳ Ожидает</div>
                     <div class="status-btn" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">✅ Был</div>
                     <div class="status-btn" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Не был</div>
                 </div>
             </div>
+
             <div class="controls" v-if="visits.length > 0">
-                <button class="btn" @click="saveVisits" :disabled="isSaving">{{ isSaving ? 'Сохраняем...' : 'Сохранить изменения' }}</button>
+                <button class="btn" @click="saveVisits" :disabled="isSaving">
+                    {{ isSaving ? 'Сохраняем...' : 'Сохранить изменения' }}
+                </button>
             </div>
         </div>
 
         <!-- РЕЖИМ 2: КАЛЕНДАРЬ -->
-        <div v-if="mode === 'calendar' && step === 1" style="width: 100%; padding-bottom: 100px;">
-            <div class="header">
-                <span class="arrow-btn" @click="changeMonth(-1)">&#9664;</span>
-                <span>{{ currentMonthName }}</span>
-                <span class="arrow-btn" @click="changeMonth(1)">&#9654;</span>
+        <div v-if="mode === 'calendar' && step === 1">
+            <div class="calendar-controls">
+                <div class="arrow-btn" @click="changeMonth(-1)">&#9664;</div>
+                <span class="month-title">{{ currentMonthName }}</span>
+                <div class="arrow-btn" @click="changeMonth(1)">&#9654;</div>
             </div>
+
             <div class="calendar-grid">
                 <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">{{ day }}</div>
                 <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
@@ -133,51 +348,74 @@
                 <!-- ЯЧЕЙКА ДНЯ -->
                 <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">
                     <span>{{ date }}</span>
-                    <!-- Время и иконка кофе -->
+                    <!-- Время -->
                     <div v-if="getWorkHours(date)" class="day-time">
-                        {{ getWorkHours(date) }} <span v-if="hasBreaks(date)">☕</span>
+                        {{ getWorkHours(date) }}
                     </div>
                 </div>
             </div>
+            
             <div class="controls">
-                <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">{{ isClientView ? 'Показать время' : '🔍 Окошки' }}</button>
-                <button v-if="!isClientView" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0">⚙️ Настроить</button>
+                <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">
+                    {{ isClientView ? 'Показать доступное' : '🔍 Проверить окошки' }}
+                </button>
+                <button v-if="!isClientView" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0" style="width: 70px;">
+                    ⚙️
+                </button>
             </div>
         </div>
 
-        <!-- РЕЖИМ 2: НАСТРОЙКИ (ВЕРНУЛ ПЕРЕРЫВЫ) -->
+        <!-- РЕЖИМ 3: НАСТРОЙКИ (MODAL) -->
         <div v-if="mode === 'calendar' && step === 2" class="modal">
-            <h2 style="text-align: center; margin-top: 0;">Настройка</h2>
+            <h2 style="text-align: center;">Настройка графика</h2>
+            
             <div class="time-row">
-                <div class="time-group"><div class="label">НАЧАЛО</div><input type="time" v-model="startTime" class="time-input"></div>
-                <div class="time-group"><div class="label">КОНЕЦ</div><input type="time" v-model="endTime" class="time-input"></div>
+                <div class="time-group">
+                    <div class="label">Начало</div>
+                    <input type="time" v-model="startTime" class="time-input">
+                </div>
+                <div class="time-group">
+                    <div class="label">Конец</div>
+                    <input type="time" v-model="endTime" class="time-input">
+                </div>
             </div>
             <div class="time-row">
-                <div class="time-group"><div class="label">ДЛИТЕЛЬНОСТЬ (МИН)</div><input type="number" v-model="slotDuration" step="15" class="time-input"></div>
+                <div class="time-group">
+                    <div class="label">Длительность слота (мин)</div>
+                    <input type="number" v-model="slotDuration" step="15" class="time-input">
+                </div>
             </div>
             
-            <!-- БЛОК ПЕРЕРЫВОВ -->
-            <hr style="border: 0; border-top: 1px solid var(--cell-bg); width: 100%; margin: 20px 0;">
+            <hr>
+            
             <div class="breaks-list">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-weight: 600; font-size: 18px;">Перерывы</span>
-                    <button class="btn" @click="addBreak" style="width: auto; padding: 8px 12px; font-size: 14px; background-color: var(--cell-bg); color: var(--tg-btn);">+ Добавить</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 style="margin:0; font-size: 18px;">Перерывы ☕</h2>
+                    <button class="btn secondary" @click="addBreak" style="width: auto; padding: 10px 16px; margin:0; font-size: 13px;">+ Добавить</button>
                 </div>
+                
+                <div v-if="breaks.length === 0" style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 14px;">
+                    Перерывов нет
+                </div>
+
                 <div v-for="(brk, index) in breaks" :key="index" class="break-item">
-                    <div class="break-header">
-                        <span style="font-weight: 600;">Перерыв {{ index + 1 }}</span>
-                        <span @click="removeBreak(index)" style="color: var(--tg-red); cursor: pointer;">Удалить</span>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-weight: 700; color: var(--text-main); font-size: 14px;">Пауза {{ index + 1 }}</span>
+                        <span @click="removeBreak(index)" style="color: var(--error); font-weight: 700; font-size: 12px; cursor: pointer;">Удалить</span>
                     </div>
                     <div class="time-row" style="margin-bottom: 0;">
-                        <div class="time-group"><input type="time" v-model="brk.start" class="time-input"></div>
-                        <div style="padding-top: 10px;">-</div>
-                        <div class="time-group"><input type="time" v-model="brk.end" class="time-input"></div>
+                        <div class="time-group"><input type="time" v-model="brk.start" class="time-input" style="font-size: 16px; padding: 10px;"></div>
+                        <div style="padding-top: 10px; color: #ccc;">—</div>
+                        <div class="time-group"><input type="time" v-model="brk.end" class="time-input" style="font-size: 16px; padding: 10px;"></div>
                     </div>
                 </div>
             </div>
+            
+            <!-- Пустой блок, чтобы кнопки не перекрывали контент -->
+            <div style="height: 100px;"></div>
 
-            <div style="margin-top: auto; padding-top: 20px; display: flex; gap: 10px;">
-                <button class="btn secondary" @click="step = 1">Назад</button>
+            <div class="controls">
+                <button class="btn secondary" @click="step = 1">Отмена</button>
                 <button class="btn" @click="saveSchedule">Сохранить</button>
             </div>
         </div>
@@ -188,6 +426,11 @@
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
+        
+        // --- ЦВЕТА TELEGRAM HEADER ---
+        // Делаем шапку телеграма под цвет нашего фона, чтобы не было белой полосы
+        tg.setHeaderColor('#FFF9F5'); 
+        tg.setBackgroundColor('#FFF9F5');
 
         const API_BASE = 'https://aireminder.ru/webhook'; 
         const URLS = {
@@ -248,29 +491,16 @@
                 }
             },
             methods: {
-                // --- УМНАЯ ЧИСТКА ДАТЫ (Fix для битых данных) ---
-               // --- УМНАЯ ЧИСТКА ДАТЫ (Fix для битых данных + Поддержка UTC) ---
-cleanDate(isoStr) {
-    if (!isoStr) return null;
-    
-    // 1. Если дата нормальная (не дублируется), просто возвращаем её
-    // Это предотвратит ошибки парсинга, если строка уже чистая
-    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) {
-         return new Date(isoStr);
-    }
-
-    // 2. Если дата битая (2026-01-2026-01...), вырезаем кусок
-    // Ищем: YYYY-MM-DD T HH:mm:ss .ms (опционально) Z (опционально)
-    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
-    
-    if (match) {
-        return new Date(match[0]); 
-    }
-    
-    return new Date(isoStr);
-},
-
-                // --- ФОРМАТИРОВАНИЕ ДЛЯ ИНТЕРФЕЙСА ---
+                // --- УМНАЯ ЧИСТКА ДАТЫ ---
+                cleanDate(isoStr) {
+                    if (!isoStr) return null;
+                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) {
+                         return new Date(isoStr);
+                    }
+                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
+                    if (match) return new Date(match[0]); 
+                    return new Date(isoStr);
+                },
                 formatTime(isoStr) { 
                     const d = this.cleanDate(isoStr);
                     if (!d || isNaN(d)) return '??:??'; 
@@ -279,17 +509,13 @@ cleanDate(isoStr) {
                 formatDatePretty(isoStr) { 
                     const d = this.cleanDate(isoStr);
                     if (!d || isNaN(d)) return isoStr; 
-                    // Красивый формат: 10 января, сб
                     return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
                 },
-
-                // Внутренний ключ для словаря (YYYY-MM-DD)
                 formatDateKey(day) { 
                     const m = String(this.currentMonth + 1).padStart(2, '0'); 
                     const d = String(day).padStart(2, '0'); 
                     return `${this.currentYear}-${m}-${d}`; 
                 },
-
                 formatShortTime(timeStr) {
                     if (!timeStr) return '';
                     const [h, m] = timeStr.split(':');
@@ -301,12 +527,6 @@ cleanDate(isoStr) {
                     if (!data) return null;
                     return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
                 },
-                hasBreaks(day) {
-                    const dateStr = this.formatDateKey(day);
-                    const data = this.dbData[dateStr];
-                    return data && data.breaks && data.breaks.length > 0;
-                },
-
                 loadVisits() {
                     this.isLoading = true;
                     fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
@@ -324,7 +544,6 @@ cleanDate(isoStr) {
                     .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
                     .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
                 },
-                
                 loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })
                     .then(res => res.json())
@@ -337,12 +556,11 @@ cleanDate(isoStr) {
                         });
                     });
                 },
-                hasData(day) { return !!this.dbData[this.formatDateKey(day)]; },
                 getFreeSlots() {
                     const sortedDates = [...this.selectedDates].sort();
                     fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null, dates: sortedDates }) })
                     .then(() => { 
-                        alert('✅ Свободные окошки отправлены в чат! Вернитесь в диалог.');
+                        alert('✅ Свободные окошки отправлены в чат!');
                         tg.close();
                     })
                 },
@@ -380,6 +598,4 @@ cleanDate(isoStr) {
                 removeBreak(index) { this.breaks.splice(index, 1); }
             }
         }).mount('#app');
-    </script>
-</body>
-</html>
+    </script

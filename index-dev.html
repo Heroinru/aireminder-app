@@ -175,8 +175,9 @@
             color: var(--text-secondary); padding-bottom: 10px; text-transform: uppercase; 
         }
         
+        /* --- ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ ЯЧЕЙКИ ДНЯ --- */
         .day { 
-            aspect-ratio: 1/1.1; /* Чуть вытянутые, чтобы влезло время */
+            aspect-ratio: 1/1.1; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
@@ -191,24 +192,38 @@
             border: 2px solid transparent;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             transition: all 0.15s;
+            
+            /* 👇 МАГИЯ, КОТОРАЯ ЛЕЧИТ РАСТЯГИВАНИЕ: */
+            overflow: hidden; 
+            min-width: 0; 
         }
+
         .day span { z-index: 2; }
+
         .day.selected { 
             background: var(--primary); 
             color: white; 
             box-shadow: 0 5px 15px rgba(255, 148, 120, 0.4); 
             transform: translateY(-2px);
         }
+
         .day.empty { background-color: transparent; box-shadow: none; cursor: default; }
         
+        /* --- ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ ВРЕМЕНИ --- */
         .day-time {
             font-size: 9px;
             font-weight: 800;
             margin-top: 4px;
             background: #FFF0EB;
             color: var(--primary);
-            padding: 2px 6px;
-            border-radius: 8px;
+            padding: 2px 4px;
+            border-radius: 6px;
+            
+            /* 👇 ЧТОБЫ ТЕКСТ ОБРЕЗАЛСЯ, А НЕ РАЗДУВАЛ ЯЧЕЙКУ: */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Ставит троеточие "..." если не влезает */
+            max-width: 90%;
         }
         .day.selected .day-time { background: white; color: var(--primary); }
 

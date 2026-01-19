@@ -353,7 +353,7 @@
             <!-- Кнопки внизу -->
             <div class="controls-sticky">
                 <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">
-                    {{ isClientView ? 'Показать клиенту' : '🔍 Проверить окошки' }}
+                    {{ isClientView ? '🔍 Посмотреть окошки' : '🔍 Проверить окошки' }}
                 </button>
                 <button v-if="!isClientView" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0" style="width: 70px; flex: none;">
                     ⚙️

@@ -461,27 +461,44 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
+                // 1. Считываем параметры из Telegram (если открыто через t.me/...)
+                // start_param передается, когда переходят по ссылке ?startapp=...
+                const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
+                
+                // 2. Считываем параметры из URL (для тестов в браузере)
                 const urlParams = new URLSearchParams(window.location.search);
-                const urlMode = urlParams.get('mode');
-                const urlId = urlParams.get('master_id');
+                let urlMode = urlParams.get('mode');
+                let urlId = urlParams.get('master_id');
 
-                if (tg.initDataUnsafe?.user?.id) {
-                    this.masterId = tg.initDataUnsafe.user.id;
-                } else if (urlId) {
-                    this.masterId = urlId;
-                } else {
-                    this.masterId = 'TEST_USER';
+                // ЛОГИКА: Если есть start_param, он перекрывает URL параметры
+                if (startParam) {
+                    // Мы договорились передавать формат "client_ID"
+                    if (startParam.startsWith('client_')) {
+                        urlMode = 'client';
+                        urlId = startParam.replace('client_', '');
+                    }
                 }
 
+                // 3. Инициализация переменных
+                if (urlId) {
+                    this.masterId = urlId;
+                } else if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+                    // Если ID нет в ссылке, значит это сам мастер открыл меню
+                    this.masterId = window.Telegram.WebApp.initDataUnsafe.user.id;
+                } else {
+                    this.masterId = 'TEST_USER'; // Для тестов на компе
+                }
+
+                // 4. Запуск нужного режима
                 if (urlMode === 'confirm') {
                     this.mode = 'confirm';
                     this.loadVisits();
                 } else if (urlMode === 'client') {
                     this.mode = 'calendar';
                     this.isClientView = true;
-                    this.masterId = urlId;
                     this.loadSchedule();
                 } else {
+                    // Режим мастера (по умолчанию)
                     this.mode = 'calendar';
                     this.loadSchedule();
                 }

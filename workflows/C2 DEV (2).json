@@ -1,0 +1,225 @@
+{
+  "name": "C2 DEV",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "5aqT1nhgk2TP1Emg",
+          "mode": "list",
+          "cachedResultName": "masters_oauth_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/5aqT1nhgk2TP1Emg"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "master_telegram_id",
+              "keyValue": "={{ ($json.message?.from?.id || $json.callback_query?.from?.id || $json.master_telegram_id || $json.telegram_id).toString() }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        5712,
+        1440
+      ],
+      "id": "56b44f44-4124-4c8b-8205-8b171a4c127a",
+      "name": "Get Master OAuth",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Получаем данные\nconst items = $input.all().map(i => i.json);\nconst masterTz = $('Get Master OAuth').first().json.timezone || 'Europe/Moscow';\nconst chatId = $('Get Master OAuth').first().json.master_telegram_id;\n\n// 2. Фильтруем проблемные записи\nconst problemItems = items.filter(item => item.missing_phone === true);\n\n// Если проблем нет — хвалим\nif (problemItems.length === 0) {\n    return [{\n        json: {\n            report: \"✨ <b>Все готово к работе!</b>\\n\\nЯ проверил ближайшие записи — везде есть телефоны.\\n🚀 Напоминания уйдут по расписанию.\",\n            chat_id: chatId\n        }\n    }];\n}\n\n// 3. Строим список\nconst lines = problemItems.map(i => {\n    const start = i.appointment_time;\n    const name = i.client_name || \"Без имени\";\n    const link = i.google_html_link; // Ссылка из базы\n\n    let timeStr = \"??:??\";\n    let dateStr = \"\";\n    \n    if (start) {\n        const d = DateTime.fromISO(start).setZone(masterTz);\n        dateStr = d.setLocale('ru').toFormat('d MMM');\n        timeStr = d.setLocale('ru').toFormat('HH:mm');\n    }\n\n    // Если ссылка есть — делаем кликабельным\n    const nameHtml = link ? `<a href=\"${link}\">${name}</a>` : name;\n    \n    return `📅 <b>${dateStr}</b> в ${timeStr} — ${nameHtml}`;\n}).slice(0, 30);\n\n// 4. Склонение (1 запись, 2 записи, 5 записей)\nconst count = problemItems.length;\nlet suffix = \"записей\";\nconst lastDigit = count % 10;\nconst lastTwoDigits = count % 100;\n\nif (lastDigit === 1 && lastTwoDigits !== 11) {\n    suffix = \"запись\";\n} else if ([2, 3, 4].includes(lastDigit) && ![12, 13, 14].includes(lastTwoDigits)) {\n    suffix = \"записи\";\n}\n\n// 5. Итоговый текст\nconst report = \n  `⚠️ <b>Нужна помощь: ${count} ${suffix} без номера</b>\\n` +\n  `Я не нашел телефон. Без номера я не смогу отправить напоминание. 😔\\n\\n` +\n  lines.join(\"\\n\") +\n  `\\n\\n👇 <i>Нажми на имя клиента выше, чтобы добавить номер в Google Календаре.</i>\\n` +\n  `<i>(Я увижу изменения при следующей проверке через 10-15 мин)</i>`;\n\nreturn [{\n    json: {\n        report: report,\n        chat_id: chatId\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6128,
+        1424
+      ],
+      "id": "c3328d24-4d4a-4fef-aebb-517f1ca0b6ec",
+      "name": "Build Report",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Master OAuth').first().json.master_telegram_id }}",
+        "text": "={{ $json.report }}",
+        "replyMarkup": "replyKeyboard",
+        "replyKeyboardOptions": {},
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        6304,
+        1424
+      ],
+      "id": "5bbec91f-c3b1-47e2-8f5a-4fef50239d2a",
+      "name": "Send a text message",
+      "webhookId": "25befa7e-551f-4f5e-bca2-4b287d3f9246",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "54470f19-3485-46b6-9d34-a521bb4ff9cb",
+              "leftValue": "={{ $json.master_telegram_id || $json.telegram_id || $json.message?.from?.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5504,
+        1440
+      ],
+      "id": "e4a6e95d-2dbe-44c9-b0f6-013881092609",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        5216,
+        1440
+      ],
+      "id": "7c66f869-b3c1-4d84-b7ce-ee7f75de9ad5",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "TDjBATMyPrPl9SkA",
+          "mode": "list",
+          "cachedResultName": "appointment_reminders_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/TDjBATMyPrPl9SkA"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "master_ref_id",
+              "keyValue": "={{ $('Get Master OAuth').item.json.master_telegram_id }}"
+            },
+            {
+              "keyName": "appointment_time",
+              "condition": "gte",
+              "keyValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        5920,
+        1440
+      ],
+      "id": "a953301b-921f-4dce-ace0-40eba50d327c",
+      "name": "Get Events from DB"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Master OAuth": {
+      "main": [
+        [
+          {
+            "node": "Get Events from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Get Master OAuth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Events from DB": {
+      "main": [
+        [
+          {
+            "node": "Build Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2d9a1659-8872-4cb3-82b9-204b6667d7f2",
+  "meta": {
+    "instanceId": "85425e5dec6ea846726601a38bcc3d16cb358d988743eb7d6a3ac19db9eba71f"
+  },
+  "id": "ImgY6WjvGc1Eg0tC",
+  "tags": []
+}

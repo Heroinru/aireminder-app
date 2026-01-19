@@ -1,0 +1,775 @@
+{
+  "name": "C4 DEV - NPS Sender",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "TDjBATMyPrPl9SkA",
+          "mode": "list",
+          "cachedResultName": "appointment_reminders_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/TDjBATMyPrPl9SkA"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "appointment_time",
+              "condition": "gte",
+              "keyValue": "={{ $json.date_start }}"
+            },
+            {
+              "keyName": "visit_status",
+              "keyValue": "confirmed"
+            },
+            {
+              "keyName": "nps_status",
+              "condition": "neq",
+              "keyValue": "sent"
+            },
+            {
+              "keyName": "appointment_time",
+              "condition": "lte",
+              "keyValue": "={{ $json.date_end }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -48
+      ],
+      "id": "16c900db-5446-4e12-ba1a-5ac750ae09b9",
+      "name": "Get Visits"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "ST8dI3ftnXZnrS5V",
+          "mode": "list",
+          "cachedResultName": "feedback_history_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/ST8dI3ftnXZnrS5V"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "client_telegram_id",
+              "keyValue": "={{ $json.telegram_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        304
+      ],
+      "id": "1bd89fc0-79e2-491f-b08d-12e9818d11ab",
+      "name": "Get History",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "5aqT1nhgk2TP1Emg",
+          "mode": "list",
+          "cachedResultName": "masters_oauth_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/5aqT1nhgk2TP1Emg"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.master_ref_id ? parseInt($json.master_ref_id) : 0 }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        208
+      ],
+      "id": "1f7f5ce9-b574-4c1c-b0ac-c95a75466bd4",
+      "name": "Get Master"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "master_ref_id",
+              "field2": "id"
+            }
+          ]
+        },
+        "joinMode": "enrichInput1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2368,
+        -32
+      ],
+      "id": "ad23e424-64d6-42ce-b433-ef859a8df663",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "ST8dI3ftnXZnrS5V",
+          "mode": "list",
+          "cachedResultName": "feedback_history_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/ST8dI3ftnXZnrS5V"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "client_telegram_id",
+              "keyValue": "={{ $json.telegram_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "last_survey_date": "={{ $now.toISO() }}",
+            "total_surveys": "={{ ($json.total_surveys || 0) + 1 }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "client_telegram_id",
+              "displayName": "client_telegram_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "last_survey_date",
+              "displayName": "last_survey_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_nps_score",
+              "displayName": "last_nps_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "total_surveys",
+              "displayName": "total_surveys",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        -32
+      ],
+      "id": "a7b44b6f-7e77-4d18-9539-3dd4e8122731",
+      "name": "Update History"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. История (приходит во вход)\nconst history = $input.item.json;\n\n// 2. Визит (из начала цикла)\nconst visit = $('Loop Over Items').item.json;\n\n// 3. Данные клиента (из ноды поиска)\n// Используем .first(), так как в цикле она выполняется 1 раз для текущего элемента\nconst clientData = $('Get Client Real ID1').first().json;\n\nconst now = DateTime.now();\n\n// Логика фильтрации\nlet pass = true;\n\n// Если клиента не нашли (нет telegram_id) — пропускать нет смысла, слать некому\nif (!clientData.telegram_id) {\n    pass = false; \n} \n// Если нашли, проверяем дату\nelse if (history.last_survey_date) {\n    const lastDate = DateTime.fromISO(history.last_survey_date);\n    const diffDays = now.diff(lastDate, 'days').days;\n    if (diffDays <= 30) pass = false;\n}\n\nif (pass) {\n    return {\n        json: {\n            ...visit,           // Данные визита\n            ...clientData,      // telegram_id\n            ...history          // История\n        }\n    };\n} else {\n    return [];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        -48
+      ],
+      "id": "608989a0-8beb-44f7-9b0f-d03c8800ddd1",
+      "name": "Code (Filter 30 Days)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const yesterday = DateTime.now().setZone('Europe/Moscow').minus({ days: 1 });\n\nreturn {\n    json: {\n        // Начало дня (00:00:00)\n        date_start: yesterday.startOf('day').toISO(),\n        // Конец дня (23:59:59)\n        date_end: yesterday.endOf('day').toISO()\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -48
+      ],
+      "id": "b56c8558-cec1-49de-8c70-9a34ebea0c0a",
+      "name": "Code (Yesterday)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        656,
+        -192
+      ],
+      "id": "c8d2ddea-2964-42df-9e07-286578ff5492",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        -48
+      ],
+      "id": "f716e9d3-f1be-427d-90db-e7565c56f736",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "TDjBATMyPrPl9SkA",
+          "mode": "list",
+          "cachedResultName": "appointment_reminders_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/TDjBATMyPrPl9SkA"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "event_id",
+              "keyValue": "={{ $('Merge1').item.json.event_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nps_status": "sent"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "telegram_id",
+              "displayName": "telegram_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "master_telegram_id",
+              "displayName": "master_telegram_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "service_type",
+              "displayName": "service_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "appointment_time",
+              "displayName": "appointment_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "reminder_sent",
+              "displayName": "reminder_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "confirmation_status",
+              "displayName": "confirmation_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "client_phone",
+              "displayName": "client_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "reminder_time",
+              "displayName": "reminder_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "master_ref_id",
+              "displayName": "master_ref_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "client_email",
+              "displayName": "client_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "master_display_name",
+              "displayName": "master_display_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "master_display_name_dat",
+              "displayName": "master_display_name_dat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "google_etag",
+              "displayName": "google_etag",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visit_status",
+              "displayName": "visit_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "nps_status",
+              "displayName": "nps_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2784,
+        -32
+      ],
+      "id": "da0c6cfe-b9d5-4c8b-9c71-7c9dc621adfb",
+      "name": "nps_status update",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1968,
+        160
+      ],
+      "id": "843a5fb9-2425-4606-b9c1-9b6e8b9bb31c",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "yixtx4eC9r1PFAYb",
+          "mode": "list",
+          "cachedResultName": "AireminderTest_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/yixtx4eC9r1PFAYb"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "keyValue": "={{ $json.client_phone }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        800,
+        176
+      ],
+      "id": "a5c7e104-fa84-4d68-9b93-077cb788ba12",
+      "name": "Get Client Real ID1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_id || $json.client_telegram_id }}",
+        "text": "={{ $json.client_name }}, добрый день! ☀️\n\nВчера вы были у нас в гостях.\nМастер: {{ $json.display_name || $json.master_name }}\n\nНам очень важно знать, как всё прошло. Оцените ваши впечатления:",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "⭐️ 1",
+                    "additionalFields": {
+                      "callback_data": "=nps_1_{{ $json.event_id }}"
+                    }
+                  },
+                  {
+                    "text": "⭐️ 2",
+                    "additionalFields": {
+                      "callback_data": "=nps_2_{{ $json.event_id }}"
+                    }
+                  },
+                  {
+                    "text": "⭐️ 3",
+                    "additionalFields": {
+                      "callback_data": "=nps_3_{{ $json.event_id }}"
+                    }
+                  },
+                  {
+                    "text": "⭐️ 4",
+                    "additionalFields": {
+                      "callback_data": "=nps_4_{{ $json.event_id }}"
+                    }
+                  },
+                  {
+                    "text": "⭐️ 5",
+                    "additionalFields": {
+                      "callback_data": "=nps_5_{{ $json.event_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2560,
+        -32
+      ],
+      "id": "a39329c0-3163-4a04-922c-9a8c9e55e836",
+      "name": "Send a text message5",
+      "webhookId": "c56cc894-2520-44f2-afbd-d39f5b06bd01",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Visits": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History": {
+      "main": [
+        [
+          {
+            "node": "Code (Filter 30 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Master": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Filter 30 Days)": {
+      "main": [
+        [
+          {
+            "node": "Get Master",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Yesterday)": {
+      "main": [
+        [
+          {
+            "node": "Get Visits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Code (Filter 30 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Client Real ID1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update History": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code (Yesterday)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "nps_status update": {
+      "main": [
+        [
+          {
+            "node": "Update History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Client Real ID1": {
+      "main": [
+        [
+          {
+            "node": "Get History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message5": {
+      "main": [
+        [
+          {
+            "node": "nps_status update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3bd73be0-e99a-48fe-8a4e-2571defa27cb",
+  "meta": {
+    "instanceId": "85425e5dec6ea846726601a38bcc3d16cb358d988743eb7d6a3ac19db9eba71f"
+  },
+  "id": "YYX3rHB6KjN2jET0",
+  "tags": []
+}

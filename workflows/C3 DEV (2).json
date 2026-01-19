@@ -1,0 +1,776 @@
+{
+  "name": "C3 DEV",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "^(ask_start|start_parsing)$",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    },
+                    "id": "7c02f903-3a0d-4102-8eda-f013aa40488a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ask Start (Confirmation)"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a1687393-e333-4683-9e4d-02571ca69392",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "confirm_start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Set Active = True"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e6434d60-23f5-4a09-8473-f585e4589312",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "ask_stop",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ask Stop"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f678d51b-008a-44cd-9fb3-c7a8012aa32a",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "confirm_stop",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Set Active = False"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "df9a4a59-f27c-49b9-a382-bb9377e7db27",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "cancel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cancel"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -736,
+        144
+      ],
+      "id": "0481d73a-4ee2-4141-a9bd-74886f9a09b5",
+      "name": "Switch Status"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Switch Status').item.json.chat_id }}",
+        "text": "Вы уверены, что хотите запустить автоматическую рассылку?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Да",
+                    "additionalFields": {
+                      "callback_data": "confirm_start"
+                    }
+                  },
+                  {
+                    "text": "❌ Нет",
+                    "additionalFields": {
+                      "callback_data": "cancel"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        -96
+      ],
+      "id": "8fa7dd88-dd09-4692-9eb6-37dc937f52f6",
+      "name": "Ask Start",
+      "webhookId": "38a64f96-40b3-402f-9fc6-de15c8f68edb",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $json.chat_id }}",
+        "messageId": "={{ $json.message_id }}",
+        "replyMarkup": "inlineKeyboard",
+        "text": "Вы уверены, что хотите остановить рассылку?",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Да",
+                    "additionalFields": {
+                      "callback_data": "confirm_stop"
+                    }
+                  },
+                  {
+                    "text": "❌ Нет",
+                    "additionalFields": {
+                      "callback_data": "cancel"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        176
+      ],
+      "id": "b677d7e6-9b73-4eab-8391-a1cad3635644",
+      "name": "Ask Stop",
+      "webhookId": "1d36fc2e-58c0-4a1c-8245-fccdb990fb57",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "5aqT1nhgk2TP1Emg",
+          "mode": "list",
+          "cachedResultName": "masters_oauth_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/5aqT1nhgk2TP1Emg"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "master_telegram_id",
+              "keyValue": "={{ $json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": true,
+            "master_telegram_id": "={{ $json.chat_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "master_telegram_id",
+              "displayName": "master_telegram_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "master_google_email",
+              "displayName": "master_google_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "master_name",
+              "displayName": "master_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "refresh_token",
+              "displayName": "refresh_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        256,
+        80
+      ],
+      "id": "4fbc53cd-03c7-4fee-bbba-014fe0560cc9",
+      "name": "Set is_active = true"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "5aqT1nhgk2TP1Emg",
+          "mode": "list",
+          "cachedResultName": "masters_oauth_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/5aqT1nhgk2TP1Emg"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "master_telegram_id",
+              "keyValue": "={{ $json.chat_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": false,
+            "master_telegram_id": "={{ $json.chat_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "master_telegram_id",
+              "displayName": "master_telegram_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "master_google_email",
+              "displayName": "master_google_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "master_name",
+              "displayName": "master_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "refresh_token",
+              "displayName": "refresh_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        256,
+        272
+      ],
+      "id": "959191ba-2b86-4233-b025-0366e8cf9d26",
+      "name": "Set is_active = false"
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $('Switch Status').item.json.chat_id }}",
+        "messageId": "={{ $('Switch Status').item.json.message_id }}",
+        "replyMarkup": "inlineKeyboard",
+        "text": "✅ Рассылка запущена! Remi начал работу.",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "⛔️ Остановить",
+                    "additionalFields": {
+                      "callback_data": "ask_stop"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        80
+      ],
+      "id": "a80a7c3c-7fe5-494f-8044-0c67af985499",
+      "name": "Confirm Start",
+      "webhookId": "9b4752a3-31e5-4ba4-9570-52eb2879dec7",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $('Switch Status').item.json.chat_id }}",
+        "messageId": "={{ $('Switch Status').item.json.message_id }}",
+        "replyMarkup": "inlineKeyboard",
+        "text": "⏸ Работа приостановлена.  Напоминания временно отключены. Клиенты не получат уведомления о визитах.",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🚀 Запустить",
+                    "additionalFields": {
+                      "callback_data": "ask_start"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        272
+      ],
+      "id": "b87f27ee-56b2-43cd-b535-e79bd7ffbf6a",
+      "name": "Confirm Stop",
+      "webhookId": "cbaa174c-81f1-43b9-9241-4cb6bf3c5d85",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $json.chat_id }}",
+        "messageId": "={{ $json.message_id }}",
+        "replyMarkup": "inlineKeyboard",
+        "text": "⏸ Работа приостановлена.  Напоминания временно отключены. Клиенты не получат уведомления о визитах.",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🚀 Запустить",
+                    "additionalFields": {
+                      "callback_data": "ask_start"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        368
+      ],
+      "id": "1871a15b-d893-4638-9981-0223d8b30b92",
+      "name": "Cancel Action",
+      "webhookId": "125ad84f-427b-4447-ba57-cfd4d08cc910",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -960,
+        192
+      ],
+      "id": "2d6dc8ec-ec96-4910-98ff-9cda7d979265",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "5aqT1nhgk2TP1Emg",
+          "mode": "list",
+          "cachedResultName": "masters_oauth_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/5aqT1nhgk2TP1Emg"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "master_telegram_id",
+              "keyValue": "={{ $('When Executed by Another Workflow').item.json.chat_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -80
+      ],
+      "id": "37357610-47c6-4567-a28e-824cacf2672f",
+      "name": "Get Master Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "abf2c251-9882-480b-8017-b316326051e3",
+              "leftValue": "={{ $json.is_active }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -320,
+        -80
+      ],
+      "id": "a85d1260-81cb-4096-a825-c0b4870ed3ca",
+      "name": "If Active)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('When Executed by Another Workflow').item.json.chat_id }}",
+        "text": "✅ <b>Система активна!</b>  Я слежу за графиком и отправляю напоминания клиентам по плану.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "⛔️ Остановить рассылку",
+                    "additionalFields": {
+                      "callback_data": "ask_stop"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        -176
+      ],
+      "id": "8bd4725c-4cb2-4758-8b8c-667781f7018e",
+      "name": "Msg: Already Active",
+      "webhookId": "ddbd9ee4-2250-40c8-a484-19cebff3fe63",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch Status": {
+      "main": [
+        [
+          {
+            "node": "Get Master Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set is_active = true",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask Stop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set is_active = false",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancel Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set is_active = true": {
+      "main": [
+        [
+          {
+            "node": "Confirm Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set is_active = false": {
+      "main": [
+        [
+          {
+            "node": "Confirm Stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Switch Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Master Status": {
+      "main": [
+        [
+          {
+            "node": "If Active)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Active)": {
+      "main": [
+        [
+          {
+            "node": "Msg: Already Active",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dacd9258-e3ef-4f11-957c-7b0da6425570",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85425e5dec6ea846726601a38bcc3d16cb358d988743eb7d6a3ac19db9eba71f"
+  },
+  "id": "c798LQrfJZ5d61Pz",
+  "tags": []
+}

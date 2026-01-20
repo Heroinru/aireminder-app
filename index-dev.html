@@ -71,10 +71,20 @@
         .btn-secondary { background: white; color: var(--text-main); box-shadow: var(--shadow); border: 1px solid #E5E7EB; }
         .btn-danger { width: 100%; padding: 14px; background: #FEF2F2; color: var(--error); border: 1px solid #FEE2E2; border-radius: var(--radius); font-weight: 700; margin-bottom: 20px; }
 
+        /* INPUTS & SELECTS (Стилизованы одинаково) */
         .input-box {
             background: white; border: 1px solid #E5E7EB; border-radius: var(--radius); 
             padding: 14px; font-size: 18px; font-weight: 700; width: 100%; 
             box-sizing: border-box; text-align: center; color: var(--text-main); outline: none;
+            -webkit-appearance: none; /* Убираем стандартную стрелку select на iOS */
+            appearance: none;
+        }
+        select.input-box {
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FF9478%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px; /* Место для стрелки */
         }
 
         /* CALENDAR GRID */
@@ -95,6 +105,7 @@
         .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-bottom: 3px; }
         .time-txt { font-size: 9px; font-weight: 800; color: var(--text-main); line-height: 1; }
 
+        /* States */
         .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; }
         .day-cell.is-off .day-num { color: #BDC3C7; }
         .day-cell.has-break { background: var(--day-bg-break); border-color: #FFDCC2; }
@@ -120,7 +131,6 @@
             background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
         }
         
-        /* SLOTS VIEW */
         .slots-date-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--text-main); text-align: center; }
         .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .slot-chip {
@@ -137,7 +147,6 @@
         .loading-state { text-align: center; margin-top: 50px; color: var(--text-muted); font-weight: 600; }
         .spacer { height: 100px; }
         
-        /* VISIT CARDS */
         .visit-card { background: white; padding: 16px; border-radius: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
         .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
         .visit-time { font-size: 22px; font-weight: 800; }
@@ -210,7 +219,6 @@
                      @click="onDayClick(date)">
                     
                     <span class="day-num">{{ date }}</span>
-                    <!-- Вертикальное время -->
                     <div v-if="!isDayOff(date) || isSelected(date)" class="day-times-col">
                         <span class="time-txt">{{ getWorkTimes(date).start }}</span>
                         <span class="time-txt">{{ getWorkTimes(date).end }}</span>
@@ -223,12 +231,12 @@
             <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
             <div class="bottom-panel">
                 
-                <!-- 1. Для КЛИЕНТА: Только подсказка -->
+                <!-- 1. КЛИЕНТ: Только подсказка (Кнопок нет, редактировать нельзя) -->
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
                     👆 Нажмите на дату, чтобы увидеть свободное время
                 </div>
 
-                <!-- 2. Для МАСТЕРА: Режим РЕДАКТИРОВАНИЯ -->
+                <!-- 2. МАСТЕР: Режим РЕДАКТИРОВАНИЯ -->
                 <div v-else-if="editMode" class="panel-actions">
                     <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
                         ⚙️ Настроить ({{ selectedDates.length }})
@@ -238,7 +246,7 @@
                     </button>
                 </div>
 
-                <!-- 3. Для МАСТЕРА: Режим ПРОСМОТРА (Default) -->
+                <!-- 3. МАСТЕР: Режим ПРОСМОТРА (Default) -->
                 <div v-else class="panel-actions">
                     <button class="btn btn-secondary" @click="toggleEditMode">
                         ✏️ Изменить график
@@ -250,13 +258,11 @@
         <!-- === VIEW 3: ПРОСМОТР СЛОТОВ === -->
         <div v-if="mode === 'calendar' && viewStep === 'slots'" class="modal">
             <h2 class="slots-date-title">{{ formatDateFull(activeDate) }}</h2>
-            
             <div v-if="isLoadingSlots" class="loading-state">Загрузка...</div>
             <div v-else-if="currentSlots.length === 0" class="loading-state">Нет свободных мест</div>
             <div v-else class="slots-grid">
                 <div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div>
             </div>
-
             <div class="spacer"></div>
             <div class="bottom-panel">
                 <div class="panel-actions">
@@ -268,18 +274,21 @@
         <!-- === VIEW 4: НАСТРОЙКИ ГРАФИКА (Только Мастер) === -->
         <div v-if="mode === 'calendar' && viewStep === 'settings'" class="modal">
             <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
-            
             <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
 
-            <!-- ПОЛЯ ВВОДА ВРЕМЕНИ С ШАГОМ 15 МИН (step="900") -->
+            <!-- ИСПОЛЬЗУЕМ ВЫПАДАЮЩИЕ СПИСКИ (Select) С ШАГОМ 15 МИН -->
             <div class="form-row">
                 <div class="form-group">
                     <div class="form-label">Начало</div>
-                    <input type="time" v-model="startTime" class="input-box" step="900">
+                    <select v-model="startTime" class="input-box">
+                        <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <div class="form-label">Конец</div>
-                    <input type="time" v-model="endTime" class="input-box" step="900">
+                    <select v-model="endTime" class="input-box">
+                        <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
+                    </select>
                 </div>
             </div>
             
@@ -296,8 +305,13 @@
             <div v-for="(brk, index) in breaks" :key="index" class="break-row">
                 <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
                 <div class="form-row" style="margin-bottom:0;">
-                    <input type="time" v-model="brk.start" class="input-box" step="900">
-                    <input type="time" v-model="brk.end" class="input-box" step="900">
+                    <select v-model="brk.start" class="input-box">
+                        <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
+                    </select>
+                    <span style="align-self:center;">-</span>
+                    <select v-model="brk.end" class="input-box">
+                        <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
+                    </select>
                 </div>
             </div>
 
@@ -328,6 +342,19 @@
             SAVE_VISITS: `${API_BASE}/save-visits-dev`
         };
 
+        // Генерация списка времени по 15 минут
+        const generateTimeOptions = () => {
+            const times = [];
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 15) {
+                    const H = h.toString().padStart(2, '0');
+                    const M = m.toString().padStart(2, '0');
+                    times.push(`${H}:${M}`);
+                }
+            }
+            return times;
+        };
+
         createApp({
             data() {
                 return {
@@ -343,8 +370,10 @@
                     selectedDates: [],
                     activeDate: null,
                     currentSlots: [],
+                    // Настройки
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
-                    dbData: {}
+                    dbData: {},
+                    timeOptions: generateTimeOptions() // [00:00, 00:15 ...]
                 }
             },
             computed: {
@@ -377,11 +406,10 @@
                 }
             },
             methods: {
-                // --- ГЛАВНАЯ ЛОГИКА КЛИКА ---
                 onDayClick(day) {
                     const dateStr = this.formatDateKey(day);
                     
-                    // Режим редактирования (Только мастер)
+                    // Режим редактирования (Только мастер!)
                     if (this.editMode && !this.isClientView) {
                         const index = this.selectedDates.indexOf(dateStr);
                         if (index === -1) this.selectedDates.push(dateStr);
@@ -390,19 +418,19 @@
                     }
 
                     // Режим просмотра (Клиент всегда, Мастер по дефолту)
-                    // Проваливаемся в просмотр слотов
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     this.fetchSlotsForDate(dateStr);
                 },
 
                 toggleEditMode() {
-                    if (this.isClientView) return; // Защита
+                    // Защита: Клиент никогда не может включить editMode
+                    if (this.isClientView) return;
                     this.editMode = !this.editMode;
                     this.selectedDates = [];
                 },
 
-                // Выбор столбца (Только в EditMode)
                 toggleColumn(colIndex) { 
+                    // Защита: Клиент не может выделять столбцы
                     if (!this.editMode || this.isClientView) return;
                     
                     const daysToToggle = []; 
@@ -513,6 +541,9 @@
                     }
                 },
                 goToSettings() {
+                    // Защита в методе тоже
+                    if (this.isClientView) return;
+                    
                     let existingData = null;
                     const sortedSelection = [...this.selectedDates].sort();
                     for (const date of sortedSelection) {
@@ -536,21 +567,3 @@
                     fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(res => {
                         tg.showAlert('Сохранено!');
-                        this.selectedDates.forEach(date => { 
-                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) }; 
-                        });
-                        this.selectedDates = []; 
-                        this.viewStep = 'grid';
-                        this.editMode = false;
-                    })
-                    .catch(err => tg.showAlert('Ошибка: ' + err));
-                },
-                changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
-                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
-                removeBreak(index) { this.breaks.splice(index, 1); }
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>

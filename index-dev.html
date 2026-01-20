@@ -26,6 +26,12 @@
             --radius-xl: 20px;
             --shadow-card: 0 4px 15px rgba(0,0,0,0.03);
             --font-family: 'Manrope', -apple-system, sans-serif;
+            
+            /* Цвета статусов календаря */
+            --day-bg-work: #FFFFFF;
+            --day-bg-break: #FFF0E6; /* Нежный персик для дней с перерывом */
+            --day-bg-off: #F3F4F6;   /* Холодный серый для выходных */
+            --day-border-break: #FFDCC2;
         }
 
         body { 
@@ -163,7 +169,7 @@
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
 
-        /* --- CALENDAR --- */
+        /* --- CALENDAR (REDESIGNED) --- */
         .calendar-nav { 
             display: flex; justify-content: space-between; align-items: center; 
             width: 100%; margin-bottom: 24px; 
@@ -180,7 +186,7 @@
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
-            gap: 8px; 
+            gap: 6px; 
             width: 100%; 
             margin-bottom: 20px;
         }
@@ -189,59 +195,77 @@
             color: var(--text-secondary); padding-bottom: 10px; text-transform: uppercase; 
         }
         
+        /* Ячейка дня */
         .day { 
-            aspect-ratio: 1/1.1; 
+            aspect-ratio: 1/1.3; /* Вытянутые по вертикали */
             display: flex; 
             flex-direction: column; 
-            align-items: center; 
-            justify-content: center;
-            border-radius: 16px; 
-            background-color: white; 
+            justify-content: space-between; /* Дата сверху, время снизу */
+            align-items: center;
+            border-radius: 12px; 
+            background-color: var(--day-bg-work); 
             color: var(--text-main); 
-            font-size: 18px; 
+            font-size: 14px; /* Уменьшили дату */
             font-weight: 700; 
             cursor: pointer; 
             position: relative; 
-            border: 2px solid transparent;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            transition: all 0.15s;
+            border: 1px solid transparent; /* Тонкая рамка */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            transition: all 0.1s;
             overflow: hidden; 
             min-width: 0;
+            padding: 4px 2px; /* Внутренние отступы */
         }
-        .day span { z-index: 2; }
+
+        /* ДАТА (Число) */
+        .day span { 
+            align-self: flex-start; /* Прижимаем влево */
+            margin-left: 4px;
+            margin-top: 2px;
+            z-index: 2; 
+        }
+
+        /* СОСТОЯНИЯ ЯЧЕЙКИ */
+        
+        /* Выходной */
+        .day.day-off {
+            background-color: var(--day-bg-off);
+            color: #BDC3C7;
+            box-shadow: none;
+        }
+
+        /* Есть перерывы (Обед) */
+        .day.has-break {
+            background-color: var(--day-bg-break);
+            border-color: var(--day-border-break);
+        }
+
+        /* Выбран */
         .day.selected { 
             background: var(--primary); 
             color: white; 
+            border-color: var(--primary);
             box-shadow: 0 5px 15px rgba(255, 148, 120, 0.4); 
             transform: translateY(-2px);
         }
-        .day.empty { background-color: transparent; box-shadow: none; cursor: default; }
+        .day.empty { background-color: transparent; box-shadow: none; cursor: default; border: none; }
         
+        /* ВРЕМЯ (Нижняя часть) */
         .day-time {
-            font-size: 8px;
+            font-size: 10px; /* Читабельный мелкий шрифт */
             font-weight: 800;
-            margin-top: 4px;
-            background: #FFF0EB;
-            color: var(--primary);
-            padding: 2px 2px;
-            border-radius: 6px;
+            margin-bottom: 2px;
+            color: var(--text-main);
             white-space: nowrap; 
-            width: 90%;
+            width: 100%;
             text-align: center;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1.1;
         }
-        .day.selected .day-time { background: white; color: var(--primary); }
-
-        /* Иконка статуса (Кофе или Пляж) в углу */
-        .day-status-icon {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            font-size: 10px; /* Размер иконки */
-            z-index: 3;
-            line-height: 1;
-        }
+        
+        /* Цвет времени в разных состояниях */
+        .day.selected .day-time { color: white; opacity: 0.9; }
+        .day.day-off .day-time { display: none; } /* Скрываем время в выходной */
+        .day.has-break .day-time { color: #E65100; } /* Чуть темнее для контраста */
 
         /* --- SETTINGS MODAL --- */
         .modal { 
@@ -339,4 +363,308 @@
             <!-- Навигация -->
             <div class="calendar-nav">
                 <div class="nav-btn" @click="changeMonth(-1)">&#9664;</div>
-                <span class="month-title
+                <span class="month-title">{{ currentMonthName }}</span>
+                <div class="nav-btn" @click="changeMonth(1)">&#9654;</div>
+            </div>
+
+            <!-- Сетка -->
+            <div class="calendar-grid">
+                <!-- Дни недели -->
+                <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">
+                    {{ day }}
+                </div>
+                <!-- Пустые ячейки -->
+                <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
+                
+                <!-- Числа -->
+                <div v-for="date in daysInMonth" :key="date" 
+                     class="day" 
+                     :class="{ 
+                        selected: isSelected(date), 
+                        'has-break': hasBreaks(date) && !isSelected(date),
+                        'day-off': isDayOff(date) && !isSelected(date)
+                     }" 
+                     @click="toggleDay(date)">
+                    
+                    <span>{{ date }}</span>
+                    
+                    <!-- Время (10:00 - 20:00) -->
+                    <div v-if="getWorkHours(date)" class="day-time">
+                        {{ getWorkHours(date) }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="spacer"></div>
+            
+            <!-- Кнопки внизу -->
+            <div class="controls-sticky">
+                <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">
+                    {{ isClientView ? 'Показать клиенту' : '🔍 Проверить окошки' }}
+                </button>
+                <button v-if="!isClientView" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0" style="width: 70px; flex: none;">
+                    ⚙️
+                </button>
+            </div>
+        </div>
+
+        <!-- РЕЖИМ 2 (ЧАСТЬ 2): НАСТРОЙКИ / МОДАЛКА -->
+        <div v-if="mode === 'calendar' && step === 2" class="modal">
+            <h2>Настройка дня</h2>
+            
+            <!-- КНОПКА СДЕЛАТЬ ВЫХОДНЫМ -->
+            <button class="btn-danger-soft" @click="makeDayOff">
+                🏖 Сделать выходным
+            </button>
+
+            <div class="time-row">
+                <div class="time-group">
+                    <div class="label">Начало работы</div>
+                    <input type="time" v-model="startTime" class="time-input">
+                </div>
+                <div class="time-group">
+                    <div class="label">Конец работы</div>
+                    <input type="time" v-model="endTime" class="time-input">
+                </div>
+            </div>
+            
+            <div class="time-row">
+                <div class="time-group">
+                    <div class="label">Длительность (мин)</div>
+                    <input type="number" v-model="slotDuration" step="15" class="time-input">
+                </div>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+            
+            <div class="break-section-title">
+                <span style="font-weight: 800; font-size: 18px;">Перерывы ☕</span>
+                <button class="btn secondary" @click="addBreak" style="width: auto; padding: 10px 14px; margin: 0; font-size: 13px;">+ Добавить</button>
+            </div>
+            
+            <div v-if="breaks.length === 0" style="text-align: center; color: var(--text-secondary); padding: 10px;">
+                Нет перерывов
+            </div>
+
+            <div v-for="(brk, index) in breaks" :key="index" class="break-item">
+                <div class="break-header">
+                    <span class="break-title">Пауза {{ index + 1 }}</span>
+                    <span @click="removeBreak(index)" style="color: var(--error); font-weight: 700; cursor: pointer; font-size: 13px;">🗑 Удалить</span>
+                </div>
+                <div class="time-row" style="margin-bottom: 0;">
+                    <div class="time-group"><input type="time" v-model="brk.start" class="time-input" style="font-size: 18px;"></div>
+                    <div style="padding-top: 10px; color: #ccc;">—</div>
+                    <div class="time-group"><input type="time" v-model="brk.end" class="time-input" style="font-size: 18px;"></div>
+                </div>
+            </div>
+            
+            <div class="spacer"></div>
+
+            <div class="controls-sticky">
+                <button class="btn secondary" @click="step = 1">Назад</button>
+                <button class="btn" @click="saveSchedule">Сохранить</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        const { createApp } = Vue;
+        const tg = window.Telegram.WebApp;
+        tg.ready(); 
+        tg.expand();
+        
+        if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
+
+        const API_BASE = 'https://aireminder.ru/webhook'; 
+        const URLS = {
+            SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
+            GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
+            GET_VISITS: `${API_BASE}/get-visits-dev`,
+            SAVE_VISITS: `${API_BASE}/save-visits-dev`
+        };
+
+        createApp({
+            data() {
+                return {
+                    mode: 'calendar',
+                    masterId: null,
+                    isClientView: false,
+                    visits: [],
+                    isLoading: false,
+                    isSaving: false,
+                    step: 1,
+                    currentDate: new Date(),
+                    weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                    selectedDates: [],
+                    startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
+                    dbData: {}
+                }
+            },
+            computed: {
+                currentYear() { return this.currentDate.getFullYear(); },
+                currentMonth() { return this.currentDate.getMonth(); },
+                currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
+                daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
+                firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+            },
+            mounted() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlMode = urlParams.get('mode');
+                const urlId = urlParams.get('master_id');
+
+                if (tg.initDataUnsafe?.user?.id) {
+                    this.masterId = tg.initDataUnsafe.user.id;
+                } else if (urlId) {
+                    this.masterId = urlId;
+                } else {
+                    this.masterId = 'TEST_USER';
+                }
+
+                if (urlMode === 'confirm') {
+                    this.mode = 'confirm';
+                    this.loadVisits();
+                } else if (urlMode === 'client') {
+                    this.mode = 'calendar';
+                    this.isClientView = true;
+                    this.masterId = urlId;
+                    this.loadSchedule();
+                } else {
+                    this.mode = 'calendar';
+                    this.loadSchedule();
+                }
+            },
+            methods: {
+                cleanDate(isoStr) {
+                    if (!isoStr) return null;
+                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) {
+                         return new Date(isoStr);
+                    }
+                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
+                    if (match) return new Date(match[0]); 
+                    return new Date(isoStr);
+                },
+                formatTime(isoStr) { 
+                    const d = this.cleanDate(isoStr);
+                    if (!d || isNaN(d)) return '??:??'; 
+                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
+                },
+                formatDatePretty(isoStr) { 
+                    const d = this.cleanDate(isoStr);
+                    if (!d || isNaN(d)) return isoStr; 
+                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
+                },
+                formatDateKey(day) { 
+                    const m = String(this.currentMonth + 1).padStart(2, '0'); 
+                    const d = String(day).padStart(2, '0'); 
+                    return `${this.currentYear}-${m}-${d}`; 
+                },
+                formatShortTime(timeStr) {
+                    if (!timeStr) return '';
+                    const [h, m] = timeStr.split(':');
+                    return m === '00' ? h : `${h}:${m}`;
+                },
+                getWorkHours(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const data = this.dbData[dateStr];
+                    if (!data) return null;
+                    if (!data.start || !data.end) return null;
+                    // ФОРМАТ 10:00 - 20:00
+                    return `${this.formatShortTime(data.start)} - ${this.formatShortTime(data.end)}`;
+                },
+                isDayOff(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const data = this.dbData[dateStr];
+                    // Если данные есть, но время пустое - это выходной
+                    return data && (!data.start || !data.end);
+                },
+                hasBreaks(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const data = this.dbData[dateStr];
+                    return data && data.breaks && data.breaks.length > 0;
+                },
+                loadVisits() {
+                    this.isLoading = true;
+                    fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' }));
+                        })
+                        .catch(err => tg.showAlert('Ошибка: ' + err))
+                        .finally(() => this.isLoading = false);
+                },
+                saveVisits() {
+                    this.isSaving = true;
+                    const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status }));
+                    fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
+                    .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
+                    .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
+                },
+                loadSchedule() {
+                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!Array.isArray(data) && data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                        const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+                        scheduleList.forEach(row => {
+                            let brk = []; try { brk = JSON.parse(row.breaks); } catch(e) {}
+                            this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                        });
+                    });
+                },
+                getFreeSlots() {
+                    const sortedDates = [...this.selectedDates].sort();
+                    fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, client_id: this.isClientView ? tg.initDataUnsafe?.user?.id : null, dates: sortedDates }) })
+                    .then(() => { 
+                        alert('✅ Свободные окошки отправлены в чат! Вернитесь в диалог.');
+                        tg.close();
+                    })
+                },
+                goToSettings() {
+                    if (this.isClientMode) return;
+                    let existingData = null;
+                    const sortedSelection = [...this.selectedDates].sort();
+                    for (const date of sortedSelection) {
+                        if (this.dbData[date]) { existingData = this.dbData[date]; break; }
+                    }
+                    if (existingData) {
+                        this.startTime = existingData.start || '';
+                        this.endTime = existingData.end || '';
+                        this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
+                    } else {
+                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                    }
+                    this.step = 2;
+                },
+                makeDayOff() {
+                    this.startTime = '';
+                    this.endTime = '';
+                    this.breaks = [];
+                    this.saveSchedule(); 
+                },
+                saveSchedule() {
+                    const payload = { master_id: this.masterId, dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration };
+                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                    .then(res => {
+                        tg.showAlert('Сохранено!');
+                        this.selectedDates.forEach(date => { 
+                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) }; 
+                        });
+                        this.selectedDates = []; 
+                        this.step = 1;
+                    })
+                    .catch(err => tg.showAlert('Ошибка: ' + err));
+                },
+                changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
+                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
+                toggleDay(day) { const dateStr = this.formatDateKey(day); const index = this.selectedDates.indexOf(dateStr); if (index === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(index, 1); },
+                toggleColumn(colIndex) { if(this.isClientView) return; const daysToToggle = []; for (let d = 1; d <= this.daysInMonth; d++) { const date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d)); } const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } },
+                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
+                removeBreak(index) { this.breaks.splice(index, 1); }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

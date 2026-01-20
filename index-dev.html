@@ -13,468 +13,356 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* --- BRAND REMI STYLES --- */
+        /* === 1. GLOBAL VARIABLES (Единый стиль) === */
         :root { 
-            --bg-color: #FFF9F5;          
-            --card-bg: #FFFFFF;
-            --primary: #FF9478;           
-            --primary-gradient: linear-gradient(135deg, #FF9478, #E66E50);
-            --text-main: #2E1065;         
-            --text-secondary: #9CA3AF;
-            --success: #10B981;
-            --error: #EF4444;
-            --radius-xl: 20px;
-            --shadow-card: 0 4px 15px rgba(0,0,0,0.03);
-            --font-family: 'Manrope', -apple-system, sans-serif;
+            /* Основные цвета */
+            --bg-page: #FFF9F5;          /* Фон страницы (Soft Peach) */
+            --bg-card: #FFFFFF;          /* Фон карточек и ячеек */
             
-            /* Цвета статусов календаря */
-            --day-bg-work: #FFFFFF;
-            --day-bg-break: #FFF0E6; /* Нежный персик для дней с перерывом */
-            --day-bg-off: #F3F4F6;   /* Холодный серый для выходных */
-            --day-border-break: #FFDCC2;
+            /* Брендовый акцент */
+            --primary: #FF9478;
+            --primary-dark: #E66E50;
+            --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
+            
+            /* Текст */
+            --text-main: #2E1065;        /* Глубокий фиолетовый */
+            --text-muted: #9CA3AF;       /* Серый */
+            
+            /* Статусы */
+            --success: #10B981;          /* Зеленый */
+            --error: #EF4444;            /* Красный */
+            --status-pending: #F3F4F6;   /* Серый фон для ожидания */
+            
+            /* Календарь (Статусы дней) */
+            --day-bg-work: #FFFFFF;      /* Рабочий */
+            --day-bg-break: #FFF0E6;     /* С перерывом (светло-персиковый) */
+            --day-bg-off: #F3F4F6;       /* Выходной (холодный серый) */
+            --day-border: rgba(0,0,0,0.03);
+
+            /* UI */
+            --radius: 16px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.03);
+            --font: 'Manrope', sans-serif;
         }
 
         body { 
-            font-family: var(--font-family); 
-            background-color: var(--bg-color); 
+            font-family: var(--font); 
+            background-color: var(--bg-page); 
             color: var(--text-main); 
-            margin: 0; 
-            padding: 0;
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh; 
+            margin: 0; padding: 0;
+            display: flex; flex-direction: column; min-height: 100vh; 
             -webkit-tap-highlight-color: transparent;
         }
 
-        #app {
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
+        #app { padding: 16px; flex: 1; display: flex; flex-direction: column; }
 
-        /* --- HEADER & LOGO --- */
+        /* === 2. HEADER === */
         .brand-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(0,0,0,0.03);
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px; padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         .logo-box {
-            width: 38px; height: 38px;
-            background: var(--primary);
-            color: white;
-            font-weight: 800;
-            font-size: 22px;
-            border-radius: 12px;
+            width: 32px; height: 32px;
+            background: var(--primary); color: white;
+            font-weight: 800; font-size: 20px;
+            border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             transform: rotate(3deg);
-            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
         }
-        .brand-name { font-size: 20px; font-weight: 800; color: var(--text-main); }
+        .brand-name { font-size: 18px; font-weight: 800; }
 
-        /* --- CARDS (Визиты) --- */
+        /* === 3. COMMON UI COMPONENTS === */
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
-        
-        .visit-card { 
-            background-color: var(--card-bg); 
-            border: none;
-            border-radius: var(--radius-xl); 
-            padding: 20px; 
-            margin-bottom: 16px; 
-            box-shadow: var(--shadow-card);
-        }
-        .visit-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 12px; 
-        }
-        .visit-time { 
-            font-size: 26px; 
-            font-weight: 800; 
-            color: var(--text-main); 
-            letter-spacing: -1px;
-        }
-        .visit-date-badge {
-            font-size: 13px; font-weight: 700; 
-            color: var(--primary); 
-            background: #FFF0EB; 
-            padding: 6px 12px; border-radius: 20px;
-        }
-        .visit-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .visit-service { font-size: 15px; color: var(--text-secondary); font-weight: 500; }
-        
-        /* STATUS SWITCHER */
-        .status-toggle { 
-            display: flex; 
-            background-color: #F3F4F6; 
-            border-radius: 14px; 
-            padding: 4px; 
-            margin-top: 16px; 
-            gap: 5px;
-        }
-        .status-btn { 
-            flex: 1; 
-            padding: 10px 0; 
-            text-align: center; 
-            font-size: 13px; 
-            font-weight: 700; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            color: var(--text-secondary);
-        }
-        .status-btn.active-pending { background-color: white; color: var(--text-main); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .status-btn.active-confirmed { background-color: var(--success); color: white; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3); }
-        .status-btn.active-noshow { background-color: var(--error); color: white; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3); }
 
-        /* --- BUTTONS --- */
+        /* Кнопки */
         .btn { 
-            width: 100%; 
-            padding: 18px; 
-            border: none; 
-            border-radius: 18px; 
-            background: var(--primary-gradient); 
-            color: white; 
-            font-size: 16px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            box-shadow: 0 10px 20px rgba(255, 148, 120, 0.3);
-            margin-top: auto;
+            width: 100%; padding: 16px; border: none; border-radius: var(--radius); 
+            background: var(--primary-grad); color: white; 
+            font-size: 16px; font-weight: 700; cursor: pointer; 
+            box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
+            transition: transform 0.1s;
         }
-        .btn:disabled { opacity: 0.6; box-shadow: none; background: #D1D5DB; }
         .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; }
         
-        .btn.secondary { 
-            background: white; 
-            color: var(--text-main); 
-            box-shadow: var(--shadow-card);
-            border: 1px solid #F3F4F6;
+        .btn-secondary { 
+            background: white; color: var(--text-main); 
+            box-shadow: var(--shadow); border: 1px solid #E5E7EB; 
         }
-        
-        .btn-danger-soft {
-            width: 100%;
-            padding: 16px;
-            background: #FEF2F2;
-            color: var(--error);
-            border: 1px solid #FEE2E2;
-            border-radius: 18px;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            margin-bottom: 24px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+        .btn-danger {
+            width: 100%; padding: 14px; background: #FEF2F2; color: var(--error);
+            border: 1px solid #FEE2E2; border-radius: var(--radius);
+            font-weight: 700; margin-bottom: 20px;
         }
 
-        /* --- CALENDAR (REDESIGNED) --- */
-        .calendar-nav { 
-            display: flex; justify-content: space-between; align-items: center; 
-            width: 100%; margin-bottom: 24px; 
+        /* Поля ввода */
+        .input-box {
+            background: white; border: 1px solid #E5E7EB; 
+            border-radius: var(--radius); padding: 14px; 
+            font-size: 18px; font-weight: 700; width: 100%; 
+            box-sizing: border-box; text-align: center; color: var(--text-main);
+            outline: none; box-shadow: var(--shadow); font-family: var(--font);
         }
-        .month-title { font-size: 22px; font-weight: 800; text-transform: capitalize; color: var(--text-main); }
-        .nav-btn { 
-            width: 44px; height: 44px; 
-            border-radius: 14px; background: white; 
-            box-shadow: var(--shadow-card);
-            display: flex; align-items: center; justify-content: center;
-            color: var(--primary); font-size: 20px; cursor: pointer;
+        .input-box:focus { border-color: var(--primary); }
+
+        /* === 4. VISIT CARD STYLE (Единый стиль) === */
+        .visit-card { 
+            background-color: var(--bg-card); 
+            border-radius: var(--radius); 
+            padding: 16px; margin-bottom: 12px; 
+            box-shadow: var(--shadow);
+            border: 1px solid var(--day-border);
+        }
+        .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .visit-time { font-size: 22px; font-weight: 800; }
+        .visit-date { 
+            font-size: 12px; font-weight: 700; color: var(--primary); 
+            background: var(--bg-page); padding: 4px 10px; border-radius: 20px; 
+        }
+        .visit-client { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        .visit-desc { font-size: 14px; color: var(--text-muted); }
+
+        /* Переключатель статусов */
+        .status-row { display: flex; background: #F3F4F6; padding: 3px; border-radius: 12px; margin-top: 12px; gap: 2px; }
+        .status-opt { 
+            flex: 1; text-align: center; padding: 8px 0; 
+            font-size: 12px; font-weight: 700; border-radius: 9px; 
+            color: var(--text-muted); transition: 0.2s; 
+        }
+        .status-opt.active-pending { background: white; color: var(--text-main); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .status-opt.active-confirmed { background: var(--success); color: white; }
+        .status-opt.active-noshow { background: var(--error); color: white; }
+
+        /* === 5. CALENDAR GRID (Стиль Дикиди) === */
+        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .month-name { font-size: 20px; font-weight: 800; text-transform: capitalize; }
+        .nav-arrow { 
+            width: 40px; height: 40px; background: white; border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: var(--shadow); color: var(--primary); font-size: 18px; 
         }
 
-        .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            gap: 6px; 
-            width: 100%; 
-            margin-bottom: 20px;
-        }
-        .weekday { 
-            text-align: center; font-size: 12px; font-weight: 700; 
-            color: var(--text-secondary); padding-bottom: 10px; text-transform: uppercase; 
-        }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; margin-bottom: 80px; }
+        .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; }
         
-        /* Ячейка дня */
-        .day { 
-            aspect-ratio: 1/1.3; /* Вытянутые по вертикали */
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; /* Дата сверху, время снизу */
-            align-items: center;
-            border-radius: 12px; 
-            background-color: var(--day-bg-work); 
-            color: var(--text-main); 
-            font-size: 14px; /* Уменьшили дату */
-            font-weight: 700; 
-            cursor: pointer; 
-            position: relative; 
-            border: 1px solid transparent; /* Тонкая рамка */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            transition: all 0.1s;
-            overflow: hidden; 
-            min-width: 0;
-            padding: 4px 2px; /* Внутренние отступы */
+        .day-cell { 
+            aspect-ratio: 1/1.3; /* Высокие ячейки */
+            background: var(--day-bg-work);
+            border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 4px;
+            position: relative;
+            border: 1px solid transparent;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            transition: 0.1s;
+            overflow: hidden;
         }
 
-        /* ДАТА (Число) */
-        .day span { 
-            align-self: flex-start; /* Прижимаем влево */
-            margin-left: 4px;
-            margin-top: 2px;
-            z-index: 2; 
+        /* Дата (Число) - Слева Сверху */
+        .day-num { 
+            font-size: 14px; font-weight: 700; color: var(--text-main); 
+            line-height: 1; margin-left: 2px; margin-top: 2px;
         }
 
-        /* СОСТОЯНИЯ ЯЧЕЙКИ */
+        /* Время - Снизу По центру */
+        .day-info {
+            font-size: 9px; font-weight: 800; text-align: center;
+            width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            margin-bottom: 2px; color: var(--text-main);
+        }
+
+        /* --- СОСТОЯНИЯ ДНЯ (ЦВЕТА) --- */
         
-        /* Выходной */
-        .day.day-off {
-            background-color: var(--day-bg-off);
-            color: #BDC3C7;
-            box-shadow: none;
-        }
+        /* Выходной (Серый) */
+        .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; }
+        .day-cell.is-off .day-num { color: #BDC3C7; }
+        .day-cell.is-off .day-info { display: none; } /* Скрываем время */
 
-        /* Есть перерывы (Обед) */
-        .day.has-break {
-            background-color: var(--day-bg-break);
-            border-color: var(--day-border-break);
-        }
+        /* С перерывом (Персик) */
+        .day-cell.has-break { background: var(--day-bg-break); border-color: #FFDCC2; }
+        .day-cell.has-break .day-info { color: #E65100; }
 
-        /* Выбран */
-        .day.selected { 
-            background: var(--primary); 
-            color: white; 
-            border-color: var(--primary);
-            box-shadow: 0 5px 15px rgba(255, 148, 120, 0.4); 
-            transform: translateY(-2px);
+        /* Выбранный (Коралл) - перекрывает остальные */
+        .day-cell.is-selected { 
+            background: var(--primary); border-color: var(--primary); 
+            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4); 
+            transform: translateY(-2px); z-index: 2;
         }
-        .day.empty { background-color: transparent; box-shadow: none; cursor: default; border: none; }
-        
-        /* ВРЕМЯ (Нижняя часть) */
-        .day-time {
-            font-size: 10px; /* Читабельный мелкий шрифт */
-            font-weight: 800;
-            margin-bottom: 2px;
-            color: var(--text-main);
-            white-space: nowrap; 
-            width: 100%;
-            text-align: center;
-            line-height: 1.1;
-        }
-        
-        /* Цвет времени в разных состояниях */
-        .day.selected .day-time { color: white; opacity: 0.9; }
-        .day.day-off .day-time { display: none; } /* Скрываем время в выходной */
-        .day.has-break .day-time { color: #E65100; } /* Чуть темнее для контраста */
+        .day-cell.is-selected .day-num, 
+        .day-cell.is-selected .day-info { color: white; }
 
-        /* --- SETTINGS MODAL --- */
-        .modal { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
-            background: var(--bg-color); 
-            padding: 20px; 
-            display: flex; flex-direction: column; 
-            z-index: 100; overflow-y: auto; 
-        }
-        
-        .controls-sticky { 
+        /* === 6. MODALS & CONTROLS === */
+        .bottom-panel {
             position: fixed; bottom: 0; left: 0; right: 0; 
-            padding: 16px 20px 30px 20px; 
-            background: rgba(255, 255, 255, 0.9); 
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(0,0,0,0.05); 
-            z-index: 10; display: flex; gap: 10px; 
+            padding: 16px 20px 30px 20px; background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);
+            z-index: 100; display: flex; gap: 10px;
         }
         
-        .time-row { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
-        .time-group { flex: 1; }
-        .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .time-input { 
-            font-family: var(--font-family);
-            font-size: 20px; font-weight: 700;
-            padding: 16px; width: 100%; box-sizing: border-box; 
-            background-color: white; color: var(--text-main); 
-            border: 1px solid #E5E7EB; border-radius: 16px; 
-            text-align: center; box-shadow: var(--shadow-card);
-            outline: none;
+        .modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
         }
-        .time-input:focus { border-color: var(--primary); }
-
-        .break-section-title {
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-top: 10px; margin-bottom: 16px;
+        
+        .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+        
+        .break-row { 
+            background: white; padding: 12px; border-radius: 12px; 
+            margin-bottom: 10px; box-shadow: var(--shadow); 
         }
-        .break-item { 
-            background-color: white; padding: 16px; 
-            border-radius: 16px; margin-bottom: 12px; 
-            box-shadow: var(--shadow-card);
-        }
-        .break-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .break-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 6px; }
-
-        .loading-text { text-align: center; color: var(--text-secondary); margin-top: 60px; font-weight: 600; }
+        .break-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+        
+        .loading-state { text-align: center; margin-top: 50px; color: var(--text-muted); font-weight: 600; }
         .spacer { height: 100px; }
     </style>
 </head>
 <body>
 
     <div id="app">
-        
         <!-- HEADER -->
         <div class="brand-header">
             <div class="logo-box">R</div>
             <div class="brand-name">Remi</div>
         </div>
 
-        <!-- РЕЖИМ 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
+        <!-- === VIEW: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ === -->
         <div v-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
-            <div v-if="isLoading" class="loading-text">Загрузка данных...</div>
-            <div v-else-if="visits.length === 0" class="loading-text">
-                <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
-                Отличная работа!<br>Визитов нет или все обработаны.
-            </div>
             
+            <div v-if="isLoading" class="loading-state">Загрузка...</div>
+            <div v-else-if="visits.length === 0" class="loading-state">
+                <div style="font-size: 32px; margin-bottom: 10px;">🎉</div>
+                Нет визитов на сегодня
+            </div>
+
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
                     <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div class="visit-date-badge">{{ formatDatePretty(visit.appointment_time) }}</div>
+                    <div class="visit-date">{{ formatDatePretty(visit.appointment_time) }}</div>
                 </div>
-                <div class="visit-name">{{ visit.client_name || 'Клиент без имени' }}</div>
-                <div class="visit-service">{{ visit.service_type || 'Услуга не указана' }}</div>
+                <div class="visit-client">{{ visit.client_name || 'Без имени' }}</div>
+                <div class="visit-desc">{{ visit.service_type || 'Услуга не указана' }}</div>
                 
-                <div class="status-toggle">
-                    <div class="status-btn" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳ Ожидание</div>
-                    <div class="status-btn" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">✅ Пришел</div>
-                    <div class="status-btn" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Не был</div>
+                <div class="status-row">
+                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">Ожидание</div>
+                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">Пришел</div>
+                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">Не был</div>
                 </div>
             </div>
             
             <div class="spacer"></div>
-            <div class="controls-sticky" v-if="visits.length > 0">
+            <div class="bottom-panel" v-if="visits.length > 0">
                 <button class="btn" @click="saveVisits" :disabled="isSaving">
                     {{ isSaving ? 'Сохранение...' : 'Сохранить изменения' }}
                 </button>
             </div>
         </div>
 
-        <!-- РЕЖИМ 2: КАЛЕНДАРЬ -->
-        <div v-if="mode === 'calendar' && step === 1" style="display: flex; flex-direction: column; flex: 1;">
-            
-            <!-- Навигация -->
+        <!-- === VIEW: КАЛЕНДАРЬ === -->
+        <div v-if="mode === 'calendar' && step === 1">
             <div class="calendar-nav">
-                <div class="nav-btn" @click="changeMonth(-1)">&#9664;</div>
-                <span class="month-title">{{ currentMonthName }}</span>
-                <div class="nav-btn" @click="changeMonth(1)">&#9654;</div>
+                <div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div>
+                <span class="month-name">{{ currentMonthName }}</span>
+                <div class="nav-arrow" @click="changeMonth(1)">&#9654;</div>
             </div>
 
-            <!-- Сетка -->
-            <div class="calendar-grid">
+            <div class="cal-grid">
                 <!-- Дни недели -->
-                <div v-for="(day, index) in weekDays" :key="day" class="weekday" @click="toggleColumn(index)">
-                    {{ day }}
-                </div>
-                <!-- Пустые ячейки -->
-                <div v-for="n in firstDayOffset" :key="'empty-'+n" class="day empty"></div>
+                <div v-for="d in weekDays" :key="d" class="cal-head">{{ d }}</div>
                 
-                <!-- Числа -->
+                <!-- Пустые -->
+                <div v-for="n in firstDayOffset" :key="'e'+n"></div>
+                
+                <!-- Ячейки -->
                 <div v-for="date in daysInMonth" :key="date" 
-                     class="day" 
-                     :class="{ 
-                        selected: isSelected(date), 
-                        'has-break': hasBreaks(date) && !isSelected(date),
-                        'day-off': isDayOff(date) && !isSelected(date)
-                     }" 
+                     class="day-cell" 
+                     :class="{
+                        'is-selected': isSelected(date),
+                        'is-off': isDayOff(date) && !isSelected(date),
+                        'has-break': hasBreaks(date) && !isSelected(date) && !isDayOff(date)
+                     }"
                      @click="toggleDay(date)">
                     
-                    <span>{{ date }}</span>
+                    <span class="day-num">{{ date }}</span>
                     
-                    <!-- Время (10:00 - 20:00) -->
-                    <div v-if="getWorkHours(date)" class="day-time">
-                        {{ getWorkHours(date) }}
+                    <!-- Время только если рабочий день -->
+                    <div v-if="!isDayOff(date) || isSelected(date)" class="day-info">
+                        {{ getWorkHours(date) || '...' }}
                     </div>
                 </div>
             </div>
-            
+
             <div class="spacer"></div>
-            
-            <!-- Кнопки внизу -->
-            <div class="controls-sticky">
+            <div class="bottom-panel">
                 <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">
-                    {{ isClientView ? 'Показать клиенту' : '🔍 Проверить окошки' }}
+                    {{ isClientView ? 'Показать доступное' : '🔍 Проверить окошки' }}
                 </button>
-                <button v-if="!isClientView" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0" style="width: 70px; flex: none;">
-                    ⚙️
-                </button>
+                <button v-if="!isClientView" class="btn btn-secondary" @click="goToSettings" :disabled="selectedDates.length === 0" style="width: 60px;">⚙️</button>
             </div>
         </div>
 
-        <!-- РЕЖИМ 2 (ЧАСТЬ 2): НАСТРОЙКИ / МОДАЛКА -->
+        <!-- === VIEW: НАСТРОЙКИ ДНЯ === -->
         <div v-if="mode === 'calendar' && step === 2" class="modal">
-            <h2>Настройка дня</h2>
+            <h2>Настройка графика</h2>
             
-            <!-- КНОПКА СДЕЛАТЬ ВЫХОДНЫМ -->
-            <button class="btn-danger-soft" @click="makeDayOff">
-                🏖 Сделать выходным
-            </button>
+            <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
 
-            <div class="time-row">
-                <div class="time-group">
-                    <div class="label">Начало работы</div>
-                    <input type="time" v-model="startTime" class="time-input">
+            <div class="form-row">
+                <div class="form-group">
+                    <div class="form-label">Начало</div>
+                    <input type="time" v-model="startTime" class="input-box">
                 </div>
-                <div class="time-group">
-                    <div class="label">Конец работы</div>
-                    <input type="time" v-model="endTime" class="time-input">
-                </div>
-            </div>
-            
-            <div class="time-row">
-                <div class="time-group">
-                    <div class="label">Длительность (мин)</div>
-                    <input type="number" v-model="slotDuration" step="15" class="time-input">
+                <div class="form-group">
+                    <div class="form-label">Конец</div>
+                    <input type="time" v-model="endTime" class="input-box">
                 </div>
             </div>
             
-            <hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-            
-            <div class="break-section-title">
-                <span style="font-weight: 800; font-size: 18px;">Перерывы ☕</span>
-                <button class="btn secondary" @click="addBreak" style="width: auto; padding: 10px 14px; margin: 0; font-size: 13px;">+ Добавить</button>
-            </div>
-            
-            <div v-if="breaks.length === 0" style="text-align: center; color: var(--text-secondary); padding: 10px;">
-                Нет перерывов
+            <div class="form-row">
+                <div class="form-group">
+                    <div class="form-label">Слот (мин)</div>
+                    <input type="number" v-model="slotDuration" step="15" class="input-box">
+                </div>
             </div>
 
-            <div v-for="(brk, index) in breaks" :key="index" class="break-item">
-                <div class="break-header">
-                    <span class="break-title">Пауза {{ index + 1 }}</span>
-                    <span @click="removeBreak(index)" style="color: var(--error); font-weight: 700; cursor: pointer; font-size: 13px;">🗑 Удалить</span>
+            <hr style="border:0; border-top:1px solid #E5E7EB; margin: 20px 0;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span style="font-weight:700;">Перерывы</span>
+                <button class="btn btn-secondary" @click="addBreak" style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button>
+            </div>
+
+            <div v-for="(brk, index) in breaks" :key="index" class="break-row">
+                <div class="break-head">
+                    <span>Пауза {{ index+1 }}</span>
+                    <span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span>
                 </div>
-                <div class="time-row" style="margin-bottom: 0;">
-                    <div class="time-group"><input type="time" v-model="brk.start" class="time-input" style="font-size: 18px;"></div>
-                    <div style="padding-top: 10px; color: #ccc;">—</div>
-                    <div class="time-group"><input type="time" v-model="brk.end" class="time-input" style="font-size: 18px;"></div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <input type="time" v-model="brk.start" class="input-box" style="padding:10px;">
+                    <span style="align-self:center;">-</span>
+                    <input type="time" v-model="brk.end" class="input-box" style="padding:10px;">
                 </div>
             </div>
-            
+
             <div class="spacer"></div>
-
-            <div class="controls-sticky">
-                <button class="btn secondary" @click="step = 1">Назад</button>
+            <div class="bottom-panel">
+                <button class="btn btn-secondary" @click="step = 1">Назад</button>
                 <button class="btn" @click="saveSchedule">Сохранить</button>
             </div>
         </div>
 
     </div>
 
-    <!-- SCRIPT -->
+    <!-- LOGIC -->
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
-        tg.ready(); 
-        tg.expand();
+        tg.ready(); tg.expand();
         
+        // Красим шапку под фон страницы
         if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
 
@@ -493,8 +381,7 @@
                     masterId: null,
                     isClientView: false,
                     visits: [],
-                    isLoading: false,
-                    isSaving: false,
+                    isLoading: false, isSaving: false,
                     step: 1,
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -515,13 +402,9 @@
                 const urlMode = urlParams.get('mode');
                 const urlId = urlParams.get('master_id');
 
-                if (tg.initDataUnsafe?.user?.id) {
-                    this.masterId = tg.initDataUnsafe.user.id;
-                } else if (urlId) {
-                    this.masterId = urlId;
-                } else {
-                    this.masterId = 'TEST_USER';
-                }
+                if (tg.initDataUnsafe?.user?.id) this.masterId = tg.initDataUnsafe.user.id;
+                else if (urlId) this.masterId = urlId;
+                else this.masterId = 'TEST_USER';
 
                 if (urlMode === 'confirm') {
                     this.mode = 'confirm';
@@ -539,12 +422,9 @@
             methods: {
                 cleanDate(isoStr) {
                     if (!isoStr) return null;
-                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) {
-                         return new Date(isoStr);
-                    }
+                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
                     const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
-                    if (match) return new Date(match[0]); 
-                    return new Date(isoStr);
+                    return match ? new Date(match[0]) : new Date(isoStr);
                 },
                 formatTime(isoStr) { 
                     const d = this.cleanDate(isoStr);
@@ -569,15 +449,12 @@
                 getWorkHours(day) {
                     const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
-                    if (!data) return null;
-                    if (!data.start || !data.end) return null;
-                    // ФОРМАТ 10:00 - 20:00
+                    if (!data || !data.start || !data.end) return null;
                     return `${this.formatShortTime(data.start)} - ${this.formatShortTime(data.end)}`;
                 },
                 isDayOff(day) {
                     const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
-                    // Если данные есть, но время пустое - это выходной
                     return data && (!data.start || !data.end);
                 },
                 hasBreaks(day) {
@@ -639,9 +516,7 @@
                     this.step = 2;
                 },
                 makeDayOff() {
-                    this.startTime = '';
-                    this.endTime = '';
-                    this.breaks = [];
+                    this.startTime = ''; this.endTime = ''; this.breaks = [];
                     this.saveSchedule(); 
                 },
                 saveSchedule() {

@@ -13,7 +13,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* Скрываем "усы" {{ }} до загрузки Vue */
         [v-cloak] { display: none !important; }
 
         /* === GLOBAL VARIABLES === */
@@ -72,17 +71,14 @@
         .btn-secondary { background: white; color: var(--text-main); box-shadow: var(--shadow); border: 1px solid #E5E7EB; }
         .btn-danger { width: 100%; padding: 14px; background: #FEF2F2; color: var(--error); border: 1px solid #FEE2E2; border-radius: var(--radius); font-weight: 700; margin-bottom: 20px; }
 
-        /* SELECT INPUTS (ВМЕСТО INPUT TIME) */
+        /* SELECT INPUTS */
         .input-box {
             background: white; border: 1px solid #E5E7EB; border-radius: var(--radius); 
             padding: 14px; font-size: 18px; font-weight: 700; width: 100%; 
             box-sizing: border-box; text-align: center; color: var(--text-main); outline: none;
-            -webkit-appearance: none; appearance: none; /* Убираем стандартные стрелки */
-            /* Кастомная стрелка */
+            -webkit-appearance: none; appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1em;
+            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em;
         }
 
         /* CALENDAR GRID */
@@ -175,7 +171,8 @@
                 <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
                 <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
                 <div class="status-row">
-                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">?</div>
+                    <!-- ЗАМЕНИЛИ ? НА ⏳ -->
+                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
                     <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">Да</div>
                     <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">Нет</div>
                 </div>
@@ -197,6 +194,7 @@
             </div>
 
             <div class="cal-grid">
+                <!-- Дни недели (Кликабельные только для Мастера в Edit Mode) -->
                 <div v-for="(d, index) in weekDays" :key="d" class="cal-head" 
                      @click="toggleColumn(index)" 
                      :style="{ cursor: (editMode && !isClientView) ? 'pointer' : 'default', opacity: (editMode && !isClientView) ? 1 : 0.6 }">
@@ -215,6 +213,7 @@
                      @click="onDayClick(date)">
                     
                     <span class="day-num">{{ date }}</span>
+                    <!-- Вертикальное время -->
                     <div v-if="!isDayOff(date) || isSelected(date)" class="day-times-col">
                         <span class="time-txt">{{ getWorkTimes(date).start }}</span>
                         <span class="time-txt">{{ getWorkTimes(date).end }}</span>
@@ -227,12 +226,12 @@
             <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
             <div class="bottom-panel">
                 
-                <!-- 1. КЛИЕНТ: Только подсказка -->
+                <!-- 1. КЛИЕНТ: Строго только подсказка -->
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
                     👆 Нажмите на дату, чтобы увидеть свободное время
                 </div>
 
-                <!-- 2. МАСТЕР: Режим РЕДАКТИРОВАНИЯ -->
+                <!-- 2. МАСТЕР: Кнопки -->
                 <div v-else-if="editMode" class="panel-actions">
                     <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
                         ⚙️ Настроить ({{ selectedDates.length }})
@@ -242,7 +241,6 @@
                     </button>
                 </div>
 
-                <!-- 3. МАСТЕР: Режим ПРОСМОТРА (Default) -->
                 <div v-else class="panel-actions">
                     <button class="btn btn-secondary" @click="toggleEditMode">
                         ✏️ Изменить график
@@ -272,7 +270,7 @@
             <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
             <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
 
-            <!-- ИСПОЛЬЗУЕМ SELECT ВМЕСТО INPUT TYPE=TIME -->
+            <!-- СЕЛЕКТЫ ВМЕСТО INPUT TIME -->
             <div class="form-row">
                 <div class="form-group">
                     <div class="form-label">Начало</div>
@@ -401,31 +399,41 @@
                 }
             },
             methods: {
+                // --- ГЛАВНАЯ ЛОГИКА КЛИКА ---
                 onDayClick(day) {
                     const dateStr = this.formatDateKey(day);
                     
-                    // Режим редактирования (Только Мастер!)
-                    if (this.editMode && !this.isClientView) {
+                    // 1. ЕСЛИ КЛИЕНТ: ВСЕГДА ТОЛЬКО ПРОСМОТР СЛОТОВ
+                    // Блокируем любое выделение
+                    if (this.isClientView) {
+                        this.activeDate = new Date(this.currentYear, this.currentMonth, day);
+                        this.fetchSlotsForDate(dateStr);
+                        return;
+                    }
+
+                    // 2. ЕСЛИ МАСТЕР В РЕЖИМЕ РЕДАКТИРОВАНИЯ
+                    if (this.editMode) {
                         const index = this.selectedDates.indexOf(dateStr);
                         if (index === -1) this.selectedDates.push(dateStr);
                         else this.selectedDates.splice(index, 1);
                         return;
                     }
 
-                    // Режим просмотра (Клиент всегда, Мастер по дефолту)
+                    // 3. ЕСЛИ МАСТЕР В РЕЖИМЕ ПРОСМОТРА
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     this.fetchSlotsForDate(dateStr);
                 },
 
                 toggleEditMode() {
-                    // Защита: Клиент никогда не может включить editMode
+                    // ЖЕЛЕЗНАЯ ЗАЩИТА: Клиент не может включить editMode
                     if (this.isClientView) return;
+                    
                     this.editMode = !this.editMode;
                     this.selectedDates = [];
                 },
 
                 toggleColumn(colIndex) { 
-                    // Защита: Клиент не может выделять столбцы
+                    // ЗАЩИТА: Клиент не может выделять столбцы
                     if (!this.editMode || this.isClientView) return;
                     
                     const daysToToggle = []; 
@@ -456,26 +464,7 @@
                     .finally(() => this.isLoadingSlots = false);
                 },
 
-                goToSettings() {
-                    // Защита в методе тоже
-                    if (this.isClientView) return;
-                    
-                    let existingData = null;
-                    const sortedSelection = [...this.selectedDates].sort();
-                    for (const date of sortedSelection) {
-                        if (this.dbData[date]) { existingData = this.dbData[date]; break; }
-                    }
-                    if (existingData) {
-                        this.startTime = existingData.start || '10:00';
-                        this.endTime = existingData.end || '20:00';
-                        this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
-                    } else {
-                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
-                    }
-                    this.viewStep = 'settings';
-                },
-
-                // UTILS
+                // --- UTILS ---
                 cleanDate(isoStr) {
                     if (!isoStr) return null;
                     if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
@@ -554,6 +543,22 @@
                         this.fetchSlotsForDate(this.selectedDates[0]);
                     }
                 },
+                goToSettings() {
+                    if (this.isClientView) return;
+                    let existingData = null;
+                    const sortedSelection = [...this.selectedDates].sort();
+                    for (const date of sortedSelection) {
+                        if (this.dbData[date]) { existingData = this.dbData[date]; break; }
+                    }
+                    if (existingData) {
+                        this.startTime = existingData.start || '10:00';
+                        this.endTime = existingData.end || '20:00';
+                        this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
+                    } else {
+                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                    }
+                    this.viewStep = 'settings';
+                },
                 makeDayOff() {
                     this.startTime = ''; this.endTime = ''; this.breaks = [];
                     this.saveSchedule(); 
@@ -574,10 +579,4 @@
                 },
                 changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
-                removeBreak(index) { this.breaks.splice(index, 1); }
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>
+                addBreak() { this.break

@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
+        /* Скрываем контент до полной загрузки Vue */
         [v-cloak] { display: none !important; }
 
         /* === GLOBAL VARIABLES === */
@@ -71,7 +72,7 @@
         .btn-secondary { background: white; color: var(--text-main); box-shadow: var(--shadow); border: 1px solid #E5E7EB; }
         .btn-danger { width: 100%; padding: 14px; background: #FEF2F2; color: var(--error); border: 1px solid #FEE2E2; border-radius: var(--radius); font-weight: 700; margin-bottom: 20px; }
 
-        /* SELECT INPUTS */
+        /* INPUTS & SELECTS */
         .input-box {
             background: white; border: 1px solid #E5E7EB; border-radius: var(--radius); 
             padding: 14px; font-size: 18px; font-weight: 700; width: 100%; 
@@ -171,7 +172,7 @@
                 <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
                 <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
                 <div class="status-row">
-                    <!-- ЗАМЕНИЛИ ? НА ⏳ -->
+                    <!-- ИКОНКА ОЖИДАНИЯ (Песочные часы) -->
                     <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
                     <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">Да</div>
                     <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">Нет</div>
@@ -194,7 +195,7 @@
             </div>
 
             <div class="cal-grid">
-                <!-- Дни недели (Кликабельные только для Мастера в Edit Mode) -->
+                <!-- Дни недели (Кликабельны только в режиме редактирования мастера) -->
                 <div v-for="(d, index) in weekDays" :key="d" class="cal-head" 
                      @click="toggleColumn(index)" 
                      :style="{ cursor: (editMode && !isClientView) ? 'pointer' : 'default', opacity: (editMode && !isClientView) ? 1 : 0.6 }">
@@ -270,7 +271,7 @@
             <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
             <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
 
-            <!-- СЕЛЕКТЫ ВМЕСТО INPUT TIME -->
+            <!-- СЕЛЕКТЫ ДЛЯ ВРЕМЕНИ -->
             <div class="form-row">
                 <div class="form-group">
                     <div class="form-label">Начало</div>
@@ -336,19 +337,6 @@
             SAVE_VISITS: `${API_BASE}/save-visits-dev`
         };
 
-        // Генерация списка времени (00:00 ... 23:45)
-        const generateTimes = () => {
-            const arr = [];
-            for (let h=0; h<24; h++) {
-                for (let m=0; m<60; m+=15) {
-                    const H = h.toString().padStart(2,'0');
-                    const M = m.toString().padStart(2,'0');
-                    arr.push(`${H}:${M}`);
-                }
-            }
-            return arr;
-        };
-
         createApp({
             data() {
                 return {
@@ -366,8 +354,12 @@
                     currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {},
-                    timeOptions: generateTimes() // Список для Select
+                    timeOptions: [] // Будет заполнено в created()
                 }
+            },
+            created() {
+                // Генерируем время при старте, чтобы не было ошибок "Абракадабры"
+                this.timeOptions = this.generateTimes();
             },
             computed: {
                 currentYear() { return this.currentDate.getFullYear(); },
@@ -381,6 +373,7 @@
                 const urlMode = urlParams.get('mode');
                 const urlId = urlParams.get('master_id');
 
+                // Определяем ID мастера
                 if (tg.initDataUnsafe?.user?.id) this.masterId = tg.initDataUnsafe.user.id;
                 else if (urlId) this.masterId = urlId;
                 else this.masterId = 'TEST_USER';
@@ -390,7 +383,7 @@
                     this.loadVisits();
                 } else if (urlMode === 'client') {
                     this.mode = 'calendar';
-                    this.isClientView = true;
+                    this.isClientView = true; // ВКЛЮЧАЕМ ЗАЩИТУ
                     this.masterId = urlId;
                     this.loadSchedule();
                 } else {
@@ -399,19 +392,31 @@
                 }
             },
             methods: {
+                // Генерация времени 00:00...23:45
+                generateTimes() {
+                    const arr = [];
+                    for (let h=0; h<24; h++) {
+                        for (let m=0; m<60; m+=15) {
+                            const H = h.toString().padStart(2,'0');
+                            const M = m.toString().padStart(2,'0');
+                            arr.push(`${H}:${M}`);
+                        }
+                    }
+                    return arr;
+                },
+
                 // --- ГЛАВНАЯ ЛОГИКА КЛИКА ---
                 onDayClick(day) {
                     const dateStr = this.formatDateKey(day);
                     
-                    // 1. ЕСЛИ КЛИЕНТ: ВСЕГДА ТОЛЬКО ПРОСМОТР СЛОТОВ
-                    // Блокируем любое выделение
+                    // 1. КЛИЕНТ: ВСЕГДА ТОЛЬКО СЛОТЫ
                     if (this.isClientView) {
                         this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                         this.fetchSlotsForDate(dateStr);
                         return;
                     }
 
-                    // 2. ЕСЛИ МАСТЕР В РЕЖИМЕ РЕДАКТИРОВАНИЯ
+                    // 2. МАСТЕР: РЕЖИМ РЕДАКТИРОВАНИЯ
                     if (this.editMode) {
                         const index = this.selectedDates.indexOf(dateStr);
                         if (index === -1) this.selectedDates.push(dateStr);
@@ -419,22 +424,19 @@
                         return;
                     }
 
-                    // 3. ЕСЛИ МАСТЕР В РЕЖИМЕ ПРОСМОТРА
+                    // 3. МАСТЕР: РЕЖИМ ПРОСМОТРА
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     this.fetchSlotsForDate(dateStr);
                 },
 
                 toggleEditMode() {
-                    // ЖЕЛЕЗНАЯ ЗАЩИТА: Клиент не может включить editMode
-                    if (this.isClientView) return;
-                    
+                    if (this.isClientView) return; // ЗАЩИТА
                     this.editMode = !this.editMode;
                     this.selectedDates = [];
                 },
 
                 toggleColumn(colIndex) { 
-                    // ЗАЩИТА: Клиент не может выделять столбцы
-                    if (!this.editMode || this.isClientView) return;
+                    if (!this.editMode || this.isClientView) return; // ЗАЩИТА
                     
                     const daysToToggle = []; 
                     for (let d = 1; d <= this.daysInMonth; d++) { 
@@ -464,87 +466,8 @@
                     .finally(() => this.isLoadingSlots = false);
                 },
 
-                // --- UTILS ---
-                cleanDate(isoStr) {
-                    if (!isoStr) return null;
-                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
-                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
-                    return match ? new Date(match[0]) : new Date(isoStr);
-                },
-                formatTime(isoStr) { 
-                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return '??:??'; 
-                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
-                },
-                formatDatePretty(isoStr) { 
-                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return isoStr; 
-                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
-                },
-                formatDateFull(date) {
-                    if (!date) return '';
-                    return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
-                },
-                formatDateKey(day) { 
-                    const m = String(this.currentMonth + 1).padStart(2, '0'); 
-                    const d = String(day).padStart(2, '0'); 
-                    return `${this.currentYear}-${m}-${d}`; 
-                },
-                formatShortTime(timeStr) {
-                    if (!timeStr) return '';
-                    const [h, m] = timeStr.split(':');
-                    return m === '00' ? h : `${h}:${m}`;
-                },
-                getWorkTimes(day) {
-                    const dateStr = this.formatDateKey(day);
-                    const data = this.dbData[dateStr];
-                    if (!data || !data.start || !data.end) return { start: '', end: '' };
-                    return { start: this.formatShortTime(data.start), end: this.formatShortTime(data.end) };
-                },
-                isDayOff(day) {
-                    const dateStr = this.formatDateKey(day);
-                    const data = this.dbData[dateStr];
-                    return data && (!data.start || !data.end);
-                },
-                hasBreaks(day) {
-                    const dateStr = this.formatDateKey(day);
-                    const data = this.dbData[dateStr];
-                    return data && data.breaks && data.breaks.length > 0;
-                },
-                loadVisits() {
-                    this.isLoading = true;
-                    fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' }));
-                        })
-                        .finally(() => this.isLoading = false);
-                },
-                saveVisits() {
-                    this.isSaving = true;
-                    const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status }));
-                    fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
-                    .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
-                    .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
-                },
-                loadSchedule() {
-                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!Array.isArray(data) && data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-                        const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
-                        scheduleList.forEach(row => {
-                            let brk = []; try { brk = JSON.parse(row.breaks); } catch(e) {}
-                            this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
-                        });
-                    });
-                },
-                getFreeSlots() {
-                    if (this.selectedDates.length > 0) {
-                        this.activeDate = new Date(this.selectedDates[0]); 
-                        this.fetchSlotsForDate(this.selectedDates[0]);
-                    }
-                },
                 goToSettings() {
-                    if (this.isClientView) return;
+                    if (this.isClientView) return; // ЗАЩИТА
                     let existingData = null;
                     const sortedSelection = [...this.selectedDates].sort();
                     for (const date of sortedSelection) {
@@ -552,31 +475,3 @@
                     }
                     if (existingData) {
                         this.startTime = existingData.start || '10:00';
-                        this.endTime = existingData.end || '20:00';
-                        this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
-                    } else {
-                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
-                    }
-                    this.viewStep = 'settings';
-                },
-                makeDayOff() {
-                    this.startTime = ''; this.endTime = ''; this.breaks = [];
-                    this.saveSchedule(); 
-                },
-                saveSchedule() {
-                    const payload = { master_id: this.masterId, dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration };
-                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                    .then(res => {
-                        tg.showAlert('Сохранено!');
-                        this.selectedDates.forEach(date => { 
-                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) }; 
-                        });
-                        this.selectedDates = []; 
-                        this.viewStep = 'grid';
-                        this.editMode = false;
-                    })
-                    .catch(err => tg.showAlert('Ошибка: ' + err));
-                },
-                changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
-                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                addBreak() { this.break

@@ -26,7 +26,6 @@
             --success: #10B981;          
             --error: #EF4444;            
             
-            /* Calendar Colors */
             --day-bg-work: #FFFFFF;      
             --day-bg-break: #FFF0E6;     
             --day-bg-off: #F3F4F6;       
@@ -57,9 +56,9 @@
         }
         .brand-name { font-size: 18px; font-weight: 800; }
 
-        /* UI ELEMENTS */
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
+        /* BUTTONS */
         .btn { 
             width: 100%; padding: 16px; border: none; border-radius: var(--radius); 
             background: var(--primary-grad); color: white; 
@@ -71,7 +70,6 @@
         
         .btn-secondary { background: white; color: var(--text-main); box-shadow: var(--shadow); border: 1px solid #E5E7EB; }
         .btn-danger { width: 100%; padding: 14px; background: #FEF2F2; color: var(--error); border: 1px solid #FEE2E2; border-radius: var(--radius); font-weight: 700; margin-bottom: 20px; }
-        .btn-text { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 14px; padding: 10px; width: auto; box-shadow: none; }
 
         .input-box {
             background: white; border: 1px solid #E5E7EB; border-radius: var(--radius); 
@@ -97,7 +95,6 @@
         .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-bottom: 3px; }
         .time-txt { font-size: 9px; font-weight: 800; color: var(--text-main); line-height: 1; }
 
-        /* States */
         .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; }
         .day-cell.is-off .day-num { color: #BDC3C7; }
         .day-cell.has-break { background: var(--day-bg-break); border-color: #FFDCC2; }
@@ -109,38 +106,29 @@
         }
         .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
 
-        /* SLOTS VIEW (NEW SCREEN) */
-        .slots-container {
-            background: white; border-radius: 24px; padding: 24px;
-            box-shadow: var(--shadow); text-align: center;
-            animation: slideUp 0.3s ease-out;
-        }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .slots-date-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--text-main); }
-        
-        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .slot-chip {
-            background: #F3F4F6; padding: 12px; border-radius: 12px;
-            font-size: 14px; font-weight: 700; color: var(--text-main);
-            border: 1px solid transparent;
-        }
-        /* View Only - просто красивый чип */
-        .slot-chip.free { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
-
         /* MODALS & BOTTOM */
         .bottom-panel {
             position: fixed; bottom: 0; left: 0; right: 0; 
             padding: 16px 20px 30px 20px; background: rgba(255,255,255,0.95);
             backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);
-            z-index: 100; display: flex; gap: 10px; align-items: center; justify-content: space-between;
+            z-index: 100; display: flex; flex-direction: column; gap: 10px;
         }
-        .mode-switch-box { display: flex; gap: 10px; width: 100%; }
-        
+        /* Buttons container in bottom panel */
+        .panel-actions { display: flex; gap: 10px; width: 100%; }
+
         .modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
         }
+        
+        /* SLOTS VIEW */
+        .slots-date-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--text-main); text-align: center; }
+        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .slot-chip {
+            background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;
+            padding: 12px; border-radius: 12px; text-align: center; font-weight: 700;
+        }
+
         .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
         .form-group { flex: 1; }
         .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
@@ -149,6 +137,16 @@
         
         .loading-state { text-align: center; margin-top: 50px; color: var(--text-muted); font-weight: 600; }
         .spacer { height: 100px; }
+        
+        /* VISIT CARDS (Hidden in calendar mode) */
+        .visit-card { background: white; padding: 16px; border-radius: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
+        .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .visit-time { font-size: 22px; font-weight: 800; }
+        .status-row { display: flex; gap: 5px; margin-top: 10px; }
+        .status-opt { flex:1; text-align:center; padding: 8px; border-radius: 8px; background: #f3f4f6; font-size: 12px; font-weight: 700; color: #666; }
+        .status-opt.active-pending { background: white; color: black; border: 1px solid #ddd; }
+        .status-opt.active-confirmed { background: var(--success); color: white; }
+        .status-opt.active-noshow { background: var(--error); color: white; }
     </style>
 </head>
 <body>
@@ -159,22 +157,18 @@
             <div class="brand-name">Remi</div>
         </div>
 
-        <!-- === VIEW 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ (Осталось как было) === -->
+        <!-- === VIEW 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ (без изменений) === -->
         <div v-if="mode === 'confirm'">
-            <!-- ... (код визитов не меняем, он работает) ... -->
             <h2>Визиты за сегодня</h2>
             <div v-if="isLoading" class="loading-state">Загрузка...</div>
-            <div v-else-if="visits.length === 0" class="loading-state">
-                <div style="font-size: 32px; margin-bottom: 10px;">🎉</div>
-                Нет визитов на сегодня
-            </div>
+            <div v-else-if="visits.length === 0" class="loading-state">🎉 Визитов нет</div>
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
-                <!-- Сократил для читаемости, тут тот же код карточки что и был -->
                 <div class="visit-header">
                     <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div class="visit-date">{{ formatDatePretty(visit.appointment_time) }}</div>
+                    <div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div>
                 </div>
-                <div class="visit-client">{{ visit.client_name || 'Без имени' }}</div>
+                <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
+                <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
                 <div class="status-row">
                     <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">?</div>
                     <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">Да</div>
@@ -183,7 +177,9 @@
             </div>
             <div class="spacer"></div>
             <div class="bottom-panel" v-if="visits.length > 0">
-                <button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить</button>
+                <div class="panel-actions">
+                    <button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button>
+                </div>
             </div>
         </div>
 
@@ -196,7 +192,13 @@
             </div>
 
             <div class="cal-grid">
-                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)">{{ d }}</div>
+                <!-- Дни недели (Кликабельные только в Edit Mode) -->
+                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" 
+                     @click="toggleColumn(index)" 
+                     :style="{ cursor: editMode ? 'pointer' : 'default', opacity: editMode ? 1 : 0.6 }">
+                    {{ d }} <span v-if="editMode" style="font-size: 8px;">▼</span>
+                </div>
+                
                 <div v-for="n in firstDayOffset" :key="'e'+n"></div>
                 
                 <div v-for="date in daysInMonth" :key="date" 
@@ -209,6 +211,7 @@
                      @click="onDayClick(date)">
                     
                     <span class="day-num">{{ date }}</span>
+                    <!-- Вертикальное время -->
                     <div v-if="!isDayOff(date) || isSelected(date)" class="day-times-col">
                         <span class="time-txt">{{ getWorkTimes(date).start }}</span>
                         <span class="time-txt">{{ getWorkTimes(date).end }}</span>
@@ -221,51 +224,53 @@
             <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
             <div class="bottom-panel">
                 
-                <!-- Если КЛИЕНТ: Кнопок нет (только клик по дню) -->
+                <!-- 1. Для КЛИЕНТА: Просто подсказка -->
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:12px; color:var(--text-muted);">
                     Нажмите на дату, чтобы увидеть свободное время
                 </div>
 
-                <!-- Если МАСТЕР: Переключатель режимов -->
-                <div v-else class="mode-switch-box">
-                    <button class="btn" v-if="editMode" @click="goToSettings" :disabled="selectedDates.length === 0">
+                <!-- 2. Для МАСТЕРА: Режим РЕДАКТИРОВАНИЯ -->
+                <div v-else-if="editMode" class="panel-actions">
+                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
                         ⚙️ Настроить ({{ selectedDates.length }})
                     </button>
-                    <button class="btn btn-secondary" v-if="editMode" @click="toggleEditMode">
+                    <button class="btn btn-secondary" @click="toggleEditMode" style="width: auto;">
                         Отмена
                     </button>
-                    <button class="btn btn-secondary" v-if="!editMode" @click="toggleEditMode">
-                        ✏️ Редактировать график
+                </div>
+
+                <!-- 3. Для МАСТЕРА: Режим ПРОСМОТРА (Default) -->
+                <div v-else class="panel-actions">
+                    <button class="btn btn-secondary" @click="toggleEditMode">
+                        ✏️ Изменить график
                     </button>
+                    <!-- В этом режиме клик по дню открывает слоты -->
                 </div>
             </div>
         </div>
 
-        <!-- === VIEW 3: ПРОСМОТР СЛОТОВ (IN-APP) === -->
+        <!-- === VIEW 3: ПРОСМОТР СЛОТОВ (Для мастера и клиента) === -->
         <div v-if="mode === 'calendar' && viewStep === 'slots'" class="modal">
             <h2 class="slots-date-title">{{ formatDateFull(activeDate) }}</h2>
             
-            <div v-if="isLoadingSlots" class="loading-state">Ищем окошки... 🕵️‍♀️</div>
-            
-            <div v-else-if="currentSlots.length === 0" class="loading-state">
-                Нет свободных мест 😔
-            </div>
-
+            <div v-if="isLoadingSlots" class="loading-state">Загрузка...</div>
+            <div v-else-if="currentSlots.length === 0" class="loading-state">Нет свободных мест</div>
             <div v-else class="slots-grid">
-                <div v-for="slot in currentSlots" :key="slot" class="slot-chip free">
-                    {{ slot }}
-                </div>
+                <div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div>
             </div>
 
             <div class="spacer"></div>
             <div class="bottom-panel">
-                <button class="btn btn-secondary" @click="viewStep = 'grid'">Назад к календарю</button>
+                <div class="panel-actions">
+                    <button class="btn btn-secondary" @click="viewStep = 'grid'">Закрыть</button>
+                </div>
             </div>
         </div>
 
-        <!-- === VIEW 4: НАСТРОЙКИ ДНЯ (MASTER) === -->
+        <!-- === VIEW 4: НАСТРОЙКИ ГРАФИКА === -->
         <div v-if="mode === 'calendar' && viewStep === 'settings'" class="modal">
-            <h2>Настройка дня</h2>
+            <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
+            
             <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
 
             <div class="form-row">
@@ -275,6 +280,7 @@
             <div class="form-row">
                 <div class="form-group"><div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15" class="input-box"></div>
             </div>
+            
             <hr style="border:0; border-top:1px solid #E5E7EB; margin: 20px 0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span style="font-weight:700;">Перерывы</span>
@@ -284,10 +290,13 @@
                 <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
                 <div class="form-row" style="margin-bottom:0;"><input type="time" v-model="brk.start" class="input-box"><input type="time" v-model="brk.end" class="input-box"></div>
             </div>
+
             <div class="spacer"></div>
             <div class="bottom-panel">
-                <button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button>
-                <button class="btn" @click="saveSchedule">Сохранить</button>
+                <div class="panel-actions">
+                    <button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button>
+                    <button class="btn" @click="saveSchedule">Сохранить</button>
+                </div>
             </div>
         </div>
 
@@ -301,12 +310,10 @@
         if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
 
-        // URLS (ТВОИ ССЫЛКИ)
         const API_BASE = 'https://aireminder.ru/webhook'; 
         const URLS = {
             SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
-            // ВАЖНО: ЭТОТ ВЕБХУК ТЕПЕРЬ ДОЛЖЕН ВОЗВРАЩАТЬ JSON, А НЕ СЛАТЬ СООБЩЕНИЕ В ЧАТ!
-            GET_SLOTS: `${API_BASE}/get-free-slots-dev`, 
+            GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
             GET_VISITS: `${API_BASE}/get-visits-dev`,
             SAVE_VISITS: `${API_BASE}/save-visits-dev`
         };
@@ -314,24 +321,18 @@
         createApp({
             data() {
                 return {
-                    mode: 'calendar', // 'calendar' | 'confirm'
-                    viewStep: 'grid', // 'grid' | 'slots' | 'settings'
-                    editMode: false,  // true = мастер редактирует, false = просмотр
-                    
+                    mode: 'calendar',
+                    viewStep: 'grid',
+                    editMode: false,
                     masterId: null,
                     isClientView: false,
-                    
                     visits: [],
                     isLoading: false, isSaving: false, isLoadingSlots: false,
-                    
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-                    
                     selectedDates: [],
-                    activeDate: null, // Дата, которую просматриваем (для слотов)
-                    currentSlots: [], // Загруженные слоты
-                    
-                    // Настройки
+                    activeDate: null,
+                    currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {}
                 }
@@ -350,7 +351,7 @@
 
                 if (tg.initDataUnsafe?.user?.id) this.masterId = tg.initDataUnsafe.user.id;
                 else if (urlId) this.masterId = urlId;
-                else this.masterId = 'TEST_USER'; // Для тестов в браузере
+                else this.masterId = 'TEST_USER';
 
                 if (urlMode === 'confirm') {
                     this.mode = 'confirm';
@@ -358,7 +359,7 @@
                 } else if (urlMode === 'client') {
                     this.mode = 'calendar';
                     this.isClientView = true;
-                    this.masterId = urlId; // Для клиента ID мастера берем из ссылки
+                    this.masterId = urlId;
                     this.loadSchedule();
                 } else {
                     this.mode = 'calendar';
@@ -366,60 +367,61 @@
                 }
             },
             methods: {
-                // --- ГЛАВНАЯ ЛОГИКА КЛИКА ПО ДНЮ ---
+                // --- ГЛАВНАЯ ЛОГИКА КЛИКА ---
                 onDayClick(day) {
                     const dateStr = this.formatDateKey(day);
                     
-                    // Если Мастер в режиме редактирования:
-                    if (this.editMode && !this.isClientView) {
+                    // Режим редактирования (Мастер выбирает дни)
+                    if (this.editMode) {
                         const index = this.selectedDates.indexOf(dateStr);
                         if (index === -1) this.selectedDates.push(dateStr);
                         else this.selectedDates.splice(index, 1);
                         return;
                     }
 
-                    // Если Клиент или Мастер в режиме просмотра:
-                    // Проваливаемся в просмотр слотов
+                    // Режим просмотра (Смотрим слоты)
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     this.fetchSlotsForDate(dateStr);
                 },
 
-                // Переключение режима для мастера
                 toggleEditMode() {
                     this.editMode = !this.editMode;
-                    this.selectedDates = []; // Сброс выделения
+                    this.selectedDates = [];
                 },
 
-                // Загрузка слотов (JSON)
+                // Выбор столбца (Работает только в EditMode)
+                toggleColumn(colIndex) { 
+                    if (!this.editMode) return;
+                    
+                    const daysToToggle = []; 
+                    for (let d = 1; d <= this.daysInMonth; d++) { 
+                        const date = new Date(this.currentYear, this.currentMonth, d); 
+                        let jsDay = date.getDay(); 
+                        let myDay = jsDay === 0 ? 6 : jsDay - 1; 
+                        if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d)); 
+                    } 
+                    const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); 
+                    if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } 
+                    else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } 
+                },
+
                 fetchSlotsForDate(dateStr) {
                     this.viewStep = 'slots';
                     this.currentSlots = [];
                     this.isLoadingSlots = true;
-
                     fetch(URLS.GET_SLOTS, { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            master_id: this.masterId, 
-                            dates: [dateStr] // Шлем массив из 1 даты
-                        }) 
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ master_id: this.masterId, dates: [dateStr] }) 
                     })
                     .then(res => res.json())
                     .then(data => {
-                        // n8n должен вернуть { slots: ["10:00", "12:00"] }
-                        // Или просто массив ["10:00", ...]
                         this.currentSlots = data.slots || (Array.isArray(data) ? data : []);
                     })
-                    .catch(err => {
-                        console.error(err);
-                        tg.showAlert('Ошибка загрузки слотов');
-                    })
-                    .finally(() => {
-                        this.isLoadingSlots = false;
-                    });
+                    .catch(err => tg.showAlert('Ошибка: ' + err))
+                    .finally(() => this.isLoadingSlots = false);
                 },
 
-                // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+                // --- UTILS ---
                 cleanDate(isoStr) {
                     if (!isoStr) return null;
                     if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
@@ -492,11 +494,9 @@
                         });
                     });
                 },
-                // СТАРАЯ ФУНКЦИЯ (ПОКА НЕ УДАЛЯЕМ, НО ОНА ЗАМЕНЕНА FETCHSLOTS)
                 getFreeSlots() {
-                    // Используем новую логику: просто показываем слоты для выбранных дней (если мастер захочет проверить)
                     if (this.selectedDates.length > 0) {
-                        this.activeDate = new Date(this.selectedDates[0]); // Берем первый
+                        this.activeDate = new Date(this.selectedDates[0]); 
                         this.fetchSlotsForDate(this.selectedDates[0]);
                     }
                 },
@@ -513,7 +513,7 @@
                     } else {
                         this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
                     }
-                    this.viewStep = 'settings'; // Идем в настройки
+                    this.viewStep = 'settings';
                 },
                 makeDayOff() {
                     this.startTime = ''; this.endTime = ''; this.breaks = [];
@@ -529,29 +529,12 @@
                         });
                         this.selectedDates = []; 
                         this.viewStep = 'grid';
+                        this.editMode = false;
                     })
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
                 changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                toggleDay(day) { 
-                    /* Эта логика переехала в onDayClick */
-                },
-                toggleColumn(colIndex) { 
-                    // Только в режиме редактирования мастера
-                    if (!this.editMode) return;
-                    
-                    const daysToToggle = []; 
-                    for (let d = 1; d <= this.daysInMonth; d++) { 
-                        const date = new Date(this.currentYear, this.currentMonth, d); 
-                        let jsDay = date.getDay(); 
-                        let myDay = jsDay === 0 ? 6 : jsDay - 1; 
-                        if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d)); 
-                    } 
-                    const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); 
-                    if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } 
-                    else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } 
-                },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); }
             }

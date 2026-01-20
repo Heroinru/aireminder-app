@@ -15,11 +15,11 @@
     <style>
         /* --- BRAND REMI STYLES --- */
         :root { 
-            --bg-color: #FFF9F5;          /* Фон (Soft Peach) */
+            --bg-color: #FFF9F5;          
             --card-bg: #FFFFFF;
-            --primary: #FF9478;           /* Coral */
+            --primary: #FF9478;           
             --primary-gradient: linear-gradient(135deg, #FF9478, #E66E50);
-            --text-main: #2E1065;         /* Deep Violet */
+            --text-main: #2E1065;         
             --text-secondary: #9CA3AF;
             --success: #10B981;
             --error: #EF4444;
@@ -101,7 +101,7 @@
         .visit-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
         .visit-service { font-size: 15px; color: var(--text-secondary); font-weight: 500; }
         
-        /* STATUS SWITCHER (iOS style) */
+        /* STATUS SWITCHER */
         .status-toggle { 
             display: flex; 
             background-color: #F3F4F6; 
@@ -137,7 +137,7 @@
             font-weight: 700; 
             cursor: pointer; 
             box-shadow: 0 10px 20px rgba(255, 148, 120, 0.3);
-            margin-top: auto; /* Push to bottom */
+            margin-top: auto;
         }
         .btn:disabled { opacity: 0.6; box-shadow: none; background: #D1D5DB; }
         .btn:active { transform: scale(0.98); opacity: 0.9; }
@@ -147,6 +147,21 @@
             color: var(--text-main); 
             box-shadow: var(--shadow-card);
             border: 1px solid #F3F4F6;
+        }
+        
+        /* Кнопка "Сделать выходным" */
+        .btn-danger-soft {
+            width: 100%;
+            padding: 16px;
+            background: #FEF2F2;
+            color: var(--error);
+            border: 1px solid #FEE2E2;
+            border-radius: 18px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 24px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
 
         /* --- CALENDAR --- */
@@ -175,9 +190,8 @@
             color: var(--text-secondary); padding-bottom: 10px; text-transform: uppercase; 
         }
         
-        /* --- ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ ЯЧЕЙКИ ДНЯ --- */
         .day { 
-            aspect-ratio: 1/1.1; 
+            aspect-ratio: 1/1.15; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
@@ -192,40 +206,42 @@
             border: 2px solid transparent;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             transition: all 0.15s;
-            
-            /* 👇 МАГИЯ, КОТОРАЯ ЛЕЧИТ РАСТЯГИВАНИЕ: */
-            overflow: hidden; 
-            min-width: 0; 
+            overflow: hidden; /* Обрезаем лишнее */
+            min-width: 0;
         }
-
         .day span { z-index: 2; }
-
         .day.selected { 
             background: var(--primary); 
             color: white; 
             box-shadow: 0 5px 15px rgba(255, 148, 120, 0.4); 
             transform: translateY(-2px);
         }
-
         .day.empty { background-color: transparent; box-shadow: none; cursor: default; }
         
-        /* --- ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ ВРЕМЕНИ --- */
+        /* Время внизу ячейки */
         .day-time {
-            font-size: 9px;
+            font-size: 8px; /* Чуть меньше для вместимости */
             font-weight: 800;
             margin-top: 4px;
             background: #FFF0EB;
             color: var(--primary);
-            padding: 2px 4px;
+            padding: 2px 2px;
             border-radius: 6px;
-            
-            /* 👇 ЧТОБЫ ТЕКСТ ОБРЕЗАЛСЯ, А НЕ РАЗДУВАЛ ЯЧЕЙКУ: */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis; /* Ставит троеточие "..." если не влезает */
-            max-width: 90%;
+            white-space: nowrap; /* Без переносов */
+            width: 90%;
+            text-align: center;
         }
         .day.selected .day-time { background: white; color: var(--primary); }
+
+        /* Иконка кофе в углу */
+        .day-coffee-icon {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 10px;
+            z-index: 3;
+            line-height: 1;
+        }
 
         /* --- SETTINGS MODAL --- */
         .modal { 
@@ -272,8 +288,6 @@
         .break-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 6px; }
 
         .loading-text { text-align: center; color: var(--text-secondary); margin-top: 60px; font-weight: 600; }
-        
-        /* Spacer для скролла под плавающими кнопками */
         .spacer { height: 100px; }
     </style>
 </head>
@@ -281,7 +295,7 @@
 
     <div id="app">
         
-        <!-- HEADER (Всегда виден) -->
+        <!-- HEADER -->
         <div class="brand-header">
             <div class="logo-box">R</div>
             <div class="brand-name">Remi</div>
@@ -341,9 +355,13 @@
                 <!-- Числа -->
                 <div v-for="date in daysInMonth" :key="date" class="day" :class="{ selected: isSelected(date) }" @click="toggleDay(date)">
                     <span>{{ date }}</span>
-                    <!-- Время + Иконка кофе -->
+                    
+                    <!-- Иконка кофе в углу -->
+                    <div v-if="hasBreaks(date)" class="day-coffee-icon">☕</div>
+
+                    <!-- Время -->
                     <div v-if="getWorkHours(date)" class="day-time">
-                        {{ getWorkHours(date) }} <span v-if="hasBreaks(date)">☕</span>
+                        {{ getWorkHours(date) }}
                     </div>
                 </div>
             </div>
@@ -353,7 +371,7 @@
             <!-- Кнопки внизу -->
             <div class="controls-sticky">
                 <button class="btn" @click="getFreeSlots" :disabled="selectedDates.length === 0">
-                    {{ isClientView ? '🔍 Посмотреть окошки' : '🔍 Проверить окошки' }}
+                    {{ isClientView ? 'Показать клиенту' : '🔍 Проверить окошки' }}
                 </button>
                 <button v-if="!isClientView" class="btn secondary" @click="goToSettings" :disabled="selectedDates.length === 0" style="width: 70px; flex: none;">
                     ⚙️
@@ -365,6 +383,11 @@
         <div v-if="mode === 'calendar' && step === 2" class="modal">
             <h2>Настройка дня</h2>
             
+            <!-- КНОПКА СДЕЛАТЬ ВЫХОДНЫМ (ВЕРНУЛ!) -->
+            <button class="btn-danger-soft" @click="makeDayOff">
+                🏖 Сделать выходным
+            </button>
+
             <div class="time-row">
                 <div class="time-group">
                     <div class="label">Начало работы</div>
@@ -383,7 +406,6 @@
                 </div>
             </div>
             
-            <!-- Перерывы -->
             <hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 20px 0;">
             
             <div class="break-section-title">
@@ -417,14 +439,13 @@
 
     </div>
 
-    <!-- SCRIPT (ОРИГИНАЛЬНАЯ ЛОГИКА) -->
+    <!-- SCRIPT -->
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
         tg.ready(); 
         tg.expand();
         
-        // Красим шапку телеграма под цвет фона
         if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
 
@@ -461,50 +482,32 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
-                // 1. Считываем параметры из Telegram (если открыто через t.me/...)
-                // start_param передается, когда переходят по ссылке ?startapp=...
-                const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
-                
-                // 2. Считываем параметры из URL (для тестов в браузере)
                 const urlParams = new URLSearchParams(window.location.search);
-                let urlMode = urlParams.get('mode');
-                let urlId = urlParams.get('master_id');
+                const urlMode = urlParams.get('mode');
+                const urlId = urlParams.get('master_id');
 
-                // ЛОГИКА: Если есть start_param, он перекрывает URL параметры
-                if (startParam) {
-                    // Мы договорились передавать формат "client_ID"
-                    if (startParam.startsWith('client_')) {
-                        urlMode = 'client';
-                        urlId = startParam.replace('client_', '');
-                    }
-                }
-
-                // 3. Инициализация переменных
-                if (urlId) {
+                if (tg.initDataUnsafe?.user?.id) {
+                    this.masterId = tg.initDataUnsafe.user.id;
+                } else if (urlId) {
                     this.masterId = urlId;
-                } else if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
-                    // Если ID нет в ссылке, значит это сам мастер открыл меню
-                    this.masterId = window.Telegram.WebApp.initDataUnsafe.user.id;
                 } else {
-                    this.masterId = 'TEST_USER'; // Для тестов на компе
+                    this.masterId = 'TEST_USER';
                 }
 
-                // 4. Запуск нужного режима
                 if (urlMode === 'confirm') {
                     this.mode = 'confirm';
                     this.loadVisits();
                 } else if (urlMode === 'client') {
                     this.mode = 'calendar';
                     this.isClientView = true;
+                    this.masterId = urlId;
                     this.loadSchedule();
                 } else {
-                    // Режим мастера (по умолчанию)
                     this.mode = 'calendar';
                     this.loadSchedule();
                 }
             },
             methods: {
-                // УМНАЯ ЧИСТКА ДАТЫ
                 cleanDate(isoStr) {
                     if (!isoStr) return null;
                     if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) {
@@ -538,6 +541,8 @@
                     const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
                     if (!data) return null;
+                    // Если время не задано (пустые строки) - значит выходной
+                    if (!data.start || !data.end) return null;
                     return `${this.formatShortTime(data.start)}-${this.formatShortTime(data.end)}`;
                 },
                 hasBreaks(day) {
@@ -586,25 +591,38 @@
                     if (this.isClientMode) return;
                     let existingData = null;
                     const sortedSelection = [...this.selectedDates].sort();
+                    // Ищем данные первого выбранного дня
                     for (const date of sortedSelection) {
                         if (this.dbData[date]) { existingData = this.dbData[date]; break; }
                     }
                     if (existingData) {
-                        this.startTime = existingData.start;
-                        this.endTime = existingData.end;
+                        this.startTime = existingData.start || '';
+                        this.endTime = existingData.end || '';
                         this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
                     } else {
+                        // Дефолт, если день пустой
                         this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
                     }
                     this.step = 2;
+                },
+                // НОВАЯ ФУНКЦИЯ: Сделать выходным
+                makeDayOff() {
+                    this.startTime = '';
+                    this.endTime = '';
+                    this.breaks = [];
+                    this.saveSchedule(); // Сразу сохраняем
                 },
                 saveSchedule() {
                     const payload = { master_id: this.masterId, dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration };
                     fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(res => {
                         tg.showAlert('Сохранено!');
-                        this.selectedDates.forEach(date => { this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
-                        this.selectedDates = []; this.step = 1;
+                        // Обновляем локальные данные
+                        this.selectedDates.forEach(date => { 
+                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) }; 
+                        });
+                        this.selectedDates = []; 
+                        this.step = 1;
                     })
                     .catch(err => tg.showAlert('Ошибка: ' + err));
                 },

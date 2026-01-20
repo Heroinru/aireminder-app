@@ -13,33 +13,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* === 1. GLOBAL VARIABLES (Единый стиль) === */
-        :root { 
-            /* Основные цвета */
-            --bg-page: #FFF9F5;          /* Фон страницы (Soft Peach) */
-            --bg-card: #FFFFFF;          /* Фон карточек и ячеек */
-            
-            /* Брендовый акцент */
-            --primary: #FF9478;
-            --primary-dark: #E66E50;
-            --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
-            
-            /* Текст */
-            --text-main: #2E1065;        /* Глубокий фиолетовый */
-            --text-muted: #9CA3AF;       /* Серый */
-            
-            /* Статусы */
-            --success: #10B981;          /* Зеленый */
-            --error: #EF4444;            /* Красный */
-            --status-pending: #F3F4F6;   /* Серый фон для ожидания */
-            
-            /* Календарь (Статусы дней) */
-            --day-bg-work: #FFFFFF;      /* Рабочий */
-            --day-bg-break: #FFF0E6;     /* С перерывом (светло-персиковый) */
-            --day-bg-off: #F3F4F6;       /* Выходной (холодный серый) */
-            --day-border: rgba(0,0,0,0.03);
+        /* [v-cloak] скрывает сырые {{ }} до загрузки Vue */
+        [v-cloak] { display: none; }
 
-            /* UI */
+        /* === GLOBAL STYLES === */
+        :root { 
+            --bg-page: #FFF9F5;          
+            --bg-card: #FFFFFF;          
+            --primary: #FF9478;
+            --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
+            --text-main: #2E1065;        
+            --text-muted: #9CA3AF;       
+            --success: #10B981;          
+            --error: #EF4444;            
+            
+            /* Calendar Status Colors */
+            --day-bg-work: #FFFFFF;      
+            --day-bg-break: #FFF0E6;     
+            --day-bg-off: #F3F4F6;       
+            
             --radius: 16px;
             --shadow: 0 4px 12px rgba(0,0,0,0.03);
             --font: 'Manrope', sans-serif;
@@ -56,7 +48,7 @@
 
         #app { padding: 16px; flex: 1; display: flex; flex-direction: column; }
 
-        /* === 2. HEADER === */
+        /* HEADER */
         .brand-header {
             display: flex; align-items: center; gap: 10px;
             margin-bottom: 20px; padding-bottom: 10px;
@@ -72,10 +64,9 @@
         }
         .brand-name { font-size: 18px; font-weight: 800; }
 
-        /* === 3. COMMON UI COMPONENTS === */
+        /* UI ELEMENTS */
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
-        /* Кнопки */
         .btn { 
             width: 100%; padding: 16px; border: none; border-radius: var(--radius); 
             background: var(--primary-grad); color: white; 
@@ -96,7 +87,6 @@
             font-weight: 700; margin-bottom: 20px;
         }
 
-        /* Поля ввода */
         .input-box {
             background: white; border: 1px solid #E5E7EB; 
             border-radius: var(--radius); padding: 14px; 
@@ -106,13 +96,13 @@
         }
         .input-box:focus { border-color: var(--primary); }
 
-        /* === 4. VISIT CARD STYLE (Единый стиль) === */
+        /* VISIT CARD STYLE */
         .visit-card { 
             background-color: var(--bg-card); 
             border-radius: var(--radius); 
             padding: 16px; margin-bottom: 12px; 
             box-shadow: var(--shadow);
-            border: 1px solid var(--day-border);
+            border: 1px solid rgba(0,0,0,0.03);
         }
         .visit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .visit-time { font-size: 22px; font-weight: 800; }
@@ -123,10 +113,9 @@
         .visit-client { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
         .visit-desc { font-size: 14px; color: var(--text-muted); }
 
-        /* Переключатель статусов */
         .status-row { display: flex; background: #F3F4F6; padding: 3px; border-radius: 12px; margin-top: 12px; gap: 2px; }
         .status-opt { 
-            flex: 1; text-align: center; padding: 8px 0; 
+            flex: 1; text-align: center; padding: 10px 0; 
             font-size: 12px; font-weight: 700; border-radius: 9px; 
             color: var(--text-muted); transition: 0.2s; 
         }
@@ -134,7 +123,7 @@
         .status-opt.active-confirmed { background: var(--success); color: white; }
         .status-opt.active-noshow { background: var(--error); color: white; }
 
-        /* === 5. CALENDAR GRID (Стиль Дикиди) === */
+        /* CALENDAR GRID */
         .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .month-name { font-size: 20px; font-weight: 800; text-transform: capitalize; }
         .nav-arrow { 
@@ -144,14 +133,20 @@
         }
 
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; margin-bottom: 80px; }
-        .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; }
+        
+        /* Дни недели (Кликабельные) */
+        .cal-head { 
+            text-align: center; font-size: 12px; font-weight: 700; 
+            color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px;
+            cursor: pointer; /* Показываем, что можно нажать */
+        }
         
         .day-cell { 
-            aspect-ratio: 1/1.3; /* Высокие ячейки */
+            aspect-ratio: 1/1.4; /* Еще выше для вертикального времени */
             background: var(--day-bg-work);
             border-radius: 12px;
             display: flex; flex-direction: column; justify-content: space-between;
-            padding: 4px;
+            padding: 4px 2px;
             position: relative;
             border: 1px solid transparent;
             box-shadow: 0 1px 2px rgba(0,0,0,0.02);
@@ -159,60 +154,56 @@
             overflow: hidden;
         }
 
-        /* Дата (Число) - Слева Сверху */
         .day-num { 
-            font-size: 14px; font-weight: 700; color: var(--text-main); 
-            line-height: 1; margin-left: 2px; margin-top: 2px;
+            font-size: 13px; font-weight: 700; color: var(--text-main); 
+            margin-left: 2px;
         }
 
-        /* Время - Снизу По центру */
-        .day-info {
-            font-size: 9px; font-weight: 800; text-align: center;
-            width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            margin-bottom: 2px; color: var(--text-main);
+        /* ВЕРТИКАЛЬНОЕ ВРЕМЯ (ДИКИДИ СТИЛЬ) */
+        .day-times-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            margin-bottom: 2px;
+        }
+        .time-txt {
+            font-size: 9px; 
+            font-weight: 800; 
+            color: var(--text-main);
+            line-height: 1;
         }
 
-        /* --- СОСТОЯНИЯ ДНЯ (ЦВЕТА) --- */
-        
-        /* Выходной (Серый) */
+        /* Цвета статусов */
         .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; }
         .day-cell.is-off .day-num { color: #BDC3C7; }
-        .day-cell.is-off .day-info { display: none; } /* Скрываем время */
-
-        /* С перерывом (Персик) */
+        
         .day-cell.has-break { background: var(--day-bg-break); border-color: #FFDCC2; }
-        .day-cell.has-break .day-info { color: #E65100; }
+        .day-cell.has-break .time-txt { color: #E65100; }
 
-        /* Выбранный (Коралл) - перекрывает остальные */
         .day-cell.is-selected { 
             background: var(--primary); border-color: var(--primary); 
             box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4); 
             transform: translateY(-2px); z-index: 2;
         }
         .day-cell.is-selected .day-num, 
-        .day-cell.is-selected .day-info { color: white; }
+        .day-cell.is-selected .time-txt { color: white; }
 
-        /* === 6. MODALS & CONTROLS === */
+        /* MODALS */
         .bottom-panel {
             position: fixed; bottom: 0; left: 0; right: 0; 
             padding: 16px 20px 30px 20px; background: rgba(255,255,255,0.95);
             backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);
             z-index: 100; display: flex; gap: 10px;
         }
-        
         .modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
         }
-        
         .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
         .form-group { flex: 1; }
         .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        
-        .break-row { 
-            background: white; padding: 12px; border-radius: 12px; 
-            margin-bottom: 10px; box-shadow: var(--shadow); 
-        }
+        .break-row { background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
         .break-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
         
         .loading-state { text-align: center; margin-top: 50px; color: var(--text-muted); font-weight: 600; }
@@ -221,14 +212,14 @@
 </head>
 <body>
 
-    <div id="app">
+    <div id="app" v-cloak>
         <!-- HEADER -->
         <div class="brand-header">
             <div class="logo-box">R</div>
             <div class="brand-name">Remi</div>
         </div>
 
-        <!-- === VIEW: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ === -->
+        <!-- VIEW: CONFIRM VISITS -->
         <div v-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
             
@@ -261,7 +252,7 @@
             </div>
         </div>
 
-        <!-- === VIEW: КАЛЕНДАРЬ === -->
+        <!-- VIEW: CALENDAR -->
         <div v-if="mode === 'calendar' && step === 1">
             <div class="calendar-nav">
                 <div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div>
@@ -270,13 +261,13 @@
             </div>
 
             <div class="cal-grid">
-                <!-- Дни недели -->
-                <div v-for="d in weekDays" :key="d" class="cal-head">{{ d }}</div>
+                <!-- Дни недели с выбором столбца -->
+                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)">
+                    {{ d }}
+                </div>
                 
-                <!-- Пустые -->
                 <div v-for="n in firstDayOffset" :key="'e'+n"></div>
                 
-                <!-- Ячейки -->
                 <div v-for="date in daysInMonth" :key="date" 
                      class="day-cell" 
                      :class="{
@@ -288,9 +279,10 @@
                     
                     <span class="day-num">{{ date }}</span>
                     
-                    <!-- Время только если рабочий день -->
-                    <div v-if="!isDayOff(date) || isSelected(date)" class="day-info">
-                        {{ getWorkHours(date) || '...' }}
+                    <!-- ВЕРТИКАЛЬНОЕ ВРЕМЯ -->
+                    <div v-if="!isDayOff(date) || isSelected(date)" class="day-times-col">
+                        <span class="time-txt">{{ getWorkTimes(date).start }}</span>
+                        <span class="time-txt">{{ getWorkTimes(date).end }}</span>
                     </div>
                 </div>
             </div>
@@ -304,7 +296,7 @@
             </div>
         </div>
 
-        <!-- === VIEW: НАСТРОЙКИ ДНЯ === -->
+        <!-- VIEW: SETTINGS -->
         <div v-if="mode === 'calendar' && step === 2" class="modal">
             <h2>Настройка графика</h2>
             
@@ -356,13 +348,11 @@
 
     </div>
 
-    <!-- LOGIC -->
     <script>
         const { createApp } = Vue;
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         
-        // Красим шапку под фон страницы
         if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
 
@@ -422,7 +412,9 @@
             methods: {
                 cleanDate(isoStr) {
                     if (!isoStr) return null;
+                    // Если дата уже ISO и чистая
                     if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
+                    // Если дублируется (n8n баг)
                     const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
                     return match ? new Date(match[0]) : new Date(isoStr);
                 },
@@ -446,11 +438,15 @@
                     const [h, m] = timeStr.split(':');
                     return m === '00' ? h : `${h}:${m}`;
                 },
-                getWorkHours(day) {
+                // Возвращает объект {start, end} для вертикального отображения
+                getWorkTimes(day) {
                     const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
-                    if (!data || !data.start || !data.end) return null;
-                    return `${this.formatShortTime(data.start)} - ${this.formatShortTime(data.end)}`;
+                    if (!data || !data.start || !data.end) return { start: '', end: '' };
+                    return {
+                        start: this.formatShortTime(data.start),
+                        end: this.formatShortTime(data.end)
+                    };
                 },
                 isDayOff(day) {
                     const dateStr = this.formatDateKey(day);
@@ -516,7 +512,9 @@
                     this.step = 2;
                 },
                 makeDayOff() {
-                    this.startTime = ''; this.endTime = ''; this.breaks = [];
+                    this.startTime = '';
+                    this.endTime = '';
+                    this.breaks = [];
                     this.saveSchedule(); 
                 },
                 saveSchedule() {

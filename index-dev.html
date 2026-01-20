@@ -113,7 +113,6 @@
             backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);
             z-index: 100; display: flex; flex-direction: column; gap: 10px;
         }
-        /* Buttons container in bottom panel */
         .panel-actions { display: flex; gap: 10px; width: 100%; }
 
         .modal {
@@ -138,7 +137,7 @@
         .loading-state { text-align: center; margin-top: 50px; color: var(--text-muted); font-weight: 600; }
         .spacer { height: 100px; }
         
-        /* VISIT CARDS (Hidden in calendar mode) */
+        /* VISIT CARDS */
         .visit-card { background: white; padding: 16px; border-radius: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
         .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
         .visit-time { font-size: 22px; font-weight: 800; }
@@ -157,7 +156,7 @@
             <div class="brand-name">Remi</div>
         </div>
 
-        <!-- === VIEW 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ (без изменений) === -->
+        <!-- === VIEW 1: ПОДТВЕРЖДЕНИЕ ВИЗИТОВ === -->
         <div v-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
             <div v-if="isLoading" class="loading-state">Загрузка...</div>
@@ -192,11 +191,11 @@
             </div>
 
             <div class="cal-grid">
-                <!-- Дни недели (Кликабельные только в Edit Mode) -->
+                <!-- Дни недели (Кликабельные только для Мастера в Edit Mode) -->
                 <div v-for="(d, index) in weekDays" :key="d" class="cal-head" 
                      @click="toggleColumn(index)" 
-                     :style="{ cursor: editMode ? 'pointer' : 'default', opacity: editMode ? 1 : 0.6 }">
-                    {{ d }} <span v-if="editMode" style="font-size: 8px;">▼</span>
+                     :style="{ cursor: (editMode && !isClientView) ? 'pointer' : 'default', opacity: (editMode && !isClientView) ? 1 : 0.6 }">
+                    {{ d }} <span v-if="editMode && !isClientView" style="font-size: 8px;">▼</span>
                 </div>
                 
                 <div v-for="n in firstDayOffset" :key="'e'+n"></div>
@@ -224,9 +223,9 @@
             <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
             <div class="bottom-panel">
                 
-                <!-- 1. Для КЛИЕНТА: Просто подсказка -->
-                <div v-if="isClientView" style="width:100%; text-align:center; font-size:12px; color:var(--text-muted);">
-                    Нажмите на дату, чтобы увидеть свободное время
+                <!-- 1. Для КЛИЕНТА: Только подсказка -->
+                <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
+                    👆 Нажмите на дату, чтобы увидеть свободное время
                 </div>
 
                 <!-- 2. Для МАСТЕРА: Режим РЕДАКТИРОВАНИЯ -->
@@ -244,12 +243,11 @@
                     <button class="btn btn-secondary" @click="toggleEditMode">
                         ✏️ Изменить график
                     </button>
-                    <!-- В этом режиме клик по дню открывает слоты -->
                 </div>
             </div>
         </div>
 
-        <!-- === VIEW 3: ПРОСМОТР СЛОТОВ (Для мастера и клиента) === -->
+        <!-- === VIEW 3: ПРОСМОТР СЛОТОВ === -->
         <div v-if="mode === 'calendar' && viewStep === 'slots'" class="modal">
             <h2 class="slots-date-title">{{ formatDateFull(activeDate) }}</h2>
             
@@ -267,16 +265,24 @@
             </div>
         </div>
 
-        <!-- === VIEW 4: НАСТРОЙКИ ГРАФИКА === -->
+        <!-- === VIEW 4: НАСТРОЙКИ ГРАФИКА (Только Мастер) === -->
         <div v-if="mode === 'calendar' && viewStep === 'settings'" class="modal">
             <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
             
             <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
 
+            <!-- ПОЛЯ ВВОДА ВРЕМЕНИ С ШАГОМ 15 МИН (step="900") -->
             <div class="form-row">
-                <div class="form-group"><div class="form-label">Начало</div><input type="time" v-model="startTime" class="input-box"></div>
-                <div class="form-group"><div class="form-label">Конец</div><input type="time" v-model="endTime" class="input-box"></div>
+                <div class="form-group">
+                    <div class="form-label">Начало</div>
+                    <input type="time" v-model="startTime" class="input-box" step="900">
+                </div>
+                <div class="form-group">
+                    <div class="form-label">Конец</div>
+                    <input type="time" v-model="endTime" class="input-box" step="900">
+                </div>
             </div>
+            
             <div class="form-row">
                 <div class="form-group"><div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15" class="input-box"></div>
             </div>
@@ -286,9 +292,13 @@
                 <span style="font-weight:700;">Перерывы</span>
                 <button class="btn btn-secondary" @click="addBreak" style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button>
             </div>
+            
             <div v-for="(brk, index) in breaks" :key="index" class="break-row">
                 <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
-                <div class="form-row" style="margin-bottom:0;"><input type="time" v-model="brk.start" class="input-box"><input type="time" v-model="brk.end" class="input-box"></div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <input type="time" v-model="brk.start" class="input-box" step="900">
+                    <input type="time" v-model="brk.end" class="input-box" step="900">
+                </div>
             </div>
 
             <div class="spacer"></div>
@@ -371,27 +381,29 @@
                 onDayClick(day) {
                     const dateStr = this.formatDateKey(day);
                     
-                    // Режим редактирования (Мастер выбирает дни)
-                    if (this.editMode) {
+                    // Режим редактирования (Только мастер)
+                    if (this.editMode && !this.isClientView) {
                         const index = this.selectedDates.indexOf(dateStr);
                         if (index === -1) this.selectedDates.push(dateStr);
                         else this.selectedDates.splice(index, 1);
                         return;
                     }
 
-                    // Режим просмотра (Смотрим слоты)
+                    // Режим просмотра (Клиент всегда, Мастер по дефолту)
+                    // Проваливаемся в просмотр слотов
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     this.fetchSlotsForDate(dateStr);
                 },
 
                 toggleEditMode() {
+                    if (this.isClientView) return; // Защита
                     this.editMode = !this.editMode;
                     this.selectedDates = [];
                 },
 
-                // Выбор столбца (Работает только в EditMode)
+                // Выбор столбца (Только в EditMode)
                 toggleColumn(colIndex) { 
-                    if (!this.editMode) return;
+                    if (!this.editMode || this.isClientView) return;
                     
                     const daysToToggle = []; 
                     for (let d = 1; d <= this.daysInMonth; d++) { 

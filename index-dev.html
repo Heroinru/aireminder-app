@@ -950,24 +950,35 @@
                     }
                     if (dates.length === 0) return;
 
-                    fetch(URLS.GET_SLOTS, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ master_id: this.masterId, dates: dates })
-                    })
-                        .then(res => res.json())
-                        .then(data => {
-                            console.log('Slots response RAW:', JSON.stringify(data));
+                    console.log('Checking slots for dates:', dates);
 
-                            if (data.slots_by_date) {
-                                Object.keys(data.slots_by_date).forEach(date => {
-                                    this.slotsAvailability[date] = data.slots_by_date[date].length > 0;
-                                });
-                            } else {
-                                console.warn('No slots_by_date in response');
-                            }
+                    // Бэкенд возвращает {slots: [...]} для одной даты
+                    // Поэтому запрашиваем каждую дату отдельно
+                    const promises = dates.map(dateStr => {
+                        return fetch(URLS.GET_SLOTS, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ master_id: this.masterId, dates: [dateStr] })
                         })
-                        .catch(err => console.error('Slots error:', err));
+                            .then(res => res.json())
+                            .then(data => {
+                                // Бэкенд возвращает {slots: ["10:00", "14:00", ...]}
+                                const hasSlots = (data.slots && data.slots.length > 0);
+                                this.slotsAvailability[dateStr] = hasSlots;
+                                if (hasSlots) {
+                                    console.log(`✅ ${dateStr}: ${data.slots.length} slots`);
+                                }
+                                return { date: dateStr, hasSlots };
+                            })
+                            .catch(err => {
+                                console.error(`Slots error for ${dateStr}:`, err);
+                                return { date: dateStr, hasSlots: false };
+                            });
+                    });
+
+                    Promise.all(promises).then(results => {
+                        console.log('Slots availability updated:', this.slotsAvailability);
+                    });
                 },
 
                 // OLD FUNCTION (But logic moved to fetchSlotsForDate)

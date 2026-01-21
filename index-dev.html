@@ -970,7 +970,7 @@
                     }
                 },
                 makeDayOff() {
-                    this.startTime = ''; this.endTime = ''; this.breaks = [];
+                    this.startTime = null; this.endTime = null; this.breaks = [];
                     this.saveSchedule();
                 },
                 saveSchedule() {
@@ -978,7 +978,15 @@
                     console.log('=== SAVE SCHEDULE ===');
                     this.isSaving = true;
 
-                    const payload = { master_id: this.masterId, dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration };
+                    // Для выходных дней отправляем null вместо пустых строк
+                    const payload = {
+                        master_id: this.masterId,
+                        dates: this.selectedDates,
+                        start: this.startTime || null,
+                        end: this.endTime || null,
+                        breaks: this.breaks,
+                        slot_duration: this.slotDuration
+                    };
                     fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                         .then(res => {
                             if (!res.ok) {
@@ -986,7 +994,15 @@
                                     throw new Error(`Сервер (${res.status}): ${text}`);
                                 });
                             }
-                            return res.json();
+                            // Пытаемся прочитать как JSON, если не получается - как текст
+                            return res.text().then(text => {
+                                try {
+                                    return JSON.parse(text);
+                                } catch (e) {
+                                    // Если не JSON (например, "OK"), возвращаем как есть
+                                    return { status: 'ok', message: text };
+                                }
+                            });
                         })
                         .then(data => {
                             console.log('Save response:', data);
@@ -995,8 +1011,8 @@
                             // Обновляем dbData для каждой даты
                             this.selectedDates.forEach(date => {
                                 this.dbData[date] = {
-                                    start: this.startTime,
-                                    end: this.endTime,
+                                    start: this.startTime || null,
+                                    end: this.endTime || null,
                                     breaks: JSON.parse(JSON.stringify(this.breaks))
                                 };
                             });

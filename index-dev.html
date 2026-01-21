@@ -879,22 +879,30 @@
                     console.log('=== LOAD SCHEDULE ===');
                     console.log('Master ID:', this.masterId);
 
-                    // Используем правильный endpoint для загрузки
-                    const url = URLS.GET_SCHEDULE || `${API_BASE}/get-schedule-dev`;
-                    const fullUrl = `${url}?master_id=${this.masterId}`;
+                    // Используем SAVE_SCHEDULE endpoint для загрузки (как в старом коде)
+                    const fullUrl = `${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`;
 
                     console.log('Requesting URL:', fullUrl);
-                    console.log('API_BASE:', API_BASE);
-                    console.log('URLS.GET_SCHEDULE:', URLS.GET_SCHEDULE);
 
                     fetch(fullUrl, { method: 'GET' })
                         .then(res => {
                             console.log('Response status:', res.status, res.statusText);
                             if (!res.ok) throw new Error('Network response was not ok');
-                            return res.json();
+                            return res.text();
                         })
-                        .then(data => {
-                            console.log('Schedule loaded RAW:', JSON.stringify(data));
+                        .then(text => {
+                            console.log('Schedule loaded RAW text:', text);
+
+                            // Пытаемся распарсить как JSON
+                            let data;
+                            try {
+                                data = JSON.parse(text);
+                            } catch (e) {
+                                console.warn('Response is not JSON, treating as empty:', text);
+                                data = [];
+                            }
+
+                            console.log('Schedule loaded parsed:', data);
 
                             // Загружаем slot_duration из настроек
                             if (data.settings && data.settings.slot_duration) {

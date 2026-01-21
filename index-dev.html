@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Remi AI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    
+
     <!-- FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,118 +15,419 @@
 
     <style>
         /* Скрываем сырой код */
-        [v-cloak] { display: none !important; }
+        [v-cloak] {
+            display: none !important;
+        }
 
-        :root { 
-            --bg-page: #FFF9F5;          
-            --bg-card: #FFFFFF;          
+        :root {
+            --bg-page: #FFF9F5;
+            --bg-card: #FFFFFF;
             --primary: #FF9478;
             --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
-            --text-main: #2E1065;        
-            --text-muted: #9CA3AF;       
-            --success: #10B981;          
-            --error: #EF4444;            
-            
-            --day-bg-work: #FFFFFF;      
-            --day-bg-break: #FFF0E6;     
-            --day-bg-off: #F3F4F6;       
-            
+            --text-main: #2E1065;
+            --text-muted: #9CA3AF;
+            --success: #10B981;
+            --error: #EF4444;
+
+            --day-bg-work: #FFFFFF;
+            --day-bg-off: #F3F4F6;
+            --day-bg-available: #ECFDF5;
+            --day-bg-past: #F3F4F6;
+
             --radius: 16px;
-            --shadow: 0 4px 12px rgba(0,0,0,0.03);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
             --font: 'Manrope', sans-serif;
         }
 
-        body { font-family: var(--font); background-color: var(--bg-page); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; }
-        #app { padding: 16px; padding-bottom: 100px; } /* Отступ снизу для кнопок */
+        body {
+            font-family: var(--font);
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        #app {
+            padding: 16px;
+            padding-bottom: 100px;
+        }
+
+        /* Отступ снизу для кнопок */
 
         /* HEADER */
-        .brand-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.05); }
-        .logo-box { width: 32px; height: 32px; background: var(--primary); color: white; font-weight: 800; font-size: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; transform: rotate(3deg); }
-        .brand-name { font-size: 18px; font-weight: 800; }
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
 
-        h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
+        .logo-box {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(3deg);
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 800;
+            margin: 0 0 16px 0;
+        }
 
         /* BUTTONS */
-        .btn { width: 100%; padding: 16px; border: none; border-radius: var(--radius); background: var(--primary-grad); color: white; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25); }
-        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; }
-        .btn-secondary { background: white; color: var(--text-main); box-shadow: var(--shadow); border: 1px solid #E5E7EB; }
-        .btn-danger { width: 100%; padding: 14px; background: #FEF2F2; color: var(--error); border: 1px solid #FEE2E2; border-radius: var(--radius); font-weight: 700; margin-bottom: 20px; cursor: pointer; }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius);
+            background: var(--primary-grad);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            background: #D1D5DB;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+            border: 1px solid #E5E7EB;
+        }
+
+        .btn-danger {
+            width: 100%;
+            padding: 14px;
+            background: #FEF2F2;
+            color: var(--error);
+            border: 1px solid #FEE2E2;
+            border-radius: var(--radius);
+            font-weight: 700;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
 
         /* INPUTS */
         .input-box {
-            background: white; border: 1px solid #E5E7EB; border-radius: var(--radius); 
-            padding: 14px; font-size: 18px; font-weight: 700; width: 100%; 
-            box-sizing: border-box; text-align: center; color: var(--text-main); outline: none;
-            -webkit-appearance: none; appearance: none;
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: var(--radius);
+            padding: 14px;
+            font-size: 18px;
+            font-weight: 700;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            color: var(--text-main);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
         }
+
         /* Стрелочка для селекта */
         select.input-box {
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em;
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
         }
 
         /* CALENDAR */
-        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .month-name { font-size: 18px; font-weight: 800; text-transform: capitalize; }
-        .nav-arrow { width: 36px; height: 36px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); color: var(--primary); font-size: 18px; cursor: pointer; }
-
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; margin-bottom: 20px; }
-        .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; }
-        
-        .day-cell { 
-            aspect-ratio: 1/1.3; background: var(--day-bg-work); border-radius: 12px;
-            display: flex; flex-direction: column; justify-content: space-between; padding: 4px 2px;
-            position: relative; border: 1px solid transparent; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-            overflow: hidden; cursor: pointer;
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-        .day-num { font-size: 13px; font-weight: 700; color: var(--text-main); margin-left: 3px; margin-top: 2px; }
-        .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-bottom: 3px; }
-        .time-txt { font-size: 9px; font-weight: 800; color: var(--text-main); line-height: 1; }
 
-        .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; }
-        .day-cell.is-off .day-num { color: #BDC3C7; }
-        .day-cell.has-break { background: var(--day-bg-break); border-color: #FFDCC2; }
-        .day-cell.has-break .time-txt { color: #E65100; }
-        
-        .day-cell.is-selected { 
-            background: var(--primary); border-color: var(--primary); 
-            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4); transform: translateY(-2px); z-index: 2;
+        .month-name {
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: capitalize;
         }
-        .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
+
+        .nav-arrow {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            color: var(--primary);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .cal-head {
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding-bottom: 8px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1/1.3;
+            background: var(--day-bg-work);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px 2px;
+            position: relative;
+            border: 1px solid transparent;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .day-num {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-left: 3px;
+            margin-top: 2px;
+        }
+
+        .day-times-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            margin-bottom: 3px;
+        }
+
+        .time-txt {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1;
+        }
+
+        .day-cell.is-past {
+            background: var(--day-bg-past);
+            box-shadow: none;
+            opacity: 0.6;
+        }
+
+        .day-cell.is-past .day-num {
+            color: #BDC3C7;
+        }
+
+        .day-cell.is-off {
+            background: var(--day-bg-off);
+            box-shadow: none;
+        }
+
+        .day-cell.is-off .day-num {
+            color: #BDC3C7;
+        }
+
+        .day-cell.has-slots {
+            background: var(--day-bg-available);
+            border-color: #A7F3D0;
+        }
+
+        .day-cell.has-slots .time-txt {
+            color: #047857;
+        }
+
+        /* Coffee icon for breaks */
+        .coffee-icon {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .day-cell.is-selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
+            transform: translateY(-2px);
+            z-index: 2;
+        }
+
+        .day-cell.is-selected .day-num,
+        .day-cell.is-selected .time-txt {
+            color: white;
+        }
 
         /* CONTROLS */
         .bottom-panel {
-            position: fixed; bottom: 0; left: 0; right: 0; 
-            padding: 16px 20px 30px 20px; background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(8px); border-top: 1px solid rgba(0,0,0,0.05);
-            z-index: 100; display: flex; flex-direction: column; gap: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px 20px 30px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .panel-actions { display: flex; gap: 10px; width: 100%; }
+
+        .panel-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
 
         .modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-page);
+            padding: 20px;
+            z-index: 200;
+            overflow-y: auto;
         }
-        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .slot-chip { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; padding: 12px; border-radius: 12px; text-align: center; font-weight: 700; }
 
-        .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
-        .form-group { flex: 1; }
-        .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        .break-row { background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
-        .break-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .slot-chip {
+            background: #ECFDF5;
+            color: #047857;
+            border: 1px solid #A7F3D0;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .break-row {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        .break-head {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
 
         /* VISITS */
-        .visit-card { background: white; padding: 16px; border-radius: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
-        .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .visit-time { font-size: 22px; font-weight: 800; }
-        .status-row { display: flex; gap: 5px; margin-top: 10px; }
-        .status-opt { flex:1; text-align:center; padding: 10px 0; border-radius: 8px; background: #f3f4f6; font-size: 16px; font-weight: 700; color: #666; cursor: pointer; }
-        .status-opt.active-pending { background: white; color: black; border: 1px solid #ddd; }
-        .status-opt.active-confirmed { background: var(--success); color: white; }
-        .status-opt.active-noshow { background: var(--error); color: white; }
+        .visit-card {
+            background: white;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow);
+        }
+
+        .visit-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .visit-time {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .status-row {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .status-opt {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 8px;
+            background: #f3f4f6;
+            font-size: 16px;
+            font-weight: 700;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .status-opt.active-pending {
+            background: white;
+            color: black;
+            border: 1px solid #ddd;
+        }
+
+        .status-opt.active-confirmed {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-opt.active-noshow {
+            background: var(--error);
+            color: white;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="app" v-cloak>
@@ -138,19 +440,24 @@
         <div v-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
             <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
-            <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
+            <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет
+            </div>
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
                     <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div>
+                    <div style="font-size:12px; font-weight:700; color:var(--primary);">{{
+                        formatDatePretty(visit.appointment_time) }}</div>
                 </div>
                 <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
                 <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
                 <div class="status-row">
                     <!-- ИКОНКА ОЖИДАНИЯ: ПЕСОЧНЫЕ ЧАСЫ -->
-                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
-                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">Да</div>
-                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">Нет</div>
+                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }"
+                        @click="visit.visit_status = 'pending'">⏳</div>
+                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }"
+                        @click="visit.visit_status = 'confirmed'">Да</div>
+                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }"
+                        @click="visit.visit_status = 'no_show'">Нет</div>
                 </div>
             </div>
             <div class="bottom-panel" v-if="visits.length > 0">
@@ -168,26 +475,27 @@
 
             <div class="cal-grid">
                 <!-- Дни недели (Кликабельны только для мастера в Edit Mode) -->
-                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" 
-                     @click="toggleColumn(index)"
-                     :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">
+                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)"
+                    :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">
                     {{ d }}
                 </div>
-                
+
                 <div v-for="n in firstDayOffset" :key="'e'+n"></div>
-                
-                <div v-for="date in daysInMonth" :key="date" 
-                     class="day-cell" 
-                     :class="{
+
+                <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{
                         'is-selected': isSelected(date),
-                        'is-off': isDayOff(date) && !isSelected(date),
-                        'has-break': hasBreaks(date) && !isSelected(date) && !isDayOff(date)
-                     }"
-                     @click="onDayClick(date)">
-                    
+                        'is-past': isPastDay(date) && !isSelected(date),
+                        'has-slots': hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date),
+                        'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date)
+                     }" @click="onDayClick(date)">
+
                     <span class="day-num">{{ date }}</span>
+
+                    <!-- Coffee icon for breaks -->
+                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
+
                     <!-- Время (Дикиди стайл) -->
-                    <div v-if="!isDayOff(date) || isSelected(date)" class="day-times-col">
+                    <div v-if="(!isDayOff(date) && !isPastDay(date)) || isSelected(date)" class="day-times-col">
                         <span class="time-txt">{{ getWorkTimes(date).start }}</span>
                         <span class="time-txt">{{ getWorkTimes(date).end }}</span>
                     </div>
@@ -196,9 +504,10 @@
 
             <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
             <div class="bottom-panel">
-                
+
                 <!-- 1. КЛИЕНТ: КНОПОК НЕТ ВООБЩЕ -->
-                <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
+                <div v-if="isClientView"
+                    style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
                     👆 Нажмите на дату, чтобы увидеть свободное время
                 </div>
 
@@ -225,7 +534,8 @@
         <div v-if="mode === 'calendar' && viewStep === 'slots'" class="modal">
             <h2 style="text-align:center;">{{ formatDateFull(activeDate) }}</h2>
             <div v-if="isLoadingSlots" style="text-align:center; margin-top:20px;">Загрузка...</div>
-            <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест</div>
+            <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест
+            </div>
             <div v-else class="slots-grid">
                 <div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div>
             </div>
@@ -254,23 +564,32 @@
                     </select>
                 </div>
             </div>
-            
+
             <div class="form-row">
-                <div class="form-group"><div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15" class="input-box"></div>
+                <div class="form-group">
+                    <div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15"
+                        class="input-box">
+                </div>
             </div>
-            
+
             <hr style="border:0; border-top:1px solid #E5E7EB; margin: 20px 0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span style="font-weight:700;">Перерывы</span>
-                <button class="btn btn-secondary" @click="addBreak" style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button>
+                <button class="btn btn-secondary" @click="addBreak"
+                    style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button>
             </div>
-            
+
             <div v-for="(brk, index) in breaks" :key="index" class="break-row">
-                <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
+                <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)"
+                        style="color:var(--error); cursor:pointer;">Удалить</span></div>
                 <div class="form-row" style="margin-bottom:0;">
-                    <select v-model="brk.start" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select>
+                    <select v-model="brk.start" class="input-box">
+                        <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
+                    </select>
                     <span style="align-self:center;">-</span>
-                    <select v-model="brk.end" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select>
+                    <select v-model="brk.end" class="input-box">
+                        <option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option>
+                    </select>
                 </div>
             </div>
 
@@ -278,7 +597,9 @@
             <div class="bottom-panel">
                 <div class="panel-actions">
                     <button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button>
-                    <button class="btn" @click="saveSchedule">Сохранить</button>
+                    <button class="btn" @click="saveSchedule" :disabled="isSaving">
+                        {{ isSaving ? '⏳ Сохранение...' : 'Сохранить' }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -292,8 +613,9 @@
         if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
 
-        const API_BASE = 'https://aireminder.ru/webhook'; 
+        const API_BASE = 'https://aireminder.ru/webhook';
         const URLS = {
+            GET_SCHEDULE: `${API_BASE}/get-schedule-dev`,
             SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
             GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
             GET_VISITS: `${API_BASE}/get-visits-dev`,
@@ -333,6 +655,7 @@
                     currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {},
+                    slotsAvailability: {},
                     timeOptions: TIMES_LIST
                 }
             },
@@ -344,32 +667,47 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
+                console.log('=== APP MOUNTED ===');
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlMode = urlParams.get('mode');
                 const urlId = urlParams.get('master_id');
+
+                console.log('URL params:', { mode: urlMode, master_id: urlId });
+                console.log('Telegram user:', tg.initDataUnsafe?.user);
 
                 if (tg.initDataUnsafe?.user?.id) this.masterId = tg.initDataUnsafe.user.id;
                 else if (urlId) this.masterId = urlId;
                 else this.masterId = 'TEST_USER';
 
+                console.log('Master ID set to:', this.masterId);
+
                 if (urlMode === 'confirm') {
+                    console.log('Mode: CONFIRM - loading visits');
                     this.mode = 'confirm';
                     this.loadVisits();
                 } else if (urlMode === 'client') {
+                    console.log('Mode: CLIENT - loading schedule for client view');
                     this.mode = 'calendar';
                     this.isClientView = true;
                     this.masterId = urlId;
                     this.loadSchedule();
                 } else {
+                    console.log('Mode: MASTER - loading schedule for master view');
                     this.mode = 'calendar';
                     this.loadSchedule();
                 }
+
+                console.log('Final state:', {
+                    mode: this.mode,
+                    masterId: this.masterId,
+                    isClientView: this.isClientView
+                });
             },
             methods: {
                 // ГЛАВНАЯ ЛОГИКА
                 onDayClick(day) {
                     const dateStr = this.formatDateKey(day);
-                    
+
                     // КЛИЕНТ: ВСЕГДА ТОЛЬКО СЛОТЫ
                     if (this.isClientView) {
                         this.activeDate = new Date(this.currentYear, this.currentMonth, day);
@@ -396,48 +734,58 @@
                     this.selectedDates = [];
                 },
 
-                toggleColumn(colIndex) { 
+                toggleColumn(colIndex) {
                     if (!this.editMode || this.isClientView) return; // ЗАЩИТА
-                    const daysToToggle = []; 
-                    for (let d = 1; d <= this.daysInMonth; d++) { 
-                        const date = new Date(this.currentYear, this.currentMonth, d); 
-                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; 
-                        if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d)); 
-                    } 
-                    const allSelected = daysToToggle.every(d => this.selectedDates.includes(d)); 
-                    if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); } 
-                    else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); } 
+                    const daysToToggle = [];
+                    for (let d = 1; d <= this.daysInMonth; d++) {
+                        const date = new Date(this.currentYear, this.currentMonth, d);
+                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
+                        if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d));
+                    }
+                    const allSelected = daysToToggle.every(d => this.selectedDates.includes(d));
+                    if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); }
+                    else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); }
                 },
 
                 fetchSlotsForDate(dateStr) {
                     this.viewStep = 'slots';
                     this.currentSlots = [];
                     this.isLoadingSlots = true;
-                    fetch(URLS.GET_SLOTS, { 
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ master_id: this.masterId, dates: [dateStr] }) 
+                    fetch(URLS.GET_SLOTS, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ master_id: this.masterId, dates: [dateStr] })
                     })
-                    .then(res => res.json())
-                    .then(data => {
-                        this.currentSlots = data.slots || (Array.isArray(data) ? data : []);
-                    })
-                    .catch(err => tg.showAlert('Ошибка: ' + err))
-                    .finally(() => this.isLoadingSlots = false);
+                        .then(res => res.json())
+                        .then(data => {
+                            this.currentSlots = data.slots || (Array.isArray(data) ? data : []);
+                        })
+                        .catch(err => tg.showAlert('Ошибка: ' + err))
+                        .finally(() => this.isLoadingSlots = false);
                 },
 
                 goToSettings() {
                     if (this.isClientView) return;
+                    console.log('=== GO TO SETTINGS ===');
+                    console.log('Selected dates:', this.selectedDates);
+                    console.log('Current dbData:', this.dbData);
+
                     let existingData = null;
                     const sortedSelection = [...this.selectedDates].sort();
                     for (const date of sortedSelection) {
-                        if (this.dbData[date]) { existingData = this.dbData[date]; break; }
+                        if (this.dbData[date]) {
+                            existingData = this.dbData[date];
+                            console.log('Found existing data for', date, ':', existingData);
+                            break;
+                        }
                     }
                     if (existingData) {
                         this.startTime = existingData.start || '10:00';
                         this.endTime = existingData.end || '20:00';
                         this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
+                        console.log('Loaded settings - Start:', this.startTime, 'End:', this.endTime, 'Breaks:', this.breaks);
                     } else {
                         this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                        console.log('No existing data, using defaults');
                     }
                     this.viewStep = 'settings';
                 },
@@ -449,22 +797,22 @@
                     const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
                     return match ? new Date(match[0]) : new Date(isoStr);
                 },
-                formatTime(isoStr) { 
-                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return '??:??'; 
-                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); 
+                formatTime(isoStr) {
+                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return '??:??';
+                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 },
-                formatDatePretty(isoStr) { 
-                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return isoStr; 
-                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); 
+                formatDatePretty(isoStr) {
+                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return isoStr;
+                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
                 },
                 formatDateFull(date) {
                     if (!date) return '';
                     return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
                 },
-                formatDateKey(day) { 
-                    const m = String(this.currentMonth + 1).padStart(2, '0'); 
-                    const d = String(day).padStart(2, '0'); 
-                    return `${this.currentYear}-${m}-${d}`; 
+                formatDateKey(day) {
+                    const m = String(this.currentMonth + 1).padStart(2, '0');
+                    const d = String(day).padStart(2, '0');
+                    return `${this.currentYear}-${m}-${d}`;
                 },
                 formatShortTime(timeStr) {
                     if (!timeStr) return '';
@@ -487,6 +835,16 @@
                     const data = this.dbData[dateStr];
                     return data && data.breaks && data.breaks.length > 0;
                 },
+                isPastDay(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const today = new Date();
+                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    return dateStr < todayStr;
+                },
+                hasAvailableSlots(day) {
+                    const dateStr = this.formatDateKey(day);
+                    return this.slotsAvailability[dateStr] === true;
+                },
                 loadVisits() {
                     this.isLoading = true;
                     fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
@@ -500,47 +858,166 @@
                     this.isSaving = true;
                     const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status }));
                     fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
-                    .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
-                    .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
+                        .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
+                        .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
+                },
+                // Helper for alerts
+                safeAlert(msg) {
+                    console.log('SafeAlert:', msg);
+                    try {
+                        if (tg && tg.showAlert) {
+                            tg.showAlert(msg);
+                        } else {
+                            alert(msg);
+                        }
+                    } catch (err) {
+                        console.error('tg.showAlert failed:', err);
+                        alert(msg);
+                    }
                 },
                 loadSchedule() {
-                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`, { method: 'GET' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!Array.isArray(data) && data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-                        const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
-                        scheduleList.forEach(row => {
-                            let brk = []; try { brk = JSON.parse(row.breaks); } catch(e) {}
-                            this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                    console.log('=== LOAD SCHEDULE ===');
+                    console.log('Master ID:', this.masterId);
+
+                    // Используем правильный endpoint для загрузки
+                    const url = URLS.GET_SCHEDULE || `${API_BASE}/get-schedule-dev`;
+                    const fullUrl = `${url}?master_id=${this.masterId}`;
+
+                    console.log('Requesting URL:', fullUrl);
+                    console.log('API_BASE:', API_BASE);
+                    console.log('URLS.GET_SCHEDULE:', URLS.GET_SCHEDULE);
+
+                    fetch(fullUrl, { method: 'GET' })
+                        .then(res => {
+                            console.log('Response status:', res.status, res.statusText);
+                            if (!res.ok) throw new Error('Network response was not ok');
+                            return res.json();
+                        })
+                        .then(data => {
+                            console.log('Schedule loaded RAW:', JSON.stringify(data));
+
+                            // Загружаем slot_duration из настроек
+                            if (data.settings && data.settings.slot_duration) {
+                                this.slotDuration = parseInt(data.settings.slot_duration);
+                            } else if (!Array.isArray(data) && data.slot_duration) {
+                                this.slotDuration = parseInt(data.slot_duration);
+                            }
+
+                            const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+                            console.log('Schedule List parsed:', scheduleList);
+
+                            scheduleList.forEach(row => {
+                                let brk = [];
+                                try {
+                                    brk = row.breaks ? (typeof row.breaks === 'string' ? JSON.parse(row.breaks) : row.breaks) : [];
+                                } catch (e) {
+                                    console.error('Error parsing breaks:', e);
+                                }
+                                this.dbData[row.work_date] = {
+                                    start: row.start_time,
+                                    end: row.end_time,
+                                    breaks: brk
+                                };
+                            });
+                            console.log('Final dbData:', JSON.parse(JSON.stringify(this.dbData)));
+
+                            // Загружаем слоты
+                            if (!this.isClientView) this.fetchSlotsAvailability();
+                        })
+                        .catch(err => {
+                            console.error('Load schedule error:', err);
+                            console.error('Error details:', err.message, err.stack);
                         });
-                    });
                 },
+                fetchSlotsAvailability() {
+                    console.log('=== FETCH SLOTS ===');
+                    this.slotsAvailability = {};
+
+                    const dates = [];
+                    for (let day = 1; day <= this.daysInMonth; day++) {
+                        const dateStr = this.formatDateKey(day);
+                        if (!this.isPastDay(day) && !this.isDayOff(day)) {
+                            dates.push(dateStr);
+                        }
+                    }
+                    if (dates.length === 0) return;
+
+                    fetch(URLS.GET_SLOTS, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ master_id: this.masterId, dates: dates })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            console.log('Slots response RAW:', JSON.stringify(data));
+
+                            if (data.slots_by_date) {
+                                Object.keys(data.slots_by_date).forEach(date => {
+                                    this.slotsAvailability[date] = data.slots_by_date[date].length > 0;
+                                });
+                            } else {
+                                console.warn('No slots_by_date in response');
+                            }
+                        })
+                        .catch(err => console.error('Slots error:', err));
+                },
+
                 // OLD FUNCTION (But logic moved to fetchSlotsForDate)
                 getFreeSlots() {
                     if (this.selectedDates.length > 0) {
-                        this.activeDate = new Date(this.selectedDates[0]); 
+                        this.activeDate = new Date(this.selectedDates[0]);
                         this.fetchSlotsForDate(this.selectedDates[0]);
                     }
                 },
                 makeDayOff() {
                     this.startTime = ''; this.endTime = ''; this.breaks = [];
-                    this.saveSchedule(); 
+                    this.saveSchedule();
                 },
                 saveSchedule() {
+                    if (this.isSaving) return;
+                    console.log('=== SAVE SCHEDULE ===');
+                    this.isSaving = true;
+
                     const payload = { master_id: this.masterId, dates: this.selectedDates, start: this.startTime, end: this.endTime, breaks: this.breaks, slot_duration: this.slotDuration };
                     fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                    .then(res => {
-                        tg.showAlert('Сохранено!');
-                        this.selectedDates.forEach(date => { 
-                            this.dbData[date] = { start: this.startTime, end: this.endTime, breaks: JSON.parse(JSON.stringify(this.breaks)) }; 
+                        .then(res => {
+                            if (!res.ok) {
+                                return res.text().then(text => {
+                                    throw new Error(`Сервер (${res.status}): ${text}`);
+                                });
+                            }
+                            return res.json();
+                        })
+                        .then(data => {
+                            console.log('Save response:', data);
+                            this.safeAlert('Сохранено!');
+
+                            // Обновляем dbData для каждой даты
+                            this.selectedDates.forEach(date => {
+                                this.dbData[date] = {
+                                    start: this.startTime,
+                                    end: this.endTime,
+                                    breaks: JSON.parse(JSON.stringify(this.breaks))
+                                };
+                            });
+
+                            this.selectedDates = [];
+                            this.viewStep = 'grid';
+                            this.editMode = false;
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => {
+                            console.error('Save error:', err);
+                            this.safeAlert('Ошибка сохранения: ' + err.message);
+                        })
+                        .finally(() => {
+                            this.isSaving = false;
                         });
-                        this.selectedDates = []; 
-                        this.viewStep = 'grid';
-                        this.editMode = false;
-                    })
-                    .catch(err => tg.showAlert('Ошибка: ' + err));
                 },
-                changeMonth(delta) { this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1); },
+                changeMonth(delta) {
+                    this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1);
+                    if (!this.isClientView) this.fetchSlotsAvailability();
+                },
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); }
@@ -548,4 +1025,5 @@
         }).mount('#app');
     </script>
 </body>
+
 </html>

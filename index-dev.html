@@ -522,9 +522,24 @@
                 </div>
 
                 <!-- 3. МАСТЕР: Режим ПРОСМОТРА (Default) -->
+
+                <!-- 3. МАСТЕР: Режим SHARE -->
+                <div v-else-if="shareMode" class="panel-actions">
+                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
+                        🚀 Отправить в чат ({{ selectedDates.length }})
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">
+                        Отмена
+                    </button>
+                </div>
+
+                <!-- 4. МАСТЕР: Режим ПРОСМОТРА (Default) -->
                 <div v-else class="panel-actions">
                     <button class="btn btn-secondary" @click="toggleEditMode">
                         ✏️ Изменить график
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleShareMode">
+                        📢 Найти окошки
                     </button>
                 </div>
             </div>
@@ -576,7 +591,8 @@
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span style="font-weight:700;">Перерывы</span>
                 <button class="btn btn-secondary" @click="addBreak"
-                    style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button>
+                    style="width:auto; padding:8px 12px; font-size:12px;">+
+                    Добавить</button>
             </div>
 
             <div v-for="(brk, index) in breaks" :key="index" class="break-row">
@@ -643,7 +659,9 @@
                 return {
                     mode: 'calendar',
                     viewStep: 'grid',
+                    viewStep: 'grid',
                     editMode: false,
+                    shareMode: false,
                     masterId: null,
                     isClientView: false,
                     visits: [],
@@ -715,8 +733,8 @@
                         return;
                     }
 
-                    // МАСТЕР: РЕДАКТИРОВАНИЕ
-                    if (this.editMode) {
+                    // МАСТЕР: РЕДАКТИРОВАНИЕ ИЛИ SHARE
+                    if (this.editMode || this.shareMode) {
                         const index = this.selectedDates.indexOf(dateStr);
                         if (index === -1) this.selectedDates.push(dateStr);
                         else this.selectedDates.splice(index, 1);
@@ -731,11 +749,19 @@
                 toggleEditMode() {
                     if (this.isClientView) return; // ЗАЩИТА
                     this.editMode = !this.editMode;
+                    this.shareMode = false; // Выключаем shareMode
+                    this.selectedDates = [];
+                },
+
+                toggleShareMode() {
+                    if (this.isClientView) return; // ЗАЩИТА
+                    this.shareMode = !this.shareMode;
+                    this.editMode = false; // Выключаем editMode
                     this.selectedDates = [];
                 },
 
                 toggleColumn(colIndex) {
-                    if (!this.editMode || this.isClientView) return; // ЗАЩИТА
+                    if ((!this.editMode && !this.shareMode) || this.isClientView) return; // ЗАЩИТА
                     const daysToToggle = [];
                     for (let d = 1; d <= this.daysInMonth; d++) {
                         const date = new Date(this.currentYear, this.currentMonth, d);
@@ -745,6 +771,30 @@
                     const allSelected = daysToToggle.every(d => this.selectedDates.includes(d));
                     if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); }
                     else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); }
+                },
+
+                sendSlotsToChat() {
+                    if (this.selectedDates.length === 0) return;
+                    console.log('Sending slots to chat for dates:', this.selectedDates);
+
+                    fetch(URLS.GET_SLOTS, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            master_id: this.masterId,
+                            dates: this.selectedDates,
+                            source: 'chat' // ВАЖНО: Маркер для генерации текстового ответа
+                        })
+                    })
+                        .then(() => {
+                            this.safeAlert('Окошки отправлены в чат!');
+                            this.selectedDates = [];
+                            this.shareMode = false;
+                        })
+                        .catch(err => {
+                            console.error('Share error:', err);
+                            this.safeAlert('Ошибка: ' + err.message);
+                        });
                 },
 
                 fetchSlotsForDate(dateStr) {

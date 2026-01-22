@@ -425,6 +425,114 @@
             background: var(--error);
             color: white;
         }
+
+        /* UPCOMING VISIT CARD */
+        .upcoming-visit-card {
+            background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
+            border: 1px solid #FFDCC2;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(255, 148, 120, 0.08);
+            overflow: hidden;
+        }
+
+        .upcoming-visit-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(255, 148, 120, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .visit-badge-top {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #FFDCC2;
+            color: #E66E50;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-bottom-left-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .visit-date-box {
+            background: var(--primary-grad);
+            color: white;
+            min-width: 65px;
+            height: 65px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.2);
+        }
+
+        .v-day {
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .v-month {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        .visit-info {
+            flex: 1;
+        }
+
+        .visit-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .visit-service {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .visit-time-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #6B7280;
+        }
+
+        .visit-timer {
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid #FFDCC2;
+            color: #E66E50;
+        }
     </style>
 </head>
 
@@ -467,6 +575,29 @@
 
         <!-- VIEW 2: CALENDAR -->
         <div v-if="mode === 'calendar' && viewStep === 'grid'">
+
+            <!-- БЛИЖАЙШАЯ ЗАПИСЬ (Только для клиента) -->
+            <div v-if="nextVisit" class="upcoming-visit-card">
+                <div class="visit-badge-top">Ближайшая</div>
+
+                <div class="visit-date-box">
+                    <span class="v-day">{{ new Date(nextVisit.appointment_time).getDate() }}</span>
+                    <span class="v-month">{{ new Date(nextVisit.appointment_time).toLocaleString('ru', { month: 'short'
+                        }).replace('.', '') }}</span>
+                </div>
+
+                <div class="visit-info">
+                    <div class="visit-label">
+                        <span>Ваша запись</span>
+                        <span class="visit-timer">{{ getDaysUntil(nextVisit.appointment_time) }}</span>
+                    </div>
+                    <div class="visit-service">{{ nextVisit.service_type }}</div>
+                    <div class="visit-time-row">
+                        <span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="calendar-nav">
                 <div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div>
                 <span class="month-name">{{ currentMonthName }}</span>
@@ -635,7 +766,8 @@
             SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
             GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
             GET_VISITS: `${API_BASE}/get-visits-dev`,
-            SAVE_VISITS: `${API_BASE}/save-visits-dev`
+            SAVE_VISITS: `${API_BASE}/save-visits-dev`,
+            GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-dev`
         };
 
         // Статический список времени (00:00 - 23:45)
@@ -674,7 +806,8 @@
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {},
                     slotsAvailability: {},
-                    timeOptions: TIMES_LIST
+                    timeOptions: TIMES_LIST,
+                    nextVisit: null
                 }
             },
             computed: {
@@ -709,6 +842,7 @@
                     this.isClientView = true;
                     this.masterId = urlId;
                     this.loadSchedule();
+                    this.loadClientNextVisit();
                 } else {
                     console.log('Mode: MASTER - loading schedule for master view');
                     this.mode = 'calendar';
@@ -838,6 +972,38 @@
                         console.log('No existing data, using defaults');
                     }
                     this.viewStep = 'settings';
+                },
+
+                loadClientNextVisit() {
+                    const clientId = tg.initDataUnsafe?.user?.id || '12345'; // Для тестов 12345
+                    console.log('=== LOADING CLIENT NEXT VISIT ===', clientId);
+
+                    fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${clientId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            console.log('Next visit data:', data);
+                            if (Array.isArray(data) && data.length > 0) {
+                                this.nextVisit = data[0];
+                            }
+                        })
+                        .catch(err => console.error('Error loading client visit:', err));
+                },
+
+                getDaysUntil(dateStr) {
+                    const target = new Date(dateStr);
+                    const today = new Date();
+
+                    // Обнуляем время для сравнения только дат
+                    const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+                    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+                    const diffTime = targetDate - todayDate;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays === 0) return "Сегодня";
+                    if (diffDays === 1) return "Завтра";
+                    if (diffDays > 1 && diffDays < 5) return `через ${diffDays} дня`;
+                    return `через ${diffDays} дн.`;
                 },
 
                 // UTILS

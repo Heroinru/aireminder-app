@@ -962,16 +962,37 @@
                 this.viewStep = 'settings';
             },
             loadClientNextVisit() {
-                const clientId = tg.initDataUnsafe?.user?.id || '68559781'; // Хардкод ID для теста браузера
-                fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${clientId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data) && data.length > 0) {
-                        this.nextVisit = data[0];
-                    }
-                })
-                .catch(err => console.error('Error loading client visit:', err));
-            },
+    // Берем ID из Telegram или Хардкод для теста в браузере
+    const clientId = tg.initDataUnsafe?.user?.id || '68559781'; 
+    console.log('🔍 Ищу визит для клиента:', clientId);
+
+    fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${clientId}`)
+    .then(res => res.json())
+    .then(data => {
+        console.log('📦 Ответ от /get-client-visit-dev:', data);
+
+        // ВАРИАНТ 1: Пришел массив (старый формат n8n)
+        if (Array.isArray(data) && data.length > 0) {
+            // Проверяем, что внутри не ошибка и found != false
+            if (data[0].found !== false) {
+                 this.nextVisit = data[0];
+            }
+        } 
+        // ВАРИАНТ 2: Пришел объект (стандартный формат JSON)
+        else if (data && typeof data === 'object') {
+            if (data.found === true) {
+                this.nextVisit = data;
+            }
+        }
+        
+        if (this.nextVisit) {
+            console.log('✅ Визит найден, отображаю карточку:', this.nextVisit);
+        } else {
+            console.log('📭 Визитов нет или формат ответа не подошел');
+        }
+    })
+    .catch(err => console.error('❌ Ошибка загрузки визита:', err));
+},
             getDaysUntil(dateStr) {
                 const target = new Date(dateStr);
                 const today = new Date();

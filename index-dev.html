@@ -29,8 +29,8 @@
             --error: #EF4444;
 
             --day-bg-work: #FFFFFF;
-            --day-bg-off: #E5E7EB; /* Явный серый для выходных */
-            --day-bg-available: #D1FAE5; /* Зеленый для доступных дней клиента */
+            --day-bg-off: #E5E7EB;
+            --day-bg-available: #D1FAE5; /* Зеленый фон для доступных дней */
             --day-bg-past: #F3F4F6;
 
             --radius: 16px;
@@ -243,7 +243,6 @@
             color: #BDC3C7;
         }
 
-        /* Выходной день */
         .day-cell.is-off {
             background: var(--day-bg-off);
             box-shadow: none;
@@ -254,14 +253,14 @@
             color: #9CA3AF;
         }
 
-        /* День с доступными слотами (зеленый) */
+        /* Стиль для дней с доступными слотами */
         .day-cell.has-slots {
             background: var(--day-bg-available);
-            border: 1px solid #6EE7B7;
+            border: 1px solid #34D399;
         }
 
         .day-cell.has-slots .time-txt {
-            color: #047857;
+            color: #065F46;
         }
 
         .coffee-icon {
@@ -746,7 +745,6 @@
     <script>
         const { createApp } = Vue;
         
-        // Защита от запуска вне Телеграм или при ошибке загрузки
         let tg = {};
         try {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -824,7 +822,6 @@
                     let urlMode = urlParams.get('mode');
                     let urlId = urlParams.get('master_id');
 
-                    // 1. Определение КЛИЕНТА (Реальные данные)
                     if (tg.initDataUnsafe?.user?.id) {
                         this.clientId = tg.initDataUnsafe.user.id;
                     } else if (urlParams.get('client_id')) {
@@ -833,23 +830,19 @@
                         this.clientId = null;
                     }
 
-                    // 2. Логика startapp (если перешли по ссылке из бота)
                     if (startParam && startParam.startsWith('client_')) {
                         urlMode = 'client';
                         urlId = startParam.replace('client_', '');
                     }
 
-                    // 3. Определение МАСТЕРА
                     if (urlId && urlId !== 'undefined') {
                         this.masterId = urlId;
                     } else if (tg.initDataUnsafe?.user?.id && !this.clientId) {
                         this.masterId = tg.initDataUnsafe.user.id;
                     } else {
-                        // Fallback для тестов
                         this.masterId = '68559781';
                     }
 
-                    // 4. Запуск режима
                     if (urlMode === 'confirm') {
                         this.mode = 'confirm';
                         this.loadVisits();
@@ -938,7 +931,9 @@
                     })
                         .then(res => res.json())
                         .then(data => {
-                            this.currentSlots = data.slots || (Array.isArray(data) ? data : []);
+                            // Адаптация под новый формат ответа (объект)
+                            const slots = data[dateStr] || data.slots || [];
+                            this.currentSlots = slots;
                         })
                         .catch(err => tg.showAlert('Ошибка: ' + err))
                         .finally(() => this.isLoadingSlots = false);
@@ -961,7 +956,6 @@
                 },
                 loadClientNextVisit() {
                     if (!this.clientId) {
-                        console.log('Нет Client ID, пропускаем загрузку визита');
                         return;
                     }
 
@@ -1024,13 +1018,13 @@
                 isDayOff(day) {
                     const dateStr = this.formatDateKey(day);
                     const data = this.dbData[dateStr];
-                    // Если данных нет - считаем рабочим (или выходным? по логике - выходным, если не настроено)
                     if (!data) return false;
                     
                     const isZero = (t) => {
                         if (!t) return true;
                         const s = String(t).trim();
-                        return s === 'null' || s === 'undefined' || s.startsWith('00:00');
+                        // Проверяем все варианты "нулевого" времени
+                        return s === 'null' || s === 'undefined' || s.startsWith('00:00') || s === '0:00';
                     };
                     return isZero(data.start) || isZero(data.end);
                 },
@@ -1085,7 +1079,7 @@
                                 try { brk = row.breaks ? (typeof row.breaks === 'string' ? JSON.parse(row.breaks) : row.breaks) : []; } catch (e) { }
                                 this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
                             });
-                            // Загружаем слоты и для клиента, и для мастера (чтобы показать доступность)
+                            // Загружаем слоты (и для клиента, и для мастера)
                             this.fetchSlotsAvailability();
                         })
                         .catch(err => console.error('Load schedule error:', err));
@@ -1099,10 +1093,6 @@
                     }
                     if (dates.length === 0) return;
                     
-                    // Оптимизация: шлем одним запросом или батчами
-                    // Текущий API принимает массив dates, поэтому шлем всё сразу
-                    
-                    // ВАЖНО: Если мы клиент, передаем client_id, иначе null
                     const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
 
                     fetch(URLS.GET_SLOTS, {
@@ -1111,23 +1101,11 @@
                     })
                         .then(res => res.json())
                         .then(data => {
-                            // API может вернуть объект slots_by_date (если доработан) или просто массив для одной даты
-                            // Но наш текущий API (Calculate Free Slots) возвращает flat list "free_slots" если дат много?
-                            // НЕТ! Текущий JS код в n8n возвращает { free_slots: [...] }.
-                            // Если мы шлем много дат, free_slots будет содержать слоты для ВСЕХ дат с полем date.
-                            
-                            const slots = data.free_slots || [];
-                            slots.forEach(slot => {
-                                // slot.date приходит как "24.01". Нам нужно сопоставить с ключом YYYY-MM-DD
-                                // Это сложно. Проще проверить: если для даты есть хоть один слот -> true
-                                
-                                // В текущей реализации n8n возвращает: date: "24.01".
-                                // Нам нужно преобразовать это обратно в YYYY-MM-DD или изменить n8n.
-                                // ХАК: Парсим день и месяц из ответа n8n
-                                const [d, m] = slot.date.split('.');
-                                const y = this.currentYear; // Считаем, что год текущий (осторожно с январем/декабрем)
-                                const key = `${y}-${m}-${d}`;
-                                this.slotsAvailability[key] = true;
+                            console.log('Slots batch:', data);
+                            Object.keys(data).forEach(dateKey => {
+                                if (data[dateKey] && data[dateKey].length > 0) {
+                                    this.slotsAvailability[dateKey] = true;
+                                }
                             });
                         })
                         .catch(err => console.error('Slots check error:', err));
@@ -1141,6 +1119,7 @@
                 saveSchedule() {
                     if (this.isSaving) return;
                     this.isSaving = true;
+                    // Если время null, отправляем '00:00', так как бэкенд может ожидать строку
                     const payload = {
                         master_id: this.masterId,
                         dates: this.selectedDates,
@@ -1169,7 +1148,7 @@
                 },
                 changeMonth(delta) {
                     this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1);
-                    this.fetchSlotsAvailability(); // Перезагружаем слоты для нового месяца
+                    this.fetchSlotsAvailability();
                 },
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },

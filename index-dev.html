@@ -14,7 +14,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* Скрываем сырой код */
         [v-cloak] {
             display: none !important;
         }
@@ -30,8 +29,8 @@
             --error: #EF4444;
 
             --day-bg-work: #FFFFFF;
-            --day-bg-off: #E5E7EB;
-            --day-bg-available: #ECFDF5;
+            --day-bg-off: #E5E7EB; /* Явный серый для выходных */
+            --day-bg-available: #D1FAE5; /* Зеленый для доступных дней клиента */
             --day-bg-past: #F3F4F6;
 
             --radius: 16px;
@@ -244,18 +243,21 @@
             color: #BDC3C7;
         }
 
+        /* Выходной день */
         .day-cell.is-off {
             background: var(--day-bg-off);
             box-shadow: none;
+            border-color: transparent;
         }
 
         .day-cell.is-off .day-num {
-            color: #BDC3C7;
+            color: #9CA3AF;
         }
 
+        /* День с доступными слотами (зеленый) */
         .day-cell.has-slots {
             background: var(--day-bg-available);
-            border-color: #A7F3D0;
+            border: 1px solid #6EE7B7;
         }
 
         .day-cell.has-slots .time-txt {
@@ -612,8 +614,8 @@
                 <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{
                         'is-selected': isSelected(date),
                         'is-past': isPastDay(date) && !isSelected(date),
-                        'has-slots': hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date),
-                        'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date)
+                        'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date),
+                        'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date)
                      }" @click="onDayClick(date)">
 
                     <span class="day-num">{{ date }}</span>
@@ -621,7 +623,7 @@
                     <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
 
                     <!-- Время (скрыто, если день выходной) -->
-                    <div v-if="(!isDayOff(date) && !isPastDay(date)) || isSelected(date)" class="day-times-col">
+                    <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col">
                         <span class="time-txt">{{ getWorkTimes(date).start }}</span>
                         <span class="time-txt">{{ getWorkTimes(date).end }}</span>
                     </div>
@@ -743,13 +745,20 @@
 
     <script>
         const { createApp } = Vue;
-        const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
-
+        
+        // Защита от запуска вне Телеграм или при ошибке загрузки
+        let tg = {};
         try {
-            if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
-            if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
-        } catch (e) { }
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                tg.ready(); 
+                tg.expand();
+                if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
+            }
+        } catch(e) {
+            console.warn('Telegram WebApp not loaded:', e);
+        }
 
         const API_BASE = 'https://aireminder.ru/webhook';
         const URLS = {
@@ -836,6 +845,7 @@
                     } else if (tg.initDataUnsafe?.user?.id && !this.clientId) {
                         this.masterId = tg.initDataUnsafe.user.id;
                     } else {
+                        // Fallback для тестов
                         this.masterId = '68559781';
                     }
 
@@ -876,4 +886,297 @@
                 toggleEditMode() {
                     if (this.isClientView) return;
                     this.editMode = !this.editMode;
-                    this.shareMode
+                    this.shareMode = false;
+                    this.selectedDates = [];
+                },
+                toggleShareMode() {
+                    if (this.isClientView) return;
+                    this.shareMode = !this.shareMode;
+                    this.editMode = false;
+                    this.selectedDates = [];
+                },
+                toggleColumn(colIndex) {
+                    if ((!this.editMode && !this.shareMode) || this.isClientView) return;
+                    const daysToToggle = [];
+                    for (let d = 1; d <= this.daysInMonth; d++) {
+                        const date = new Date(this.currentYear, this.currentMonth, d);
+                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
+                        if (myDay === colIndex) daysToToggle.push(this.formatDateKey(d));
+                    }
+                    const allSelected = daysToToggle.every(d => this.selectedDates.includes(d));
+                    if (allSelected) { this.selectedDates = this.selectedDates.filter(d => !daysToToggle.includes(d)); }
+                    else { daysToToggle.forEach(d => { if (!this.selectedDates.includes(d)) this.selectedDates.push(d); }); }
+                },
+                sendSlotsToChat() {
+                    if (this.selectedDates.length === 0) return;
+                    fetch(URLS.GET_SLOTS, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            master_id: this.masterId,
+                            dates: this.selectedDates,
+                            source: 'chat'
+                        })
+                    })
+                        .then(() => {
+                            this.safeAlert('Окошки отправлены в чат!');
+                            this.selectedDates = [];
+                            this.shareMode = false;
+                        })
+                        .catch(err => this.safeAlert('Ошибка: ' + err.message));
+                },
+                fetchSlotsForDate(dateStr) {
+                    this.viewStep = 'slots';
+                    this.currentSlots = [];
+                    this.isLoadingSlots = true;
+
+                    const clientId = this.isClientView ? (tg.initDataUnsafe?.user?.id || 'TEST_CLIENT') : null;
+
+                    fetch(URLS.GET_SLOTS, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ master_id: this.masterId, dates: [dateStr], client_id: clientId })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            this.currentSlots = data.slots || (Array.isArray(data) ? data : []);
+                        })
+                        .catch(err => tg.showAlert('Ошибка: ' + err))
+                        .finally(() => this.isLoadingSlots = false);
+                },
+                goToSettings() {
+                    if (this.isClientView) return;
+                    let existingData = null;
+                    const sortedSelection = [...this.selectedDates].sort();
+                    for (const date of sortedSelection) {
+                        if (this.dbData[date]) { existingData = this.dbData[date]; break; }
+                    }
+                    if (existingData) {
+                        this.startTime = existingData.start || '10:00';
+                        this.endTime = existingData.end || '20:00';
+                        this.breaks = existingData.breaks ? JSON.parse(JSON.stringify(existingData.breaks)) : [];
+                    } else {
+                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                    }
+                    this.viewStep = 'settings';
+                },
+                loadClientNextVisit() {
+                    if (!this.clientId) {
+                        console.log('Нет Client ID, пропускаем загрузку визита');
+                        return;
+                    }
+
+                    fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (Array.isArray(data) && data.length > 0 && data[0].found !== false) {
+                                this.nextVisit = data[0];
+                            } else if (data && typeof data === 'object' && data.found === true) {
+                                this.nextVisit = data;
+                            }
+                        })
+                        .catch(err => console.error('Error loading client visit:', err));
+                },
+                getDaysUntil(dateStr) {
+                    const target = new Date(dateStr);
+                    const today = new Date();
+                    const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+                    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const diffTime = targetDate - todayDate;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays === 0) return "Сегодня";
+                    if (diffDays === 1) return "Завтра";
+                    return `через ${diffDays} дн.`;
+                },
+                cleanDate(isoStr) {
+                    if (!isoStr) return null;
+                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
+                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
+                    return match ? new Date(match[0]) : new Date(isoStr);
+                },
+                formatTime(isoStr) {
+                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return '??:??';
+                    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                },
+                formatDatePretty(isoStr) {
+                    const d = this.cleanDate(isoStr); if (!d || isNaN(d)) return isoStr;
+                    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
+                },
+                formatDateFull(date) {
+                    if (!date) return '';
+                    return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+                },
+                formatDateKey(day) {
+                    const m = String(this.currentMonth + 1).padStart(2, '0');
+                    const d = String(day).padStart(2, '0');
+                    return `${this.currentYear}-${m}-${d}`;
+                },
+                formatShortTime(timeStr) {
+                    if (!timeStr) return '';
+                    const [h, m] = timeStr.split(':');
+                    return m === '00' ? h : `${h}:${m}`;
+                },
+                getWorkTimes(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const data = this.dbData[dateStr];
+                    if (!data || !data.start || !data.end) return { start: '', end: '' };
+                    return { start: this.formatShortTime(data.start), end: this.formatShortTime(data.end) };
+                },
+                isDayOff(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const data = this.dbData[dateStr];
+                    // Если данных нет - считаем рабочим (или выходным? по логике - выходным, если не настроено)
+                    if (!data) return false;
+                    
+                    const isZero = (t) => {
+                        if (!t) return true;
+                        const s = String(t).trim();
+                        return s === 'null' || s === 'undefined' || s.startsWith('00:00');
+                    };
+                    return isZero(data.start) || isZero(data.end);
+                },
+                hasBreaks(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const data = this.dbData[dateStr];
+                    return data && data.breaks && data.breaks.length > 0;
+                },
+                isPastDay(day) {
+                    const dateStr = this.formatDateKey(day);
+                    const today = new Date();
+                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    return dateStr < todayStr;
+                },
+                hasAvailableSlots(day) {
+                    const dateStr = this.formatDateKey(day);
+                    return this.slotsAvailability[dateStr] === true;
+                },
+                loadVisits() {
+                    this.isLoading = true;
+                    fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' }));
+                        })
+                        .finally(() => this.isLoading = false);
+                },
+                saveVisits() {
+                    this.isSaving = true;
+                    const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status }));
+                    fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
+                        .then(() => { tg.showAlert('✅ Статусы обновлены!'); tg.close(); })
+                        .catch(err => { tg.showAlert('Ошибка: ' + err); this.isSaving = false; });
+                },
+                safeAlert(msg) {
+                    try {
+                        if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
+                    } catch (err) { alert(msg); }
+                },
+                loadSchedule() {
+                    const fullUrl = `${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`;
+                    fetch(fullUrl, { method: 'GET' })
+                        .then(res => {
+                            if (!res.ok) throw new Error('Network response was not ok');
+                            return res.json();
+                        })
+                        .then(data => {
+                            if (data.settings && data.settings.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                            const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+                            scheduleList.forEach(row => {
+                                let brk = [];
+                                try { brk = row.breaks ? (typeof row.breaks === 'string' ? JSON.parse(row.breaks) : row.breaks) : []; } catch (e) { }
+                                this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                            });
+                            // Загружаем слоты и для клиента, и для мастера (чтобы показать доступность)
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => console.error('Load schedule error:', err));
+                },
+                fetchSlotsAvailability() {
+                    this.slotsAvailability = {};
+                    const dates = [];
+                    for (let day = 1; day <= this.daysInMonth; day++) {
+                        const dateStr = this.formatDateKey(day);
+                        if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr);
+                    }
+                    if (dates.length === 0) return;
+                    
+                    // Оптимизация: шлем одним запросом или батчами
+                    // Текущий API принимает массив dates, поэтому шлем всё сразу
+                    
+                    // ВАЖНО: Если мы клиент, передаем client_id, иначе null
+                    const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+
+                    fetch(URLS.GET_SLOTS, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            // API может вернуть объект slots_by_date (если доработан) или просто массив для одной даты
+                            // Но наш текущий API (Calculate Free Slots) возвращает flat list "free_slots" если дат много?
+                            // НЕТ! Текущий JS код в n8n возвращает { free_slots: [...] }.
+                            // Если мы шлем много дат, free_slots будет содержать слоты для ВСЕХ дат с полем date.
+                            
+                            const slots = data.free_slots || [];
+                            slots.forEach(slot => {
+                                // slot.date приходит как "24.01". Нам нужно сопоставить с ключом YYYY-MM-DD
+                                // Это сложно. Проще проверить: если для даты есть хоть один слот -> true
+                                
+                                // В текущей реализации n8n возвращает: date: "24.01".
+                                // Нам нужно преобразовать это обратно в YYYY-MM-DD или изменить n8n.
+                                // ХАК: Парсим день и месяц из ответа n8n
+                                const [d, m] = slot.date.split('.');
+                                const y = this.currentYear; // Считаем, что год текущий (осторожно с январем/декабрем)
+                                const key = `${y}-${m}-${d}`;
+                                this.slotsAvailability[key] = true;
+                            });
+                        })
+                        .catch(err => console.error('Slots check error:', err));
+                },
+                makeDayOff() {
+                    this.startTime = null;
+                    this.endTime = null;
+                    this.breaks = [];
+                    this.saveSchedule();
+                },
+                saveSchedule() {
+                    if (this.isSaving) return;
+                    this.isSaving = true;
+                    const payload = {
+                        master_id: this.masterId,
+                        dates: this.selectedDates,
+                        start: this.startTime || '00:00',
+                        end: this.endTime || '00:00',
+                        breaks: this.breaks,
+                        slot_duration: this.slotDuration
+                    };
+                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                        .then(res => {
+                            this.safeAlert('Сохранено!');
+                            this.selectedDates.forEach(date => {
+                                this.dbData[date] = {
+                                    start: this.startTime || '00:00',
+                                    end: this.endTime || '00:00',
+                                    breaks: JSON.parse(JSON.stringify(this.breaks))
+                                };
+                            });
+                            this.selectedDates = [];
+                            this.viewStep = 'grid';
+                            this.editMode = false;
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => this.safeAlert('Ошибка сохранения: ' + err.message))
+                        .finally(() => this.isSaving = false);
+                },
+                changeMonth(delta) {
+                    this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1);
+                    this.fetchSlotsAvailability(); // Перезагружаем слоты для нового месяца
+                },
+                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
+                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
+                removeBreak(index) { this.breaks.splice(index, 1); }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

@@ -820,54 +820,58 @@
             daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
             firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
         },
-        mounted() {
-            console.log('=== ЗАПУСК ПРИЛОЖЕНИЯ ===');
-            try {
-                // 1. Получаем параметры
-                const startParam = tg.initDataUnsafe?.start_param;
-                const urlParams = new URLSearchParams(window.location.search);
-                let urlMode = urlParams.get('mode');
-                let urlId = urlParams.get('master_id');
+      mounted() {
+    console.log('=== ЗАПУСК ПРИЛОЖЕНИЯ ===');
+    try {
+        const startParam = tg.initDataUnsafe?.start_param;
+        const urlParams = new URLSearchParams(window.location.search);
+        let urlMode = urlParams.get('mode');
+        let urlId = urlParams.get('master_id');
 
-                // 2. Логика для Telegram (startapp)
-                if (startParam && startParam.startsWith('client_')) {
-                    urlMode = 'client';
-                    urlId = startParam.replace('client_', '');
-                    console.log('Распознан клиент через Telegram. ID мастера:', urlId);
-                }
+        // 1. Определение КЛИЕНТА (Реальные данные)
+        if (tg.initDataUnsafe?.user?.id) {
+            this.clientId = tg.initDataUnsafe.user.id;
+        } else if (urlParams.get('client_id')) {
+            this.clientId = urlParams.get('client_id');
+        } else {
+            this.clientId = null; // Заглушки убраны!
+        }
 
-                // 3. Установка Master ID (Приоритеты)
-                if (urlId && urlId !== 'undefined' && urlId !== '') {
-                    // Приоритет 1: ID из ссылки
-                    this.masterId = urlId;
-                } 
-                else if (tg.initDataUnsafe?.user?.id) {
-                    // Приоритет 2: Мастер зашел сам к себе
-                    this.masterId = tg.initDataUnsafe.user.id;
-                } 
-                else {
-                    // Приоритет 3: Тест в браузере
-                    this.masterId = '68559781'; 
-                }
+        // 2. Логика startapp (если перешли по ссылке из бота)
+        if (startParam && startParam.startsWith('client_')) {
+            urlMode = 'client';
+            urlId = startParam.replace('client_', '');
+        }
 
-                // 4. Запуск режима
-                if (urlMode === 'confirm') {
-                    this.mode = 'confirm';
-                    this.loadVisits();
-                } else if (urlMode === 'client') {
-                    this.mode = 'calendar';
-                    this.isClientView = true;
-                    this.loadSchedule();
-                    this.loadClientNextVisit(); // Загружаем карточку записи
-                } else {
-                    this.mode = 'calendar';
-                    this.loadSchedule();
-                }
-            } catch (err) {
-                console.error('Critical Error in mounted:', err);
-                alert('Ошибка запуска: ' + err.message);
-            }
-        },
+        // 3. Определение МАСТЕРА
+        if (urlId && urlId !== 'undefined') {
+            this.masterId = urlId;
+        } else if (tg.initDataUnsafe?.user?.id && !this.clientId) { 
+            // Если это не клиентский вид, то юзер - это мастер
+            this.masterId = tg.initDataUnsafe.user.id;
+        } else {
+            // Fallback только для мастера, чтобы календарь не был пустым при тесте
+            this.masterId = '68559781'; 
+        }
+
+        // 4. Запуск режима
+        if (urlMode === 'confirm') {
+            this.mode = 'confirm';
+            this.loadVisits();
+        } else if (urlMode === 'client') {
+            this.mode = 'calendar';
+            this.isClientView = true;
+            this.loadSchedule();
+            // Грузим визит только если есть реальный ID
+            if (this.clientId) this.loadClientNextVisit();
+        } else {
+            this.mode = 'calendar';
+            this.loadSchedule();
+        }
+    } catch (err) {
+        console.error('Critical Error:', err);
+    }
+},
         methods: {
             onDayClick(day) {
                 const dateStr = this.formatDateKey(day);

@@ -1029,11 +1029,27 @@ loadClientNextVisit() {
                 if (!data || !data.start || !data.end) return { start: '', end: '' };
                 return { start: this.formatShortTime(data.start), end: this.formatShortTime(data.end) };
             },
-            isDayOff(day) {
-                const dateStr = this.formatDateKey(day);
-                const data = this.dbData[dateStr];
-                return data && (!data.start || !data.end);
-            },
+            // Замени метод isDayOff целиком:
+isDayOff(day) {
+    const dateStr = this.formatDateKey(day);
+    const data = this.dbData[dateStr];
+    // Считаем выходным, если данных нет, ИЛИ время null, ИЛИ время '00:00'
+    if (!data) return false; // (нет данных в БД = рабочий по дефолту или пусто? Обычно пусто)
+    
+    const isStartEmpty = !data.start || data.start === '00:00' || data.start === 'null';
+    const isEndEmpty = !data.end || data.end === '00:00' || data.end === 'null';
+    
+    return isStartEmpty || isEndEmpty;
+},
+
+// Замени метод makeDayOff:
+makeDayOff() {
+    // Явно ставим null, чтобы на бэкенд ушло null (хотя API может вернуть '00:00' в зависимости от логики n8n)
+    this.startTime = null; 
+    this.endTime = null; 
+    this.breaks = [];
+    this.saveSchedule();
+},
             hasBreaks(day) {
                 const dateStr = this.formatDateKey(day);
                 const data = this.dbData[dateStr];

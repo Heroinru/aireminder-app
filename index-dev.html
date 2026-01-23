@@ -794,7 +794,7 @@
                     viewStep: 'grid',
                     editMode: false,
                     shareMode: false,
-                    masterId: '68559781',
+                    masterId: null,
                     isClientView: false,
                     visits: [],
                     isLoading: false, isSaving: false, isLoadingSlots: false,
@@ -818,37 +818,51 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
-                console.log('=== APP MOUNTED ===');
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlMode = urlParams.get('mode');
-                const urlId = urlParams.get('master_id');
+    console.log('=== ЗАПУСК ПРИЛОЖЕНИЯ ===');
+    
+    // 1. Получаем параметры
+    const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
+    const urlParams = new URLSearchParams(window.location.search);
+    let urlMode = urlParams.get('mode');
+    let urlId = urlParams.get('master_id');
 
-                console.log('URL params:', { mode: urlMode, master_id: urlId });
-                console.log('Telegram user:', tg.initDataUnsafe?.user);
+    // 2. Логика для Telegram (startapp)
+    // Ожидаем формат: client_68559781
+    if (startParam && startParam.startsWith('client_')) {
+        urlMode = 'client';
+        // Вырезаем "client_", оставляем только ID
+        urlId = startParam.replace('client_', '');
+        console.log('Распознан клиент через Telegram. ID мастера:', urlId);
+    }
 
-                if (tg.initDataUnsafe?.user?.id) this.masterId = tg.initDataUnsafe.user.id;
-                else if (urlId) this.masterId = urlId;
-                else this.masterId = 'TEST_USER';
+    // 3. Установка Master ID
+    if (urlId && urlId !== 'undefined' && urlId !== '') {
+        // Если ID пришел в ссылке (от клиента) - это самый главный приоритет
+        this.masterId = urlId;
+    } 
+    else if (window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+        // Если ссылки нет, но это Мастер зашел к себе
+        this.masterId = window.Telegram.WebApp.initDataUnsafe.user.id;
+    } 
+    else {
+        // Тест в браузере без параметров
+        this.masterId = '68559781'; // Твой ID жестко для тестов
+    }
 
-                console.log('Master ID set to:', this.masterId);
-
-                if (urlMode === 'confirm') {
-                    console.log('Mode: CONFIRM - loading visits');
-                    this.mode = 'confirm';
-                    this.loadVisits();
-                } else if (urlMode === 'client') {
-                    console.log('Mode: CLIENT - loading schedule for client view');
-                    this.mode = 'calendar';
-                    this.isClientView = true;
-                    this.masterId = urlId;
-                    this.loadSchedule();
-                    this.loadClientNextVisit();
-                } else {
-                    console.log('Mode: MASTER - loading schedule for master view');
-                    this.mode = 'calendar';
-                    this.loadSchedule();
-                }
-
+    // 4. Запуск режима
+    if (urlMode === 'client') {
+        this.mode = 'calendar';
+        this.isClientView = true;
+        this.loadSchedule();
+        this.loadClientNextVisit();
+    } else if (urlMode === 'confirm') {
+        this.mode = 'confirm';
+        this.loadVisits();
+    } else {
+        this.mode = 'calendar';
+        this.loadSchedule();
+    }
+},
                 console.log('Final state:', {
                     mode: this.mode,
                     masterId: this.masterId,

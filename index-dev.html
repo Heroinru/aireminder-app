@@ -1042,14 +1042,7 @@ isDayOff(day) {
     return isStartEmpty || isEndEmpty;
 },
 
-// Замени метод makeDayOff:
-makeDayOff() {
-    // Явно ставим null, чтобы на бэкенд ушло null (хотя API может вернуть '00:00' в зависимости от логики n8n)
-    this.startTime = null; 
-    this.endTime = null; 
-    this.breaks = [];
-    this.saveSchedule();
-},
+
             hasBreaks(day) {
                 const dateStr = this.formatDateKey(day);
                 const data = this.dbData[dateStr];
@@ -1124,10 +1117,14 @@ makeDayOff() {
                     });
                 });
             },
-            makeDayOff() {
-                this.startTime = '00:00'; this.endTime = '00:00'; this.breaks = [];
-                this.saveSchedule();
-            },
+           // Замени метод makeDayOff:
+makeDayOff() {
+    // Явно ставим null, чтобы на бэкенд ушло null (хотя API может вернуть '00:00' в зависимости от логики n8n)
+    this.startTime = null; 
+    this.endTime = null; 
+    this.breaks = [];
+    this.saveSchedule();
+},
             saveSchedule() {
                 if (this.isSaving) return;
                 this.isSaving = true;

@@ -523,6 +523,8 @@ select.input-box {
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const startParam = tg.initDataUnsafe?.start_param;
+                    let urlMode = urlParams.get('mode');
+                    let urlId = urlParams.get('master_id');
                     
                     // 1. ОПРЕДЕЛЯЕМ КЛИЕНТА
                     if (tg.initDataUnsafe?.user?.id) {
@@ -532,8 +534,8 @@ select.input-box {
                     }
 
                     // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
-                    let urlMode = urlParams.get('mode');
-                    if (startParam) {
+                    // FIX: Если режим уже 'confirm' (из URL), не переписываем его из startParam
+                    if (urlMode !== 'confirm' && startParam) {
                         if (startParam.startsWith('client_')) {
                             // Client link: client_<masterId>
                             urlMode = 'client';
@@ -549,9 +551,8 @@ select.input-box {
 
                     // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
                     if (!this.masterId || this.masterId === 'undefined') {
-                        const masterIdParam = urlParams.get('master_id');
-                        if (masterIdParam && masterIdParam !== 'undefined') {
-                            this.masterId = masterIdParam;
+                        if (urlId && urlId !== 'undefined') {
+                            this.masterId = urlId;
                         } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
                             // Если я не клиент, значит я мастер и открыл свое приложение
                             const userId = tg.initDataUnsafe.user.id;

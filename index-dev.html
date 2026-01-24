@@ -497,7 +497,7 @@ select.input-box {
                     newService: { title: '', duration: 60, price: '' },
 
                     // Calendar Data
-                    : [],
+                    visits: [],
                     isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -523,8 +523,6 @@ select.input-box {
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const startParam = tg.initDataUnsafe?.start_param;
-                    let urlMode = urlParams.get('mode');
-                    let urlId = urlParams.get('master_id');
                     
                     // 1. ОПРЕДЕЛЯЕМ КЛИЕНТА
                     if (tg.initDataUnsafe?.user?.id) {
@@ -533,10 +531,11 @@ select.input-box {
                         this.clientId = urlParams.get('client_id');
                     }
 
-                   // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
-                    // Исправление: парсим startParam ТОЛЬКО если это не режим подтверждения
-                    if (urlMode !== 'confirm' && startParam) { 
+                    // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
+                    let urlMode = urlParams.get('mode');
+                    if (startParam) {
                         if (startParam.startsWith('client_')) {
+                            // Client link: client_<masterId>
                             urlMode = 'client';
                             const extractedId = startParam.replace('client_', '');
                             if (extractedId && extractedId !== 'undefined') {
@@ -550,8 +549,9 @@ select.input-box {
 
                     // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
                     if (!this.masterId || this.masterId === 'undefined') {
-                        if (urlId && urlId !== 'undefined') {
-                            this.masterId = urlId;
+                        const masterIdParam = urlParams.get('master_id');
+                        if (masterIdParam && masterIdParam !== 'undefined') {
+                            this.masterId = masterIdParam;
                         } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
                             // Если я не клиент, значит я мастер и открыл свое приложение
                             const userId = tg.initDataUnsafe.user.id;
@@ -579,31 +579,34 @@ select.input-box {
                         this.masterId = '68559781';
                     }
 
-                    // 4. ЗАПУСК ЛОГИКИ (ИСПРАВЛЕНО)
-                console.log('[DEBUG] Init:', { urlMode, masterId: this.masterId });
-
-                if (urlMode === 'confirm') {
-                    // Режим подтверждения
-                    this.mode = 'confirm';
-                    this.viewStep = 'confirm';
-                    this.loadVisits();
-                } 
-                else if (urlMode === 'client') {
-                    // Режим клиента
-                    this.mode = 'calendar';
-                    this.isClientView = true;
-                    this.loadSchedule();
-                    this.loadServices().then(() => {
-                        if (this.services.length > 0) this.viewStep = 'services';
+                    // 4. ЗАПУСК ЛОГИКИ
+                    console.log('[DEBUG] Init:', {
+                        urlMode,
+                        masterId: this.masterId,
+                        clientId: this.clientId,
+                        isClientView: this.isClientView
                     });
-                    if (this.clientId) this.loadClientNextVisit();
-                } 
-                else {
-                    // Режим мастера (по умолчанию)
-                    this.mode = 'calendar';
-                    this.loadSchedule();
-                    this.loadServices(); 
-                }
+
+                    if (urlMode === 'confirm') {
+                        this.mode = 'confirm';
+                        this.viewStep = 'confirm'; 
+                        this.loadVisits();
+                    } else if (urlMode === 'client') {
+                        this.mode = 'calendar';
+                        this.isClientView = true;
+                        this.loadSchedule();
+                        // АВТО-ЛОГИКА: Если есть услуги, идем туда
+                        this.loadServices().then(() => {
+                            if (this.services.length > 0) this.viewStep = 'services';
+                        });
+                        // Грузим визит только если есть реальный ID
+                        if (this.clientId) this.loadClientNextVisit();
+                    } else {
+                        // Режим мастера (календарь)
+                        this.mode = 'calendar';
+                        this.loadSchedule();
+                        this.loadServices(); 
+                    }
 
                 } catch (err) {
                     console.error('Init Error:', err);
@@ -647,8 +650,6 @@ select.input-box {
                     // Пересчитываем зеленые точки с учетом НОВОЙ длительности
                     this.fetchSlotsAvailability(); 
                 },
-
-               
 
                 // --- CALENDAR & SLOTS ---
                 fetchSlotsAvailability() {

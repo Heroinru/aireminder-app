@@ -253,6 +253,20 @@
             color: #9CA3AF;
         }
 
+        /* Стиль для выходных дней */
+        .day-cell.is-weekend {
+            background: #F3F4F6;
+            border-color: #E5E7EB;
+        }
+
+        .day-cell.is-weekend .day-num {
+            color: #6B7280;
+        }
+
+        .day-cell.is-weekend .time-txt {
+            color: #9CA3AF;
+        }
+
         /* Стиль для дней с доступными слотами */
         .day-cell.has-slots {
             background: var(--day-bg-available);
@@ -614,6 +628,7 @@
                         'is-selected': isSelected(date),
                         'is-past': isPastDay(date) && !isSelected(date),
                         'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date),
+                        'is-weekend': isWeekend(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date),
                         'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date)
                      }" @click="onDayClick(date)">
 
@@ -1091,6 +1106,11 @@
             },
             hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
             hasBreaks(day) { const d = this.dbData[this.formatDateKey(day)]; return d && d.breaks && d.breaks.length > 0; },
+            isWeekend(day) {
+                const date = new Date(this.currentYear, this.currentMonth, day);
+                const dayOfWeek = date.getDay();
+                return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+            },
             getWorkTimes(day) {
                 const d = this.dbData[this.formatDateKey(day)];
                 const fmt = (t) => t ? t.slice(0, 5) : '';

@@ -503,66 +503,90 @@
                 daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
-            mounted() {
-                console.log('=== APP START ===');
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const startParam = tg.initDataUnsafe?.start_param;
-                    
-                    // 1. ОПРЕДЕЛЯЕМ КЛИЕНТА
-                    if (tg.initDataUnsafe?.user?.id) {
-                        this.clientId = tg.initDataUnsafe.user.id;
-                    } else if (urlParams.get('client_id')) {
-                        this.clientId = urlParams.get('client_id');
-                    }
+           mounted() {
+    console.log('=== APP START ===');
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = tg.initDataUnsafe?.start_param;
+        
+        // 1. ОПРЕДЕЛЯЕМ КЛИЕНТА
+        if (tg.initDataUnsafe?.user?.id) {
+            this.clientId = tg.initDataUnsafe.user.id;
+        } else if (urlParams.get('client_id')) {
+            this.clientId = urlParams.get('client_id');
+        }
 
-                    // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
-                    let urlMode = urlParams.get('mode');
-if (startParam && startParam.startsWith('client_')) {
-    urlMode = 'client';
-    // Вот здесь было уязвимое место
-    const extractedId = startParam.replace('client_', '');
-    if (extractedId && extractedId !== 'undefined') {
-        this.masterId = extractedId;
-    }
-}
-
-                    // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
-                    if (!this.masterId) {
-                        if (urlParams.get('master_id')) {
-                            this.masterId = urlParams.get('master_id');
-                        } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
-                            this.masterId = tg.initDataUnsafe.user.id;
-                        } else {
-                            this.masterId = '68559781'; // Fallback
-                        }
-                    }
-
-                    // 4. ЗАПУСК ЛОГИКИ
-                    if (urlMode === 'confirm') {
-                        this.mode = 'confirm';
-                        this.loadVisits();
-                    } else if (urlMode === 'client') {
-                        this.mode = 'calendar';
-                        this.isClientView = true;
-                        this.loadSchedule();
-                        // АВТО-ЛОГИКА: Если есть услуги, идем туда
-                        this.loadServices().then(() => {
-                            if (this.services.length > 0) this.viewStep = 'services';
-                        });
-                        if (this.clientId) this.loadClientNextVisit();
-                    } else {
-                        // Режим мастера
-                        this.mode = 'calendar';
-                        this.loadSchedule();
-                        this.loadServices(); // Мастер тоже грузит свои услуги
-                    }
-
-                } catch (err) {
-                    console.error('Init Error:', err);
-                    alert('Ошибка запуска: ' + err.message);
+        // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
+        let urlMode = urlParams.get('mode');
+        if (startParam) {
+            if (startParam.startsWith('client_')) {
+                urlMode = 'client';
+                const extractedId = startParam.replace('client_', '');
+                // Проверка, чтобы не записать мусор
+                if (extractedId && extractedId !== 'undefined') {
+                    this.masterId = extractedId;
                 }
-            },
+            } else if (/^\d+$/.test(startParam)) {
+                this.masterId = startParam;
+            }
+        }
+
+        // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
+        if (!this.masterId || this.masterId === 'undefined') {
+            const masterIdParam = urlParams.get('master_id');
+            
+            if (masterIdParam && masterIdParam !== 'undefined') {
+                this.masterId = masterIdParam;
+            } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
+                // Если я не клиент, значит я мастер
+                this.masterId = tg.initDataUnsafe.user.id;
+            }
+        }
+
+        // --- SANITY CHECK (Жесткая проверка перед запуском) ---
+        if (this.masterId === 'undefined' || this.masterId === 'null') {
+            this.masterId = null; 
+        }
+        
+        // Фоллбэк только для локального теста в браузере (без Telegram)
+        if (!this.masterId && !tg.initDataUnsafe?.user) {
+            this.masterId = '68559781';
+        }
+
+        // Если для клиента ID мастера так и не найден — стоп машина
+        if (urlMode === 'client' && !this.masterId) {
+            console.error('CRITICAL: Master ID missing for client mode');
+            alert('Ошибка ссылки: не указан мастер.');
+            return; 
+        }
+        // -----------------------------------------------------
+
+        // 4. ЗАПУСК ЛОГИКИ
+        if (urlMode === 'confirm') {
+            this.mode = 'confirm';
+            this.loadVisits();
+        } else if (urlMode === 'client') {
+            this.mode = 'calendar';
+            this.isClientView = true;
+            this.loadSchedule();
+            
+            // Загружаем услуги. Если они есть — покажем выбор.
+            this.loadServices().then(() => {
+                if (this.services.length > 0) this.viewStep = 'services';
+            });
+            
+            if (this.clientId) this.loadClientNextVisit();
+        } else {
+            // Режим мастера
+            this.mode = 'calendar';
+            this.loadSchedule();
+            this.loadServices(); 
+        }
+
+    } catch (err) {
+        console.error('Init Error:', err);
+    }
+},
             methods: {
                 // --- SERVICES ---
                 loadServices() {

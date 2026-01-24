@@ -838,24 +838,35 @@
 
                 // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
                 let urlMode = urlParams.get('mode');
-                if (startParam && startParam.startsWith('client_')) {
-                    urlMode = 'client';
-                    // Если пришли по ссылке клиента - ID мастера в параметре
-                    const extractedId = startParam.replace('client_', '');
-                    if (extractedId && extractedId !== 'undefined') {
-                        this.masterId = extractedId;
+                if (startParam) {
+                    if (startParam.startsWith('client_')) {
+                        // Client link: client_<masterId>
+                        urlMode = 'client';
+                        const extractedId = startParam.replace('client_', '');
+                        if (extractedId && extractedId !== 'undefined') {
+                            this.masterId = extractedId;
+                        }
+                    } else if (/^\d+$/.test(startParam)) {
+                        // Direct masterId (no prefix)
+                        this.masterId = startParam;
                     }
                 }
 
                 // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
-                if (!this.masterId) {
-                    if (urlParams.get('master_id')) {
-                        this.masterId = urlParams.get('master_id');
+                if (!this.masterId || this.masterId === 'undefined') {
+                    const masterIdParam = urlParams.get('master_id');
+                    if (masterIdParam && masterIdParam !== 'undefined') {
+                        this.masterId = masterIdParam;
                     } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
                         // Если я не клиент, значит я мастер и открыл свое приложение
-                        this.masterId = String(tg.initDataUnsafe.user.id);
-                    } else {
-                        // ЗАГЛУШКА ДЛЯ БРАУЗЕРА (чтобы не было розового экрана)
+                        const userId = tg.initDataUnsafe.user.id;
+                        if (userId && userId !== 'undefined') {
+                            this.masterId = String(userId);
+                        }
+                    }
+
+                    // Фоллбэк для браузера
+                    if (!this.masterId || this.masterId === 'undefined') {
                         this.masterId = '68559781';
                     }
                 }
@@ -865,6 +876,12 @@
                     this.safeAlert('Ошибка: не указан ID мастера. Получите новую ссылку.');
                     console.error('[ERROR] masterId is missing in client mode');
                     return;
+                }
+
+                // Final check: never allow "undefined" string
+                if (this.masterId === 'undefined') {
+                    console.error('[ERROR] masterId is "undefined" string, resetting to default');
+                    this.masterId = '68559781';
                 }
 
                 // 4. ЗАПУСК ЛОГИКИ

@@ -14,10 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* Скрываем сырой код */
-        [v-cloak] {
-            display: none !important;
-        }
+        [v-cloak] { display: none !important; }
 
         :root {
             --bg-page: #FFF9F5;
@@ -28,15 +25,14 @@
             --text-muted: #9CA3AF;
             --success: #10B981;
             --error: #EF4444;
-
+            --radius: 16px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            --font: 'Manrope', sans-serif;
+            
             --day-bg-work: #FFFFFF;
             --day-bg-off: #E5E7EB;
             --day-bg-available: #D1FAE5;
             --day-bg-past: #F3F4F6;
-
-            --radius: 16px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            --font: 'Manrope', sans-serif;
         }
 
         body {
@@ -48,552 +44,180 @@
             min-height: 100vh;
         }
 
-        #app {
-            padding: 16px;
-            padding-bottom: 100px;
-        }
+        #app { padding: 16px; padding-bottom: 100px; }
 
         /* HEADER */
         .brand-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px; padding-bottom: 10px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
-
         .logo-box {
-            width: 32px;
-            height: 32px;
-            background: var(--primary);
-            color: white;
-            font-weight: 800;
-            font-size: 20px;
+            width: 32px; height: 32px;
+            background: var(--primary); color: white;
+            font-weight: 800; font-size: 20px;
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             transform: rotate(3deg);
         }
+        .brand-name { font-size: 18px; font-weight: 800; }
 
-        .brand-name {
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        h2 {
-            font-size: 20px;
-            font-weight: 800;
-            margin: 0 0 16px 0;
-        }
+        h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
         /* BUTTONS */
         .btn {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: var(--radius);
-            background: var(--primary-grad);
-            color: white;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
+            width: 100%; padding: 16px; border: none;
+            border-radius: var(--radius); background: var(--primary-grad);
+            color: white; font-size: 16px; font-weight: 700;
+            cursor: pointer; box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
         }
-
-        .btn:disabled {
-            opacity: 0.6;
-            background: #D1D5DB;
-            box-shadow: none;
-        }
-
+        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; }
         .btn-secondary {
-            background: white;
-            color: var(--text-main);
-            box-shadow: var(--shadow);
-            border: 1px solid #E5E7EB;
+            background: white; color: var(--text-main);
+            box-shadow: var(--shadow); border: 1px solid #E5E7EB;
         }
-
         .btn-danger {
-            width: 100%;
-            padding: 14px;
-            background: #FEF2F2;
-            color: var(--error);
-            border: 1px solid #FEE2E2;
-            border-radius: var(--radius);
-            font-weight: 700;
-            margin-bottom: 20px;
-            cursor: pointer;
+            width: 100%; padding: 14px; background: #FEF2F2;
+            color: var(--error); border: 1px solid #FEE2E2;
+            border-radius: var(--radius); font-weight: 700;
+            margin-bottom: 20px; cursor: pointer;
         }
 
         /* INPUTS */
         .input-box {
-            background: white;
-            border: 1px solid #E5E7EB;
-            border-radius: var(--radius);
-            padding: 14px;
-            font-size: 18px;
-            font-weight: 700;
-            width: 100%;
-            box-sizing: border-box;
-            text-align: center;
-            color: var(--text-main);
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
+            background: white; border: 1px solid #E5E7EB;
+            border-radius: var(--radius); padding: 14px;
+            font-size: 18px; font-weight: 700; width: 100%;
+            box-sizing: border-box; text-align: center;
+            color: var(--text-main); outline: none;
         }
-
         select.input-box {
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1em;
+            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em;
         }
 
-        /* --- NEW STYLES FOR SERVICES --- */
-        .service-list {
-            margin-bottom: 20px;
-        }
-
+        /* SERVICE CARDS (NEW) */
+        .service-list { margin-bottom: 20px; }
         .service-card {
-            background: white;
-            padding: 16px;
-            border-radius: var(--radius);
-            margin-bottom: 12px;
-            box-shadow: var(--shadow);
-            border: 1px solid transparent;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s;
+            background: white; padding: 16px;
+            border-radius: var(--radius); margin-bottom: 12px;
+            box-shadow: var(--shadow); border: 1px solid transparent;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: all 0.2s;
         }
-
-        .service-card:active {
-            transform: scale(0.98);
-        }
-
-        .service-card.is-active {
-            border-color: var(--primary);
-            background: #FFF9F5;
-        }
-
-        .svc-title {
-            font-weight: 800;
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-
-        .svc-meta {
-            font-size: 13px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .svc-price {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 15px;
-        }
-
-        .chips-row {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-
+        .service-card:active { transform: scale(0.98); }
+        .service-card.is-active { border-color: var(--primary); background: #FFF9F5; }
+        .svc-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
+        .svc-meta { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+        .svc-price { font-weight: 700; color: var(--primary); font-size: 15px; }
+        
+        .chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; }
         .chip {
-            background: #F3F4F6;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            white-space: nowrap;
-            cursor: pointer;
+            background: #F3F4F6; padding: 8px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer;
         }
 
         /* CALENDAR */
-        .calendar-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .month-name {
-            font-size: 18px;
-            font-weight: 800;
-            text-transform: capitalize;
-        }
-
+        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .month-name { font-size: 18px; font-weight: 800; text-transform: capitalize; }
         .nav-arrow {
-            width: 36px;
-            height: 36px;
-            background: white;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            color: var(--primary);
-            font-size: 18px;
-            cursor: pointer;
+            width: 36px; height: 36px; background: white; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow); color: var(--primary); font-size: 18px; cursor: pointer;
         }
-
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-
-        .cal-head {
-            text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            padding-bottom: 8px;
-        }
-
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; margin-bottom: 20px; }
+        .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; }
+        
         .day-cell {
-            aspect-ratio: 1/1.3;
-            background: var(--day-bg-work);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 4px 2px;
-            position: relative;
-            border: 1px solid transparent;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-            overflow: hidden;
-            cursor: pointer;
+            aspect-ratio: 1/1.3; background: var(--day-bg-work);
+            border-radius: 12px; display: flex; flex-direction: column;
+            justify-content: space-between; padding: 4px 2px;
+            position: relative; border: 1px solid transparent;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; cursor: pointer;
         }
+        .day-num { font-size: 13px; font-weight: 700; color: var(--text-main); margin-left: 3px; margin-top: 2px; }
+        .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-bottom: 3px; }
+        .time-txt { font-size: 9px; font-weight: 800; color: var(--text-main); line-height: 1; }
+        .coffee-icon { position: absolute; top: 4px; right: 4px; font-size: 12px; line-height: 1; }
 
-        .day-num {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-left: 3px;
-            margin-top: 2px;
-        }
-
-        .day-times-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
-            margin-bottom: 3px;
-        }
-
-        .time-txt {
-            font-size: 9px;
-            font-weight: 800;
-            color: var(--text-main);
-            line-height: 1;
-        }
-
-        .day-cell.is-past {
-            background: var(--day-bg-past);
-            box-shadow: none;
-            opacity: 0.6;
-        }
-
-        .day-cell.is-past .day-num {
-            color: #BDC3C7;
-        }
-
-        .day-cell.is-off {
-            background: var(--day-bg-off);
-            box-shadow: none;
-            border-color: transparent;
-        }
-
-        .day-cell.is-off .day-num {
-            color: #9CA3AF;
-        }
-
-        .day-cell.has-slots {
-            background: var(--day-bg-available);
-            border: 1px solid #34D399;
-        }
-
-        .day-cell.has-slots .time-txt {
-            color: #065F46;
-        }
-
-        .coffee-icon {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            font-size: 12px;
-            line-height: 1;
-        }
-
+        .day-cell.is-past { background: var(--day-bg-past); box-shadow: none; opacity: 0.6; }
+        .day-cell.is-past .day-num { color: #BDC3C7; }
+        .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; border-color: transparent; }
+        .day-cell.is-off .day-num { color: #9CA3AF; }
+        .day-cell.has-slots { background: var(--day-bg-available); border: 1px solid #34D399; }
+        .day-cell.has-slots .time-txt { color: #065F46; }
+        
         .day-cell.is-selected {
-            background: var(--primary);
-            border-color: var(--primary);
+            background: var(--primary); border-color: var(--primary);
             box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
-            transform: translateY(-2px);
-            z-index: 2;
+            transform: translateY(-2px); z-index: 2;
         }
+        .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
 
-        .day-cell.is-selected .day-num,
-        .day-cell.is-selected .time-txt {
-            color: white;
-        }
-
-        /* CONTROLS */
+        /* PANELS */
         .bottom-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 16px 20px 30px 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            padding: 16px 20px 30px 20px; background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px); border-top: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 100; display: flex; flex-direction: column; gap: 10px;
         }
-
-        .panel-actions {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-
+        .panel-actions { display: flex; gap: 10px; width: 100%; }
+        
         .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--bg-page);
-            padding: 20px;
-            z-index: 200;
-            overflow-y: auto;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
         }
-
-        .slots-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-        }
-
+        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .slot-chip {
-            background: #ECFDF5;
-            color: #047857;
-            border: 1px solid #A7F3D0;
-            padding: 12px;
-            border-radius: 12px;
-            text-align: center;
-            font-weight: 700;
+            background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;
+            padding: 12px; border-radius: 12px; text-align: center; font-weight: 700;
         }
 
-        .form-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            flex: 1;
-        }
-
-        .form-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
-        .break-row {
-            background: white;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            box-shadow: var(--shadow);
-        }
-
-        .break-head {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        /* VISITS */
+        /* VISIT CARD */
         .visit-card {
-            background: white;
-            padding: 16px;
-            border-radius: 16px;
-            margin-bottom: 10px;
+            background: white; padding: 16px;
+            border-radius: 16px; margin-bottom: 10px;
             box-shadow: var(--shadow);
         }
-
-        .visit-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .visit-time {
-            font-size: 22px;
-            font-weight: 800;
-        }
-
-        .status-row {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
+        .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .visit-time { font-size: 22px; font-weight: 800; }
+        .status-row { display: flex; gap: 5px; margin-top: 10px; }
         .status-opt {
-            flex: 1;
-            text-align: center;
-            padding: 10px 0;
-            border-radius: 8px;
-            background: #f3f4f6;
-            font-size: 16px;
-            font-weight: 700;
-            color: #666;
-            cursor: pointer;
+            flex: 1; text-align: center; padding: 10px 0; border-radius: 8px;
+            background: #f3f4f6; font-size: 16px; font-weight: 700; color: #666; cursor: pointer;
         }
+        .status-opt.active-pending { background: white; color: black; border: 1px solid #ddd; }
+        .status-opt.active-confirmed { background: var(--success); color: white; }
+        .status-opt.active-noshow { background: var(--error); color: white; }
 
-        .status-opt.active-pending {
-            background: white;
-            color: black;
-            border: 1px solid #ddd;
-        }
-
-        .status-opt.active-confirmed {
-            background: var(--success);
-            color: white;
-        }
-
-        .status-opt.active-noshow {
-            background: var(--error);
-            color: white;
-        }
-
-        /* UPCOMING VISIT CARD */
+        /* UPCOMING VISIT */
         .upcoming-visit-card {
             background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
-            border: 1px solid #FFDCC2;
-            border-radius: var(--radius);
-            padding: 16px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            position: relative;
-            box-shadow: 0 4px 15px rgba(255, 148, 120, 0.08);
-            overflow: hidden;
+            border: 1px solid #FFDCC2; border-radius: var(--radius);
+            padding: 16px; margin-bottom: 20px; display: flex; align-items: center;
+            gap: 16px; position: relative; box-shadow: 0 4px 15px rgba(255, 148, 120, 0.08); overflow: hidden;
         }
-
-        .upcoming-visit-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle, rgba(255, 148, 120, 0.05) 0%, transparent 70%);
-            border-radius: 50%;
-            transform: translate(30%, -30%);
-        }
-
         .visit-badge-top {
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: #FFDCC2;
-            color: #E66E50;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 4px 12px;
-            border-bottom-left-radius: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            position: absolute; top: 0; right: 0; background: #FFDCC2; color: #E66E50;
+            font-size: 10px; font-weight: 800; padding: 4px 12px; border-bottom-left-radius: 12px; text-transform: uppercase;
         }
-
         .visit-date-box {
-            background: var(--primary-grad);
-            color: white;
-            min-width: 65px;
-            height: 65px;
-            border-radius: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.2);
+            background: var(--primary-grad); color: white; min-width: 65px; height: 65px;
+            border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
+        .v-day { font-size: 24px; font-weight: 800; line-height: 1; }
+        .v-month { font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.9; }
+        .visit-info { flex: 1; }
+        .visit-label { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+        .visit-service { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; line-height: 1.2; }
+        .visit-time-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #6B7280; }
+        .visit-timer { font-size: 12px; font-weight: 700; background: rgba(255, 255, 255, 0.8); padding: 2px 8px; border-radius: 20px; border: 1px solid #FFDCC2; color: #E66E50; }
 
-        .v-day {
-            font-size: 24px;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        .v-month {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            opacity: 0.9;
-        }
-
-        .visit-info {
-            flex: 1;
-        }
-
-        .visit-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 2px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .visit-service {
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--text-main);
-            margin-bottom: 4px;
-            line-height: 1.2;
-        }
-
-        .visit-time-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            font-weight: 700;
-            color: #6B7280;
-        }
-
-        .visit-timer {
-            font-size: 12px;
-            font-weight: 700;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 2px 8px;
-            border-radius: 20px;
-            border: 1px solid #FFDCC2;
-            color: #E66E50;
-        }
+        .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+        .break-row { background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
+        .break-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
     </style>
 </head>
 
@@ -673,7 +297,7 @@
         <!-- ==================== VIEW: CALENDAR ==================== -->
         <div v-else-if="viewStep === 'grid'">
             
-            <!-- ВЫБРАННАЯ УСЛУГА (Только для клиента) -->
+            <!-- Выбранная услуга (для клиента) -->
             <div v-if="isClientView && selectedServiceDuration" 
                  @click="viewStep = 'services'"
                  style="background:#F3F4F6; padding:10px; border-radius:12px; margin-bottom:15px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
@@ -707,6 +331,7 @@
             <div class="cal-grid">
                 <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
                 <div v-for="n in firstDayOffset" :key="'e'+n"></div>
+                
                 <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{
                         'is-selected': isSelected(date),
                         'is-past': isPastDay(date) && !isSelected(date),
@@ -734,7 +359,7 @@
                     <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
                     <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">Отмена</button>
                 </div>
-                <!-- МЕНЮ МАСТЕРА -->
+                <!-- МЕНЮ МАСТЕРА (ОБНОВЛЕНО) -->
                 <div v-else class="panel-actions">
                     <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
                     <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
@@ -809,7 +434,6 @@
     <script>
         const { createApp } = Vue;
         
-        // Безопасная инициализация Telegram
         let tg = { initDataUnsafe: {} };
         try {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -927,7 +551,7 @@
                         // Режим мастера
                         this.mode = 'calendar';
                         this.loadSchedule();
-                        this.loadServices(); // Грузим услуги, чтобы мастер видел, есть они или нет
+                        this.loadServices(); // Мастер тоже грузит свои услуги
                     }
 
                 } catch (err) {
@@ -1019,6 +643,7 @@
                     if (this.isSaving) return;
                     this.isSaving = true;
 
+                    // FIX: Отправляем null, а не '00:00'
                     const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
                     const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
 
@@ -1055,28 +680,6 @@
                 },
 
                 // --- HELPERS ---
-                changeMonth(delta) {
-                    this.currentDate = new Date(this.currentYear, this.currentMonth + delta, 1);
-                    this.fetchSlotsAvailability(); 
-                },
-                onDayClick(day) {
-                    const dateStr = this.formatDateKey(day);
-                    if (this.isClientView) {
-                        this.activeDate = new Date(this.currentYear, this.currentMonth, day);
-                        this.fetchSlotsForDate(dateStr);
-                        return;
-                    }
-                    if (this.editMode || this.shareMode) {
-                        const index = this.selectedDates.indexOf(dateStr);
-                        if (index === -1) this.selectedDates.push(dateStr);
-                        else this.selectedDates.splice(index, 1);
-                        return;
-                    }
-                    this.activeDate = new Date(this.currentYear, this.currentMonth, day);
-                    this.fetchSlotsForDate(dateStr);
-                },
-                
-                // Стандартные хелперы (без изменений)
                 makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(); },
                 isDayOff(day) {
                     const data = this.dbData[this.formatDateKey(day)];
@@ -1085,6 +688,24 @@
                     return isZero(data.start) || isZero(data.end);
                 },
                 formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; },
+                changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); this.fetchSlotsAvailability(); },
+                onDayClick(day) {
+                    const dateStr = this.formatDateKey(day);
+                    if (this.isClientView) {
+                        this.activeDate = new Date(this.currentYear, this.currentMonth, day);
+                        this.fetchSlotsForDate(dateStr);
+                        return;
+                    }
+                    if (this.editMode || this.shareMode) {
+                        const idx = this.selectedDates.indexOf(dateStr);
+                        if (idx === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(idx, 1);
+                        return;
+                    }
+                    this.activeDate = new Date(this.currentYear, this.currentMonth, day);
+                    this.fetchSlotsForDate(dateStr);
+                },
+                
+                // --- OLD HELPERS ---
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
                 toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
                 toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
@@ -1188,6 +809,21 @@
                             this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' }));
                         })
                         .finally(() => this.isLoading = false);
+                },
+                loadSchedule() {
+                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                            const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+                            scheduleList.forEach(row => {
+                                let brk = [];
+                                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
+                                this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                            });
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => console.error('Load schedule error:', err));
                 }
             }
         }).mount('#app');

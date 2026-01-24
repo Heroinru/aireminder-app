@@ -83,18 +83,33 @@
             margin-bottom: 20px; cursor: pointer;
         }
 
-        /* INPUTS */
-        .input-box {
-            background: white; border: 1px solid #E5E7EB;
-            border-radius: var(--radius); padding: 14px;
-            font-size: 18px; font-weight: 700; width: 100%;
-            box-sizing: border-box; text-align: center;
-            color: var(--text-main); outline: none;
-        }
-        select.input-box {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em;
-        }
+      /* INPUTS & SELECTS */
+.input-box {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: var(--radius);
+    padding: 0 14px; /* Убираем вертикальный паддинг, задаем высоту */
+    height: 50px;    /* Фиксированная высота */
+    line-height: 50px; /* Центровка текста */
+    font-size: 16px; 
+    font-weight: 700;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    color: var(--text-main);
+    outline: none;
+    -webkit-appearance: none; /* Убираем нативные стили iOS */
+    appearance: none;
+}
+
+/* СТРЕЛОЧКА ДЛЯ SELECT */
+select.input-box {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.2em;
+    padding-right: 40px; /* Место под стрелку */
+}
 
         /* SERVICE CARDS (NEW) */
         .service-list { margin-bottom: 20px; }

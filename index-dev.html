@@ -533,11 +533,10 @@ select.input-box {
                         this.clientId = urlParams.get('client_id');
                     }
 
-                    // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
-                    // FIX: Если режим уже 'confirm' (из URL), не переписываем его из startParam
-                    if (urlMode !== 'confirm' && startParam) {
+                   // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
+                    // Исправление: парсим startParam ТОЛЬКО если это не режим подтверждения
+                    if (urlMode !== 'confirm' && startParam) { 
                         if (startParam.startsWith('client_')) {
-                            // Client link: client_<masterId>
                             urlMode = 'client';
                             const extractedId = startParam.replace('client_', '');
                             if (extractedId && extractedId !== 'undefined') {

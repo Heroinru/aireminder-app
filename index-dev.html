@@ -578,31 +578,28 @@ select.input-box {
 
         // 4. ЗАПУСК ЛОГИКИ
         console.log('FINAL MODE CHECK:', urlMode);
+
         if (urlMode === 'confirm') {
             this.mode = 'confirm';
             this.loadVisits();
-        } else if (urlMode === 'client') {
+            return; // <--- ВОТ ЭТО ГЛАВНОЕ ИСПРАВЛЕНИЕ. ОНО ОСТАНОВИТ КОД ЗДЕСЬ.
+        } 
+        
+        if (urlMode === 'client') {
             this.mode = 'calendar';
             this.isClientView = true;
             this.loadSchedule();
-            
-            // Загружаем услуги. Если они есть — покажем выбор.
             this.loadServices().then(() => {
                 if (this.services.length > 0) this.viewStep = 'services';
             });
-            
             if (this.clientId) this.loadClientNextVisit();
-        } else {
-            // Режим мастера
-            this.mode = 'calendar';
-            this.loadSchedule();
-            this.loadServices(); 
-        }
-
-    } catch (err) {
-        console.error('Init Error:', err);
-    }
-},
+            return; // <--- И ЗДЕСЬ ТОЖЕ
+        } 
+        
+        // Если не confirm и не client -> значит это Мастер (Календарь)
+        this.mode = 'calendar';
+        this.loadSchedule();
+        this.loadServices();
             methods: {
                 // --- SERVICES ---
                 loadServices() {

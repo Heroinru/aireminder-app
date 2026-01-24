@@ -579,33 +579,30 @@ select.input-box {
                         this.masterId = '68559781';
                     }
 
-                    // 4. ЗАПУСК ЛОГИКИ
-                    console.log('[DEBUG] Init:', {
-                        urlMode,
-                        masterId: this.masterId,
-                        clientId: this.clientId,
-                        isClientView: this.isClientView
-                    });
+                    // 4. ЗАПУСК ЛОГИКИ (ИСПРАВЛЕНО)
+                console.log('[DEBUG] Init:', { urlMode, masterId: this.masterId });
 
-                    if (urlMode === 'confirm') {
-                        this.mode = 'confirm';
-                        this.loadVisits();
-                    } else if (urlMode === 'client') {
-                        this.mode = 'calendar';
-                        this.isClientView = true;
-                        this.loadSchedule();
-                        // АВТО-ЛОГИКА: Если есть услуги, идем туда
-                        this.loadServices().then(() => {
-                            if (this.services.length > 0) this.viewStep = 'services';
-                        });
-                        // Грузим визит только если есть реальный ID
-                        if (this.clientId) this.loadClientNextVisit();
-                    } else {
-                        // Режим мастера (календарь)
-                        this.mode = 'calendar';
-                        this.loadSchedule();
-                        this.loadServices(); 
-                    }
+                if (urlMode === 'confirm') {
+                    // Режим подтверждения
+                    this.mode = 'confirm';
+                    this.loadVisits();
+                } 
+                else if (urlMode === 'client') {
+                    // Режим клиента
+                    this.mode = 'calendar';
+                    this.isClientView = true;
+                    this.loadSchedule();
+                    this.loadServices().then(() => {
+                        if (this.services.length > 0) this.viewStep = 'services';
+                    });
+                    if (this.clientId) this.loadClientNextVisit();
+                } 
+                else {
+                    // Режим мастера (по умолчанию)
+                    this.mode = 'calendar';
+                    this.loadSchedule();
+                    this.loadServices(); 
+                }
 
                 } catch (err) {
                     console.error('Init Error:', err);

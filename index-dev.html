@@ -601,6 +601,11 @@ if (startParam && startParam.startsWith('client_')) {
 
                 // --- CALENDAR & SLOTS ---
                 fetchSlotsAvailability() {
+                    // ЗАЩИТА: Если ID мастера нет, выходим
+    if (!this.masterId || this.masterId === 'undefined') {
+        console.warn('Skip fetchSlotsAvailability: masterId is missing');
+        return;
+    }
                     this.slotsAvailability = {};
                     const dates = [];
                     for (let day = 1; day <= this.daysInMonth; day++) {
@@ -628,6 +633,10 @@ if (startParam && startParam.startsWith('client_')) {
                     .catch(e => console.error('Slots avail err:', e));
                 },
                 fetchSlotsForDate(dateStr) {
+                    if (!this.masterId || this.masterId === 'undefined') {
+        this.safeAlert('Ошибка: не определен мастер');
+        return;
+    }
                     this.viewStep = 'slots';
                     this.currentSlots = [];
                     this.isLoadingSlots = true;

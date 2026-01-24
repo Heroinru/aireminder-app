@@ -881,6 +881,37 @@ select.input-box {
                         })
                         .finally(() => this.isLoading = false);
                 },
+
+                saveVisits() {
+                if (this.isSaving) return;
+                this.isSaving = true;
+                
+                // Собираем данные для отправки
+                const updates = this.visits.map(v => ({ 
+                    event_id: v.event_id, 
+                    status: v.visit_status 
+                }));
+
+                console.log('Saving visits:', updates);
+
+                fetch(URLS.SAVE_VISITS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ updates: updates }) 
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Ошибка сети');
+                    return res.text();
+                })
+                .then(() => { 
+                    this.safeAlert('✅ Статусы обновлены!'); 
+                    if (tg.close) tg.close(); 
+                })
+                .catch(err => { 
+                    this.safeAlert('Ошибка: ' + err); 
+                    this.isSaving = false; 
+                });
+            },
                 loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
                         .then(res => res.json())

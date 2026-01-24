@@ -497,7 +497,7 @@ select.input-box {
                     newService: { title: '', duration: 60, price: '' },
 
                     // Calendar Data
-                    visits: [],
+                    : [],
                     isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(),
                     weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
@@ -647,6 +647,37 @@ select.input-box {
                     // Пересчитываем зеленые точки с учетом НОВОЙ длительности
                     this.fetchSlotsAvailability(); 
                 },
+
+                saveVisits() {
+                if (this.isSaving) return;
+                this.isSaving = true;
+                
+                // Собираем данные для отправки
+                const updates = this.visits.map(v => ({ 
+                    event_id: v.event_id, 
+                    status: v.visit_status 
+                }));
+
+                console.log('Saving visits:', updates);
+
+                fetch(URLS.SAVE_VISITS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ updates: updates }) 
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('Ошибка сети');
+                    return res.text();
+                })
+                .then(() => { 
+                    this.safeAlert('✅ Статусы обновлены!'); 
+                    if (tg.close) tg.close(); 
+                })
+                .catch(err => { 
+                    this.safeAlert('Ошибка: ' + err); 
+                    this.isSaving = false; 
+                });
+            },
 
                 // --- CALENDAR & SLOTS ---
                 fetchSlotsAvailability() {

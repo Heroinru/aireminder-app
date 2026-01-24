@@ -518,10 +518,14 @@
 
                     // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
                     let urlMode = urlParams.get('mode');
-                    if (startParam && startParam.startsWith('client_')) {
-                        urlMode = 'client';
-                        this.masterId = startParam.replace('client_', '');
-                    }
+if (startParam && startParam.startsWith('client_')) {
+    urlMode = 'client';
+    // Вот здесь было уязвимое место
+    const extractedId = startParam.replace('client_', '');
+    if (extractedId && extractedId !== 'undefined') {
+        this.masterId = extractedId;
+    }
+}
 
                     // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
                     if (!this.masterId) {
@@ -562,12 +566,18 @@
             methods: {
                 // --- SERVICES ---
                 loadServices() {
-                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            this.services = Array.isArray(data) ? data : [];
-                        }).catch(console.error);
-                },
+    // ЗАЩИТА: Если ID мастера нет или он "undefined" (строкой), не делаем запрос
+    if (!this.masterId || this.masterId === 'undefined') {
+        console.warn('Skip loadServices: masterId is missing');
+        return Promise.resolve([]); // Возвращаем пустой промис, чтобы цепочка .then не ломалась
+    }
+
+    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}`)
+        .then(res => res.json())
+        .then(data => {
+            this.services = Array.isArray(data) ? data : [];
+        }).catch(console.error);
+},
                 manageService(action, service = null) {
                     const body = {
                         action: action,

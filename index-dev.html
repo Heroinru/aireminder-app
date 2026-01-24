@@ -841,7 +841,10 @@
                 if (startParam && startParam.startsWith('client_')) {
                     urlMode = 'client';
                     // Если пришли по ссылке клиента - ID мастера в параметре
-                    this.masterId = startParam.replace('client_', '');
+                    const extractedId = startParam.replace('client_', '');
+                    if (extractedId && extractedId !== 'undefined') {
+                        this.masterId = extractedId;
+                    }
                 }
 
                 // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
@@ -850,14 +853,28 @@
                         this.masterId = urlParams.get('master_id');
                     } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
                         // Если я не клиент, значит я мастер и открыл свое приложение
-                        this.masterId = tg.initDataUnsafe.user.id;
+                        this.masterId = String(tg.initDataUnsafe.user.id);
                     } else {
                         // ЗАГЛУШКА ДЛЯ БРАУЗЕРА (чтобы не было розового экрана)
-                        this.masterId = '68559781'; 
+                        this.masterId = '68559781';
                     }
                 }
 
+                // Валидация: masterId обязателен для client mode
+                if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) {
+                    this.safeAlert('Ошибка: не указан ID мастера. Получите новую ссылку.');
+                    console.error('[ERROR] masterId is missing in client mode');
+                    return;
+                }
+
                 // 4. ЗАПУСК ЛОГИКИ
+                console.log('[DEBUG] Init:', {
+                    urlMode,
+                    masterId: this.masterId,
+                    clientId: this.clientId,
+                    isClientView: this.isClientView
+                });
+
                 if (urlMode === 'confirm') {
                     this.mode = 'confirm';
                     this.loadVisits();
@@ -909,6 +926,13 @@
             
             // --- ЗАГРУЗКА ДАННЫХ ---
             loadSchedule() {
+                // Валидация masterId
+                if (!this.masterId || this.masterId === 'undefined') {
+                    console.error('[ERROR] Cannot load schedule: masterId is invalid', this.masterId);
+                    this.safeAlert('Ошибка: не указан ID мастера');
+                    return;
+                }
+
                 fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
                     .then(res => res.json())
                     .then(data => {
@@ -929,45 +953,72 @@
 
             // --- ЗЕЛЕНЫЕ ТОЧКИ (BATCH ЗАПРОС) ---
             fetchSlotsAvailability() {
+                // Валидация masterId
+                if (!this.masterId || this.masterId === 'undefined') {
+                    console.error('[ERROR] Cannot fetch slots: masterId is invalid', this.masterId);
+                    return;
+                }
+
                 this.slotsAvailability = {};
                 const dates = [];
-                
+
                 for (let day = 1; day <= this.daysInMonth; day++) {
                     const dateStr = this.formatDateKey(day);
                     if (!this.isPastDay(day) && !this.isDayOff(day)) {
                         dates.push(dateStr);
                     }
                 }
-                if (dates.length === 0) return;
+                if (dates.length === 0) {
+                    console.log('[DEBUG] No dates to fetch slots for');
+                    return;
+                }
 
                 const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+                console.log('[DEBUG] fetchSlotsAvailability:', {
+                    isClientView: this.isClientView,
+                    masterId: this.masterId,
+                    clientId: clientId,
+                    datesCount: dates.length,
+                    dates: dates
+                });
 
                 fetch(URLS.GET_SLOTS, {
-                    method: 'POST', 
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId })
                 })
                 .then(res => res.json())
                 .then(data => {
+                    console.log('[DEBUG] Slots response:', data);
                     // Ожидаем: { slots_by_date: { "2025-01-24": ["10:00"] } }
                     // Или старый формат, где data = { "2025-01-24": [...] }
-                    const map = data.slots_by_date || data; 
-                    
+                    const map = data.slots_by_date || data;
+                    console.log('[DEBUG] Slots map:', map);
+
                     Object.keys(map).forEach(dateKey => {
                         if (Array.isArray(map[dateKey]) && map[dateKey].length > 0) {
                             this.slotsAvailability[dateKey] = true;
+                            console.log('[DEBUG] Set green for:', dateKey, map[dateKey].length, 'slots');
                         }
                     });
+                    console.log('[DEBUG] Final slotsAvailability:', this.slotsAvailability);
                 })
                 .catch(e => console.error('Slots avail err:', e));
             },
 
             // --- ПОЛУЧЕНИЕ СЛОТОВ НА 1 ДЕНЬ ---
             fetchSlotsForDate(dateStr) {
+                // Валидация masterId
+                if (!this.masterId || this.masterId === 'undefined') {
+                    this.safeAlert('Ошибка: не указан ID мастера');
+                    console.error('[ERROR] Cannot fetch slots: masterId is invalid', this.masterId);
+                    return;
+                }
+
                 this.viewStep = 'slots';
                 this.currentSlots = [];
                 this.isLoadingSlots = true;
-                
+
                 const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
 
                 fetch(URLS.GET_SLOTS, {
@@ -986,6 +1037,10 @@
             // --- СОХРАНЕНИЕ ---
             saveSchedule() {
                 if (this.isSaving) return;
+                if (!this.masterId || this.masterId === 'undefined') {
+                    this.safeAlert('Ошибка: не указан ID мастера');
+                    return;
+                }
                 this.isSaving = true;
 
                 // FIX: Отправляем null, а не '00:00', чтобы не ломать БД
@@ -1086,6 +1141,10 @@
             },
             sendSlotsToChat() {
                 if (this.selectedDates.length === 0) return;
+                if (!this.masterId || this.masterId === 'undefined') {
+                    this.safeAlert('Ошибка: не указан ID мастера');
+                    return;
+                }
                 fetch(URLS.GET_SLOTS, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' })

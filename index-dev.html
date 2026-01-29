@@ -617,18 +617,18 @@ select.input-box {
             methods: {
         
                 // --- SERVICES ---
-                loadServices() {
-    // ЗАЩИТА: Если ID мастера нет или он "undefined" (строкой), не делаем запрос
+    loadServices() {
     if (!this.masterId || this.masterId === 'undefined') {
-        console.warn('Skip loadServices: masterId is missing');
-        return Promise.resolve([]); // Возвращаем пустой промис, чтобы цепочка .then не ломалась
+        return Promise.resolve([]);
     }
-
-    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}`)
-        .then(res => res.json())
-        .then(data => {
-            this.services = Array.isArray(data) ? data : [];
-        }).catch(console.error);
+    // ДОБАВИЛИ: '&_t=' + Date.now() чтобы сбить кэш
+    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        this.services = Array.isArray(data) ? data : [];
+    }).catch(console.error);
 },
                 manageService(action, service = null) {
                     const body = {

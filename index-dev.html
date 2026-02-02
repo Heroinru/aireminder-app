@@ -792,19 +792,29 @@ select.input-box {
                         }
                     }
                 },
-                goToSettings() {
-                    if(this.isClientView) return;
-                    const date = this.selectedDates[0];
-                    const data = this.dbData[date];
-                    if(data) {
-                        this.startTime = data.start || '10:00';
-                        this.endTime = data.end || '20:00';
-                        this.breaks = data.breaks ? JSON.parse(JSON.stringify(data.breaks)) : [];
-                    } else {
-                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
-                    }
-                    this.viewStep = 'settings';
-                },
+               goToSettings() {
+    if(this.isClientView) return;
+    const date = this.selectedDates[0];
+    const data = this.dbData[date];
+    if(data) {
+        // Добавляем .slice(0, 5) чтобы из "10:00:00" получить "10:00"
+        this.startTime = (data.start || '10:00').slice(0, 5);
+        this.endTime = (data.end || '20:00').slice(0, 5);
+        
+        let processedBreaks = [];
+        if (data.breaks) {
+            const rawBreaks = typeof data.breaks === 'string' ? JSON.parse(data.breaks) : data.breaks;
+            processedBreaks = rawBreaks.map(b => ({
+                start: b.start.slice(0, 5),
+                end: b.end.slice(0, 5)
+            }));
+        }
+        this.breaks = processedBreaks;
+    } else {
+        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+    }
+    this.viewStep = 'settings';
+},
                 loadClientNextVisit() {
                     if (!this.clientId) return;
                     fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`)

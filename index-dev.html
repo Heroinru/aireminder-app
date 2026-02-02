@@ -933,8 +933,11 @@ select.input-box {
                                 try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
                                 this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
                             });
-                            this.fetchSlotsAvailability();
-                        })
+                          this.dbData[row.work_date] = { 
+    start: row.start_time ? row.start_time.slice(0, 5) : null, 
+    end: row.end_time ? row.end_time.slice(0, 5) : null, 
+    breaks: brk 
+};
                         .catch(err => console.error('Load schedule error:', err));
                 }
             }

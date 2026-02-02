@@ -928,16 +928,27 @@ select.input-box {
                         .then(data => {
                             if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
                             const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+                            
                             scheduleList.forEach(row => {
                                 let brk = [];
                                 try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                                this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                                
+                                // Чистим секунды и в перерывах тоже
+                                const cleanBreaks = brk.map(b => ({
+                                    start: b.start ? b.start.slice(0, 5) : '',
+                                    end: b.end ? b.end.slice(0, 5) : ''
+                                }));
+
+                                // ВОТ ПРАВИЛЬНОЕ МЕСТО (Внутри цикла):
+                                this.dbData[row.work_date] = { 
+                                    start: row.start_time ? row.start_time.slice(0, 5) : null, 
+                                    end: row.end_time ? row.end_time.slice(0, 5) : null, 
+                                    breaks: cleanBreaks 
+                                };
                             });
-                          this.dbData[row.work_date] = { 
-    start: row.start_time ? row.start_time.slice(0, 5) : null, 
-    end: row.end_time ? row.end_time.slice(0, 5) : null, 
-    breaks: brk 
-};
+                            
+                            this.fetchSlotsAvailability();
+                        })
                         .catch(err => console.error('Load schedule error:', err));
                 }
             }

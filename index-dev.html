@@ -623,30 +623,22 @@
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
                 
 loadSchedule() {
-    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-            
-            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
-            const newData = {};
-            
-            scheduleList.forEach(row => {
-                let brk = [];
-                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                
-                // ВАЖНО: Обрезаем хвост времени, чтобы ключ совпадал с календарем
-                if (row.work_date) {
-                    const dateKey = row.work_date.split('T')[0]; 
-                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
+                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
+                            const newData = {};
+                            scheduleList.forEach(row => {
+                                let brk = [];
+                                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
+                                newData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                            });
+                            this.dbData = newData;
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => console.error('Load schedule error:', err));
                 }
-            });
-            
-            this.dbData = newData; // Обновляем данные
-            this.fetchSlotsAvailability();
-        })
-        .catch(err => console.error('Load schedule error:', err));
-}
             }
         }).mount('#app');
     </script>

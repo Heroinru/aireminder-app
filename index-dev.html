@@ -432,13 +432,15 @@
                     <div class="ret-label">Когда позвать снова?</div>
                     <div class="ret-controls">
                         <select v-model="visit.next_reminder_days" class="ret-select">
-                            <option :value="21">Через 3 недели</option>
-                            <option :value="28">Через 4 недели</option>
-                            <option :value="45">Через 1.5 мес</option>
-                            <option :value="60">Через 2 мес</option>
-                            <option :value="180">Через полгода</option>
-                            <option :value="0">Не напоминать</option>
-                        </select>
+    <option :value="21">Через 3 недели</option>
+    <option :value="28">Через 4 недели</option>
+    <option :value="45">Через 1.5 мес</option>
+    <option :value="60">Через 2 мес</option>
+    <option :value="180">Через полгода</option>
+    <option :value="270">Через 9 мес</option> <!-- Новое -->
+    <option :value="365">Через год</option>   <!-- Новое -->
+    <option :value="0">Не напоминать</option>
+</select>
                     </div>
                 </div>
             </div>

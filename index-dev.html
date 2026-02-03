@@ -80,11 +80,16 @@
             box-shadow: var(--shadow); border: 1px solid #E5E7EB;
         }
         .btn-danger {
-            width: 100%; padding: 14px; background: #FEF2F2;
-            color: var(--error); border: 1px solid #FEE2E2;
-            border-radius: var(--radius); font-weight: 700;
-            margin-bottom: 20px; cursor: pointer;
-        }
+    width: 100%; 
+    padding: 16px; /* Было 14px, теперь как у всех */
+    background: #FEF2F2;
+    color: #EF4444; 
+    border: 1px solid #FEE2E2;
+    border-radius: var(--radius); 
+    font-weight: 700;
+    cursor: pointer;
+    /* margin-bottom убрали, чтобы не ломать верстку в ряд */
+}
         /* Вставь это после .btn-danger */
 .btn-warning {
     background: #FFF7ED; 
@@ -574,26 +579,26 @@
                 toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
                 toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
                 toggleColumn(colIndex) { if((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if(this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x!==k); else this.selectedDates.push(k); } } },
-               goToSettings() {
+              goToSettings() {
     if (this.isClientView) return;
     
-    // Берем первую выбранную дату
+    // Берем первую выбранную дату (например "2025-02-03")
     const date = this.selectedDates[0];
     
-    // Ищем данные в памяти
-    const data = this.dbData[date];
+    // Ищем данные в базе
+    const savedData = this.dbData[date];
     
-    console.log('Настройка для даты:', date, 'Найдено:', data); // Для отладки
+    console.log('Настройка даты:', date, 'Данные:', savedData);
 
-    if (data) {
-        // Если данные есть — подставляем их
-        // Важно: если start === null, значит выходной, ставим дефолт для удобства включения
-        this.startTime = data.start || '10:00';
-        this.endTime = data.end || '20:00';
-        // Копируем перерывы (глубокая копия, чтобы не менять сразу в базе)
-        this.breaks = data.breaks ? JSON.parse(JSON.stringify(data.breaks)) : [];
+    if (savedData) {
+        // Если данные есть в базе — берем их
+        // Если start === null (выходной), ставим 10:00 для удобства
+        this.startTime = savedData.start || '10:00';
+        this.endTime = savedData.end || '20:00';
+        // Копируем перерывы
+        this.breaks = savedData.breaks ? JSON.parse(JSON.stringify(savedData.breaks)) : [];
     } else {
-        // Если данных нет — ставим стандартные
+        // Если данных нет (чистый день) — ставим стандарт
         this.startTime = '10:00';
         this.endTime = '20:00';
         this.breaks = [];
@@ -616,27 +621,42 @@
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
                loadSchedule() {
+    console.log('Загружаю график...');
     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
         .then(res => res.json())
         .then(data => {
+            console.log('График получен:', data); // Для проверки в консоли
+            
             if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
             
-            const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+            // Берем массив расписания (поддержка разных форматов ответа)
+            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
             
-            // Создаем ВРЕМЕННЫЙ объект
+            // Создаем НОВЫЙ объект
             const newData = {};
             
             scheduleList.forEach(row => {
                 let brk = [];
                 try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
                 
-                // Заполняем временный объект
+                // Ключ - дата (2025-02-03)
                 newData[row.work_date] = { 
                     start: row.start_time, 
                     end: row.end_time, 
                     breaks: brk 
                 };
             });
+            
+            // ЖЕСТКОЕ ОБНОВЛЕНИЕ ДАННЫХ
+            this.dbData = newData;
+            
+            this.fetchSlotsAvailability();
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки графика:', err);
+            this.safeAlert('Не удалось загрузить график');
+        });
+},
             
             // ПРИСВАИВАЕМ ЦЕЛИКОМ (Это триггерит реактивность Vue)
             this.dbData = newData;

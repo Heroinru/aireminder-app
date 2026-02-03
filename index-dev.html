@@ -289,176 +289,186 @@
 <body>
 
     <div id="app" v-cloak>
-        <div class="brand-header">
-            <div class="logo-box">R</div>
-            <div class="brand-name">Remi</div>
-        </div>
-
-        <div v-if="nextVisit" class="upcoming-visit-card">
-    <div class="visit-badge-top">Ближайшая</div>
-    <div class="visit-date-box">
-        <span class="v-day">{{ new Date(nextVisit.appointment_time).getDate() }}</span>
-        <span class="v-month">{{ new Date(nextVisit.appointment_time).toLocaleString('ru', { month: 'short' }).replace('.', '') }}</span>
+    <div class="brand-header">
+        <div class="logo-box">R</div>
+        <div class="brand-name">Remi</div>
     </div>
-    <div class="visit-info">
-        <div class="visit-label">
-            <span>Ваша запись</span>
-            <span class="visit-timer">{{ getDaysUntil(nextVisit.appointment_time) }}</span>
+
+    <!-- 1. КАРТОЧКА ЗАПИСИ (ТЕПЕРЬ ТУТ, ВИДНА ВСЕГДА ЕСЛИ ЕСТЬ ЗАПИСЬ) -->
+    <div v-if="nextVisit && isClientView" class="upcoming-visit-card" style="margin-top: 10px;">
+        <div class="visit-badge-top">Ближайшая</div>
+        <div class="visit-date-box">
+            <span class="v-day">{{ new Date(nextVisit.appointment_time).getDate() }}</span>
+            <span class="v-month">{{ new Date(nextVisit.appointment_time).toLocaleString('ru', { month: 'short' }).replace('.', '') }}</span>
         </div>
-        <div class="visit-service">{{ nextVisit.service_type }}</div>
-        <div class="visit-time-row"><span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span></div>
+        <div class="visit-info">
+            <div class="visit-label">
+                <span>Ваша запись</span>
+                <span class="visit-timer">{{ getDaysUntil(nextVisit.appointment_time) }}</span>
+            </div>
+            <div class="visit-service">{{ nextVisit.service_type }}</div>
+            <div class="visit-time-row"><span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span></div>
+        </div>
     </div>
-</div>
 
-        <!-- ==================== VIEW: SERVICES ==================== -->
-        <div v-if="viewStep === 'services'">
-            <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
-            <div v-if="services.length === 0" style="text-align:center; color:#999; margin-top:40px;">
-                Пока нет услуг. {{ isClientView ? 'Свяжитесь с мастером.' : 'Добавьте первую!' }}
-            </div>
-            <div class="service-list">
-                <div v-for="svc in services" :key="svc.service_id" class="service-card" @click="selectService(svc)">
-                    <div><div class="svc-title">{{ svc.title }}</div><div class="svc-meta">⏱ {{ svc.duration }} мин</div></div>
-                    <div style="text-align:right;">
-                        <div class="svc-price" v-if="svc.price">{{ svc.price }} ₽</div>
-                        <div v-if="!isClientView" @click.stop="manageService('delete', svc)" style="color:var(--error); font-size:12px; margin-top:5px; font-weight:700;">Удалить</div>
-                    </div>
-                </div>
-            </div>
-            <div v-if="!isClientView" style="margin-top: 30px;">
-                <h3>Добавить услугу</h3>
-                <div class="form-group">
-                    <input type="text" v-model="newService.title" placeholder="Название" class="input-box" style="text-align:left; margin-bottom:10px;">
-                    <div class="chips-row">
-                        <div class="chip" @click="newService.title='Маникюр'">💅 Маникюр</div>
-                        <div class="chip" @click="newService.title='Педикюр'">🦶 Педикюр</div>
-                        <div class="chip" @click="newService.title='Ресницы'">👁 Ресницы</div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <select v-model="newService.duration" class="input-box">
-                            <option :value="30">30 мин</option><option :value="60">1 час</option><option :value="90">1.5 часа</option><option :value="120">2 часа</option>
-                        </select>
-                    </div>
-                    <div class="form-group"><input type="text" v-model="newService.price" placeholder="Цена" class="input-box"></div>
-                </div>
-                <button class="btn" @click="manageService('create')" :disabled="!newService.title">Добавить</button>
-            </div>
-            <div class="bottom-panel" v-if="!isClientView"><button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button></div>
+    <!-- 2. ЭКРАН УСЛУГ -->
+    <div v-if="viewStep === 'services'">
+        <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
+        <div v-if="services.length === 0" style="text-align:center; color:#999; margin-top:40px;">
+            Пока нет услуг. {{ isClientView ? 'Свяжитесь с мастером.' : 'Добавьте первую!' }}
         </div>
-
-        <!-- ==================== VIEW: CALENDAR ==================== -->
-        <div v-else-if="viewStep === 'grid'">
-            <div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:10px; border-radius:12px; margin-bottom:15px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
-                <span>⏱ <b>{{ selectedServiceDuration }} мин</b> (изменить)</span><span>✏️</span>
-            </div>
-            
-            <div class="bottom-panel">
-                <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
-                <div v-else-if="editMode" class="panel-actions" style="display: flex; gap: 8px;">
-                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0" style="flex: 2;">⚙️ График ({{ selectedDates.length }})</button>
-                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0" style="flex: 1; font-size: 20px;">🆘</button>
-                    <button class="btn btn-secondary" @click="toggleEditMode" style="flex: 1;">✖</button>
-                </div>
-                <div v-else-if="shareMode" class="panel-actions">
-                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
-                    <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">Отмена</button>
-                </div>
-                <div v-else class="panel-actions">
-                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
-                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
-                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+        <div class="service-list">
+            <div v-for="svc in services" :key="svc.service_id" class="service-card" @click="selectService(svc)">
+                <div><div class="svc-title">{{ svc.title }}</div><div class="svc-meta">⏱ {{ svc.duration }} мин</div></div>
+                <div style="text-align:right;">
+                    <div class="svc-price" v-if="svc.price">{{ svc.price }} ₽</div>
+                    <div v-if="!isClientView" @click.stop="manageService('delete', svc)" style="color:var(--error); font-size:12px; margin-top:5px; font-weight:700;">Удалить</div>
                 </div>
             </div>
         </div>
-
-        <!-- ==================== VIEW: CONFIRM ==================== -->
-        <div v-else-if="mode === 'confirm'">
-            <h2>Визиты за сегодня</h2>
-            <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
-            <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
-            <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
-                <div class="visit-header"><div class="visit-time">{{ formatTime(visit.appointment_time) }}</div><div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div></div>
-                <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
-                <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
-                <div class="status-row">
-                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
-                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="setConfirmed(visit)">✅ Пришел</div>
-                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Нет</div>
-                </div>
-                <div v-if="visit.visit_status === 'confirmed'" class="retention-box">
-                    <div class="ret-label">Когда позвать снова?</div>
-                    <div class="ret-controls">
-                        <select v-model="visit.next_reminder_days" class="ret-select">
-                            <option :value="21">Через 3 недели</option><option :value="28">Через 4 недели</option><option :value="45">Через 1.5 мес</option><option :value="60">Через 2 мес</option><option :value="180">Через полгода</option><option :value="270">Через 9 мес</option><option :value="365">Через год</option><option :value="0">Не напоминать</option>
-                        </select>
-                    </div>
+        <div v-if="!isClientView" style="margin-top: 30px;">
+            <h3>Добавить услугу</h3>
+            <div class="form-group">
+                <input type="text" v-model="newService.title" placeholder="Название" class="input-box" style="text-align:left; margin-bottom:10px;">
+                <div class="chips-row">
+                    <div class="chip" @click="newService.title='Маникюр'">💅 Маникюр</div>
+                    <div class="chip" @click="newService.title='Педикюр'">🦶 Педикюр</div>
+                    <div class="chip" @click="newService.title='Ресницы'">👁 Ресницы</div>
                 </div>
             </div>
-            <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
-        </div>
-
-        <!-- ==================== VIEW: EMERGENCY ==================== -->
-        <div v-if="viewStep === 'emergency'" class="modal">
-            <h2>🆘 Форс-мажор</h2>
-            <p style="font-size:14px; color:#666; margin-bottom:20px;">
-                Выбрано дней: <b>{{ selectedDates.length }}</b>.<br>
-                Мы отправим уведомления всем клиентам, у которых есть запись в эти дни.
-            </p>
-
-            <div class="reason-chip" :class="{selected: emergencyReason === 'sick'}" @click="emergencyReason = 'sick'">
-                🤒 Я заболела
-            </div>
-            <div class="reason-chip" :class="{selected: emergencyReason === 'tech'}" @click="emergencyReason = 'tech'">
-                💡 Технические причины (свет/вода)
-            </div>
-            <div class="reason-chip" :class="{selected: emergencyReason === 'family'}" @click="emergencyReason = 'family'">
-                🏠 Семейные обстоятельства
-            </div>
-            <div class="reason-chip" :class="{selected: emergencyReason === 'custom'}" @click="emergencyReason = 'custom'">
-                ✏️ Свой текст
-            </div>
-
-            <div v-if="emergencyReason === 'custom'" style="margin-top:10px;">
-                <textarea v-model="emergencyCustomText" class="input-box" style="height:80px; line-height:1.2; padding:10px; text-align:left;" placeholder="Напишите причину..."></textarea>
-            </div>
-
-            <div class="bottom-panel">
-                <div class="panel-actions" style="display: flex; gap: 10px;">
-                    <button class="btn btn-secondary" @click="viewStep = 'grid'" style="flex: 1;">Отмена</button>
-                    <button class="btn btn-danger" @click="sendEmergency" :disabled="isSaving" style="flex: 1;">📢 Разослать</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW: SLOTS & SETTINGS ==================== -->
-        <div v-if="viewStep === 'slots'" class="modal">
-            <h2 style="text-align:center;">{{ formatDateFull(activeDate) }}</h2>
-            <div v-if="isLoadingSlots" style="text-align:center; margin-top:20px;">Загрузка...</div>
-            <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест</div>
-            <div v-else class="slots-grid"><div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div></div>
-            <div class="bottom-panel"><button class="btn btn-secondary" @click="viewStep = 'grid'">Закрыть</button></div>
-        </div>
-
-        <div v-if="viewStep === 'settings'" class="modal">
-            <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
-            <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
             <div class="form-row">
-                <div class="form-group"><div class="form-label">Начало</div><select v-model="startTime" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
-                <div class="form-group"><div class="form-label">Конец</div><select v-model="endTime" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
+                <div class="form-group">
+                    <select v-model="newService.duration" class="input-box">
+                        <option :value="30">30 мин</option><option :value="60">1 час</option><option :value="90">1.5 часа</option><option :value="120">2 часа</option>
+                    </select>
+                </div>
+                <div class="form-group"><input type="text" v-model="newService.price" placeholder="Цена" class="input-box"></div>
             </div>
-            <div class="form-row"><div class="form-group"><div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15" class="input-box"></div></div>
-            <hr style="border:0; border-top:1px solid #E5E7EB; margin: 20px 0;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-weight:700;">Перерывы</span><button class="btn btn-secondary" @click="addBreak" style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button></div>
-            <div v-for="(brk, index) in breaks" :key="index" class="break-row">
-                <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
-                <div class="form-row" style="margin-bottom:0;"><select v-model="brk.start" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select><span>-</span><select v-model="brk.end" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
-            </div>
-            <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="saveSchedule" :disabled="isSaving">Сохранить</button></div></div>
+            <button class="btn" @click="manageService('create')" :disabled="!newService.title">Добавить</button>
+        </div>
+        <div class="bottom-panel" v-if="!isClientView"><button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button></div>
+    </div>
+
+    <!-- 3. ЭКРАН КАЛЕНДАРЯ (ВОТ ЧТО ПРОПАЛО) -->
+    <div v-else-if="viewStep === 'grid'">
+        <!-- Плашка выбранной услуги (только для клиента) -->
+        <div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:10px; border-radius:12px; margin-bottom:15px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+            <span>⏱ <b>{{ selectedServiceDuration }} мин</b> (изменить)</span><span>✏️</span>
         </div>
 
+        <!-- Навигация -->
+        <div class="calendar-nav">
+            <div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div>
+            <span class="month-name">{{ currentMonthName }}</span>
+            <div class="nav-arrow" @click="changeMonth(1)">&#9654;</div>
+        </div>
+
+        <!-- Сетка дней -->
+        <div class="cal-grid">
+            <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
+            <div v-for="n in firstDayOffset" :key="'e'+n"></div>
+            <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
+                <span class="day-num">{{ date }}</span>
+                <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
+                <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
+            </div>
+        </div>
+
+        <!-- Нижняя панель -->
+        <div class="bottom-panel">
+            <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
+            <div v-else-if="editMode" class="panel-actions" style="display: flex; gap: 8px;">
+                <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0" style="flex: 2;">⚙️ График ({{ selectedDates.length }})</button>
+                <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0" style="flex: 1; font-size: 20px;">🆘</button>
+                <button class="btn btn-secondary" @click="toggleEditMode" style="flex: 1;">✖</button>
+            </div>
+            <div v-else-if="shareMode" class="panel-actions">
+                <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
+                <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">Отмена</button>
+            </div>
+            <div v-else class="panel-actions">
+                <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
+                <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
+                <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+            </div>
+        </div>
     </div>
+
+    <!-- 4. ЭКРАН ПОДТВЕРЖДЕНИЯ (ДЛЯ КНОПКИ В ЧАТЕ) -->
+    <div v-else-if="mode === 'confirm'">
+        <h2>Визиты за сегодня</h2>
+        <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
+        <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
+        <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
+            <div class="visit-header"><div class="visit-time">{{ formatTime(visit.appointment_time) }}</div><div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div></div>
+            <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
+            <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
+            <div class="status-row">
+                <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
+                <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="setConfirmed(visit)">✅ Пришел</div>
+                <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Нет</div>
+            </div>
+            <div v-if="visit.visit_status === 'confirmed'" class="retention-box">
+                <div class="ret-label">Когда позвать снова?</div>
+                <div class="ret-controls">
+                    <select v-model="visit.next_reminder_days" class="ret-select">
+                        <option :value="21">Через 3 недели</option><option :value="28">Через 4 недели</option><option :value="45">Через 1.5 мес</option><option :value="60">Через 2 мес</option><option :value="180">Через полгода</option><option :value="270">Через 9 мес</option><option :value="365">Через год</option><option :value="0">Не напоминать</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
+    </div>
+
+    <!-- 5. МОДАЛКИ (SOS, SLOTS, SETTINGS) -->
+    
+    <div v-if="viewStep === 'emergency'" class="modal">
+        <h2>🆘 Форс-мажор</h2>
+        <p style="font-size:14px; color:#666; margin-bottom:20px;">
+            Выбрано дней: <b>{{ selectedDates.length }}</b>.<br>
+            Мы отправим уведомления всем клиентам, у которых есть запись в эти дни.
+        </p>
+        <div class="reason-chip" :class="{selected: emergencyReason === 'sick'}" @click="emergencyReason = 'sick'">🤒 Я заболела</div>
+        <div class="reason-chip" :class="{selected: emergencyReason === 'tech'}" @click="emergencyReason = 'tech'">💡 Технические причины</div>
+        <div class="reason-chip" :class="{selected: emergencyReason === 'family'}" @click="emergencyReason = 'family'">🏠 Семейные обстоятельства</div>
+        <div class="reason-chip" :class="{selected: emergencyReason === 'custom'}" @click="emergencyReason = 'custom'">✏️ Свой текст</div>
+        <div v-if="emergencyReason === 'custom'" style="margin-top:10px;">
+            <textarea v-model="emergencyCustomText" class="input-box" style="height:80px; line-height:1.2; padding:10px; text-align:left;" placeholder="Напишите причину..."></textarea>
+        </div>
+        <div class="bottom-panel">
+            <div class="panel-actions" style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" @click="viewStep = 'grid'" style="flex: 1;">Отмена</button>
+                <button class="btn btn-danger" @click="sendEmergency" :disabled="isSaving" style="flex: 1;">📢 Разослать</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="viewStep === 'slots'" class="modal">
+        <h2 style="text-align:center;">{{ formatDateFull(activeDate) }}</h2>
+        <div v-if="isLoadingSlots" style="text-align:center; margin-top:20px;">Загрузка...</div>
+        <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест</div>
+        <div v-else class="slots-grid"><div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div></div>
+        <div class="bottom-panel"><button class="btn btn-secondary" @click="viewStep = 'grid'">Закрыть</button></div>
+    </div>
+
+    <div v-if="viewStep === 'settings'" class="modal">
+        <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
+        <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
+        <div class="form-row">
+            <div class="form-group"><div class="form-label">Начало</div><select v-model="startTime" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
+            <div class="form-group"><div class="form-label">Конец</div><select v-model="endTime" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
+        </div>
+        <div class="form-row"><div class="form-group"><div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15" class="input-box"></div></div>
+        <hr style="border:0; border-top:1px solid #E5E7EB; margin: 20px 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-weight:700;">Перерывы</span><button class="btn btn-secondary" @click="addBreak" style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button></div>
+        <div v-for="(brk, index) in breaks" :key="index" class="break-row">
+            <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
+            <div class="form-row" style="margin-bottom:0;"><select v-model="brk.start" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select><span>-</span><select v-model="brk.end" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
+        </div>
+        <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="saveSchedule" :disabled="isSaving">Сохранить</button></div></div>
+    </div>
+
+</div>
 
     <script>
         const { createApp } = Vue;

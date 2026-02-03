@@ -609,7 +609,7 @@
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
-                loadSchedule() {
+               loadSchedule() {
     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
         .then(res => res.json())
         .then(data => {
@@ -617,19 +617,24 @@
             
             const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
             
-            // Очищаем и заполняем заново
-            this.dbData = {}; 
+            // Создаем ВРЕМЕННЫЙ объект
+            const newData = {};
             
             scheduleList.forEach(row => {
                 let brk = [];
                 try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                // Сохраняем в объект по дате
-                this.dbData[row.work_date] = { 
+                
+                // Заполняем временный объект
+                newData[row.work_date] = { 
                     start: row.start_time, 
                     end: row.end_time, 
                     breaks: brk 
                 };
             });
+            
+            // ПРИСВАИВАЕМ ЦЕЛИКОМ (Это триггерит реактивность Vue)
+            this.dbData = newData;
+            
             this.fetchSlotsAvailability();
         })
         .catch(err => console.error('Load schedule error:', err));

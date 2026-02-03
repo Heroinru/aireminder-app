@@ -568,7 +568,33 @@
                 toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
                 toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
                 toggleColumn(colIndex) { if((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if(this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x!==k); else this.selectedDates.push(k); } } },
-                goToSettings() { if(this.isClientView) return; const date = this.selectedDates[0]; const data = this.dbData[date]; if(data) { this.startTime = data.start || '10:00'; this.endTime = data.end || '20:00'; this.breaks = data.breaks ? JSON.parse(JSON.stringify(data.breaks)) : []; } else { this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = []; } this.viewStep = 'settings'; },
+               goToSettings() {
+    if (this.isClientView) return;
+    
+    // Берем первую выбранную дату
+    const date = this.selectedDates[0];
+    
+    // Ищем данные в памяти
+    const data = this.dbData[date];
+    
+    console.log('Настройка для даты:', date, 'Найдено:', data); // Для отладки
+
+    if (data) {
+        // Если данные есть — подставляем их
+        // Важно: если start === null, значит выходной, ставим дефолт для удобства включения
+        this.startTime = data.start || '10:00';
+        this.endTime = data.end || '20:00';
+        // Копируем перерывы (глубокая копия, чтобы не менять сразу в базе)
+        this.breaks = data.breaks ? JSON.parse(JSON.stringify(data.breaks)) : [];
+    } else {
+        // Если данных нет — ставим стандартные
+        this.startTime = '10:00';
+        this.endTime = '20:00';
+        this.breaks = [];
+    }
+    
+    this.viewStep = 'settings';
+},
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },
                 sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
                 isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; return k < today; },
@@ -583,7 +609,31 @@
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
-                loadSchedule() { fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`).then(res => res.json()).then(data => { if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration); const scheduleList = Array.isArray(data) ? data : (data.schedule || []); scheduleList.forEach(row => { let brk = []; try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { } this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk }; }); this.fetchSlotsAvailability(); }).catch(err => console.error('Load schedule error:', err)); }
+                loadSchedule() {
+    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+            
+            const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
+            
+            // Очищаем и заполняем заново
+            this.dbData = {}; 
+            
+            scheduleList.forEach(row => {
+                let brk = [];
+                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
+                // Сохраняем в объект по дате
+                this.dbData[row.work_date] = { 
+                    start: row.start_time, 
+                    end: row.end_time, 
+                    breaks: brk 
+                };
+            });
+            this.fetchSlotsAvailability();
+        })
+        .catch(err => console.error('Load schedule error:', err));
+}
             }
         }).mount('#app');
     </script>

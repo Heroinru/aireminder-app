@@ -83,35 +83,34 @@
             margin-bottom: 20px; cursor: pointer;
         }
 
-      /* INPUTS & SELECTS */
-.input-box {
-    background: white;
-    border: 1px solid #E5E7EB;
-    border-radius: var(--radius);
-    padding: 0 14px; /* Убираем вертикальный паддинг, задаем высоту */
-    height: 50px;    /* Фиксированная высота */
-    line-height: 50px; /* Центровка текста */
-    font-size: 16px; 
-    font-weight: 700;
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-    color: var(--text-main);
-    outline: none;
-    -webkit-appearance: none; /* Убираем нативные стили iOS */
-    appearance: none;
-}
+        /* INPUTS & SELECTS */
+        .input-box {
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: var(--radius);
+            padding: 0 14px;
+            height: 50px;
+            line-height: 50px;
+            font-size: 16px; 
+            font-weight: 700;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+            color: var(--text-main);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
 
-/* СТРЕЛОЧКА ДЛЯ SELECT */
-select.input-box {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 1.2em;
-    padding-right: 40px; /* Место под стрелку */
-}
+        select.input-box {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2em;
+            padding-right: 40px;
+        }
 
-        /* SERVICE CARDS (NEW) */
+        /* SERVICE CARDS */
         .service-list { margin-bottom: 20px; }
         .service-card {
             background: white; padding: 16px;
@@ -205,6 +204,32 @@ select.input-box {
         .status-opt.active-confirmed { background: var(--success); color: white; }
         .status-opt.active-noshow { background: var(--error); color: white; }
 
+        /* RETENTION BOX (NEW) */
+        .retention-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: #F0FDF4; /* Светло-зеленый фон */
+            border: 1px solid #BBF7D0;
+            border-radius: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ret-label { font-size: 11px; color: #15803D; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+        .ret-controls { display: flex; align-items: center; gap: 10px; }
+        .ret-select {
+            flex: 1;
+            background: white;
+            border: 1px solid #86EFAC;
+            color: #166534;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-family: var(--font);
+        }
+
         /* UPCOMING VISIT */
         .upcoming-visit-card {
             background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
@@ -244,7 +269,7 @@ select.input-box {
             <div class="brand-name">Remi</div>
         </div>
 
-        <!-- ==================== VIEW: SERVICES (NEW) ==================== -->
+        <!-- ==================== VIEW: SERVICES ==================== -->
         <div v-if="viewStep === 'services'">
             <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
             
@@ -263,7 +288,6 @@ select.input-box {
                     </div>
                     <div style="text-align:right;">
                         <div class="svc-price" v-if="svc.price">{{ svc.price }} ₽</div>
-                        <!-- Кнопка удаления только для мастера -->
                         <div v-if="!isClientView" 
                              @click.stop="manageService('delete', svc)" 
                              style="color:var(--error); font-size:12px; margin-top:5px; font-weight:700;">
@@ -278,7 +302,6 @@ select.input-box {
                 <h3>Добавить услугу</h3>
                 <div class="form-group">
                     <input type="text" v-model="newService.title" placeholder="Название (напр. Маникюр)" class="input-box" style="text-align:left; margin-bottom:10px;">
-                    <!-- Быстрые теги -->
                     <div class="chips-row">
                         <div class="chip" @click="newService.title='Маникюр'">💅 Маникюр</div>
                         <div class="chip" @click="newService.title='Педикюр'">🦶 Педикюр</div>
@@ -374,7 +397,7 @@ select.input-box {
                     <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
                     <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">Отмена</button>
                 </div>
-                <!-- МЕНЮ МАСТЕРА (ОБНОВЛЕНО) -->
+                <!-- МЕНЮ МАСТЕРА -->
                 <div v-else class="panel-actions">
                     <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
                     <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
@@ -383,24 +406,45 @@ select.input-box {
             </div>
         </div>
 
-        <!-- ==================== VIEW: CONFIRM ==================== -->
+        <!-- ==================== VIEW: CONFIRM (UPDATED) ==================== -->
         <div v-else-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
             <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
+            <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
+            
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header">
                     <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
                     <div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div>
                 </div>
                 <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
+                <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
+                
+                <!-- КНОПКИ СТАТУСА -->
                 <div class="status-row">
                     <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
-                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="visit.visit_status = 'confirmed'">Да</div>
-                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">Нет</div>
+                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="setConfirmed(visit)">✅ Пришел</div>
+                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Нет</div>
+                </div>
+
+                <!-- БЛОК НАПОМИНАНИЯ (RETENTION) -->
+                <div v-if="visit.visit_status === 'confirmed'" class="retention-box">
+                    <div class="ret-label">Когда позвать снова?</div>
+                    <div class="ret-controls">
+                        <select v-model="visit.next_reminder_days" class="ret-select">
+                            <option :value="21">Через 3 недели</option>
+                            <option :value="28">Через 4 недели</option>
+                            <option :value="45">Через 1.5 мес</option>
+                            <option :value="60">Через 2 мес</option>
+                            <option :value="180">Через полгода</option>
+                            <option :value="0">Не напоминать</option>
+                        </select>
+                    </div>
                 </div>
             </div>
+            
             <div class="bottom-panel" v-if="visits.length > 0">
-                <button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить</button>
+                <button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button>
             </div>
         </div>
 
@@ -506,7 +550,7 @@ select.input-box {
                     currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {},
-                    slotsAvailability: {}, // { "2025-01-24": true, ... }
+                    slotsAvailability: {}, 
                     timeOptions: TIMES_LIST,
                     nextVisit: null
                 }
@@ -518,74 +562,54 @@ select.input-box {
                 daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
-      mounted() {
+            mounted() {
                 console.log('=== APP START ===');
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const startParam = tg.initDataUnsafe?.start_param;
                     
-                    // 1. ОПРЕДЕЛЯЕМ КЛИЕНТА
                     if (tg.initDataUnsafe?.user?.id) {
                         this.clientId = tg.initDataUnsafe.user.id;
                     } else if (urlParams.get('client_id')) {
                         this.clientId = urlParams.get('client_id');
                     }
 
-                    // 2. РЕЖИМ STARTAPP (из Telegram кнопки)
                     let urlMode = urlParams.get('mode');
                     if (startParam) {
                         if (startParam.startsWith('client_')) {
-                            // Client link: client_<masterId>
                             urlMode = 'client';
                             const extractedId = startParam.replace('client_', '');
                             if (extractedId && extractedId !== 'undefined') {
                                 this.masterId = extractedId;
                             }
                         } else if (/^\d+$/.test(startParam)) {
-                            // Direct masterId (no prefix)
                             this.masterId = startParam;
                         }
                     }
 
-                    // 3. ОПРЕДЕЛЯЕМ МАСТЕРА (если еще не задан)
                     if (!this.masterId || this.masterId === 'undefined') {
                         const masterIdParam = urlParams.get('master_id');
                         if (masterIdParam && masterIdParam !== 'undefined') {
                             this.masterId = masterIdParam;
                         } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
-                            // Если я не клиент, значит я мастер и открыл свое приложение
                             const userId = tg.initDataUnsafe.user.id;
                             if (userId && userId !== 'undefined') {
                                 this.masterId = String(userId);
                             }
                         }
-
-                        // Фоллбэк для браузера
                         if (!this.masterId || this.masterId === 'undefined') {
                             this.masterId = '68559781';
                         }
                     }
 
-                    // Валидация: masterId обязателен для client mode
                     if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) {
                         this.safeAlert('Ошибка: не указан ID мастера. Получите новую ссылку.');
-                        console.error('[ERROR] masterId is missing in client mode');
                         return;
                     }
 
-                    // Final check: never allow "undefined" string
                     if (this.masterId === 'undefined') {
-                        console.error('[ERROR] masterId is "undefined" string, resetting to default');
                         this.masterId = '68559781';
                     }
-
-                    // 4. ЗАПУСК ЛОГИКИ
-                    console.log('[DEBUG] Init:', {
-                        urlMode,
-                        masterId: this.masterId,
-                        clientId: this.clientId,
-                        isClientView: this.isClientView
-                    });
 
                     if (urlMode === 'confirm') {
                         this.mode = 'confirm';
@@ -595,14 +619,11 @@ select.input-box {
                         this.mode = 'calendar';
                         this.isClientView = true;
                         this.loadSchedule();
-                        // АВТО-ЛОГИКА: Если есть услуги, идем туда
                         this.loadServices().then(() => {
                             if (this.services.length > 0) this.viewStep = 'services';
                         });
-                        // Грузим визит только если есть реальный ID
                         if (this.clientId) this.loadClientNextVisit();
                     } else {
-                        // Режим мастера (календарь)
                         this.mode = 'calendar';
                         this.loadSchedule();
                         this.loadServices(); 
@@ -615,21 +636,16 @@ select.input-box {
             },
         
             methods: {
-        
                 // --- SERVICES ---
-    loadServices() {
-    if (!this.masterId || this.masterId === 'undefined') {
-        return Promise.resolve([]);
-    }
-    // ДОБАВИЛИ: '&_t=' + Date.now() чтобы сбить кэш
-    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-    })
-    .then(res => res.json())
-    .then(data => {
-        this.services = Array.isArray(data) ? data : [];
-    }).catch(console.error);
-},
+                loadServices() {
+                    if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]);
+                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, {
+                        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+                    })
+                    .then(res => res.json())
+                    .then(data => { this.services = Array.isArray(data) ? data : []; })
+                    .catch(console.error);
+                },
                 manageService(action, service = null) {
                     const body = {
                         action: action,
@@ -646,18 +662,13 @@ select.input-box {
                 selectService(svc) {
                     if (!this.isClientView) return; 
                     this.selectedServiceDuration = parseInt(svc.duration);
-                    this.viewStep = 'grid'; // Переходим к календарю
-                    // Пересчитываем зеленые точки с учетом НОВОЙ длительности
+                    this.viewStep = 'grid'; 
                     this.fetchSlotsAvailability(); 
                 },
 
                 // --- CALENDAR & SLOTS ---
                 fetchSlotsAvailability() {
-                    // ЗАЩИТА: Если ID мастера нет, выходим
-    if (!this.masterId || this.masterId === 'undefined') {
-        console.warn('Skip fetchSlotsAvailability: masterId is missing');
-        return;
-    }
+                    if (!this.masterId || this.masterId === 'undefined') return;
                     this.slotsAvailability = {};
                     const dates = [];
                     for (let day = 1; day <= this.daysInMonth; day++) {
@@ -669,7 +680,7 @@ select.input-box {
                     if (dates.length === 0) return;
 
                     const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-                    const duration = this.selectedServiceDuration; // Передаем длительность
+                    const duration = this.selectedServiceDuration;
 
                     fetch(URLS.GET_SLOTS, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -686,9 +697,9 @@ select.input-box {
                 },
                 fetchSlotsForDate(dateStr) {
                     if (!this.masterId || this.masterId === 'undefined') {
-        this.safeAlert('Ошибка: не определен мастер');
-        return;
-    }
+                        this.safeAlert('Ошибка: не определен мастер');
+                        return;
+                    }
                     this.viewStep = 'slots';
                     this.currentSlots = [];
                     this.isLoadingSlots = true;
@@ -709,12 +720,10 @@ select.input-box {
                     .finally(() => this.isLoadingSlots = false);
                 },
 
-                // --- STANDARD METHODS ---
+                // --- SAVE SCHEDULE ---
                 saveSchedule() {
                     if (this.isSaving) return;
                     this.isSaving = true;
-
-                    // FIX: Отправляем null, а не '00:00'
                     const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
                     const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
 
@@ -750,6 +759,41 @@ select.input-box {
                         .finally(() => this.isSaving = false);
                 },
 
+                // --- RETENTION LOGIC (NEW) ---
+                setConfirmed(visit) {
+                    visit.visit_status = 'confirmed';
+                    // Если напоминание еще не установлено, ставим дефолт (например, 28 дней)
+                    if (!visit.next_reminder_days) {
+                        visit.next_reminder_days = 28; // 4 недели по стандарту
+                    }
+                },
+
+                saveVisits() {
+                    this.isSaving = true;
+                    // Собираем данные: ID, Статус + Дни до напоминания
+                    const updates = this.visits.map(v => ({ 
+                        event_id: v.event_id, 
+                        status: v.visit_status,
+                        next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null
+                    }));
+                    
+                    console.log('Sending updates:', updates);
+
+                    fetch(URLS.SAVE_VISITS, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ updates: updates }) 
+                    })
+                    .then(() => { 
+                        this.safeAlert('✅ Сохранено!'); 
+                        if(tg.close) tg.close(); 
+                    })
+                    .catch(err => { 
+                        this.safeAlert('Ошибка: ' + err); 
+                        this.isSaving = false; 
+                    });
+                },
+
                 // --- HELPERS ---
                 makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(); },
                 isDayOff(day) {
@@ -775,8 +819,6 @@ select.input-box {
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     this.fetchSlotsForDate(dateStr);
                 },
-                
-                // --- OLD HELPERS ---
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
                 toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
                 toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
@@ -792,29 +834,19 @@ select.input-box {
                         }
                     }
                 },
-               goToSettings() {
-    if(this.isClientView) return;
-    const date = this.selectedDates[0];
-    const data = this.dbData[date];
-    if(data) {
-        // Добавляем .slice(0, 5) чтобы из "10:00:00" получить "10:00"
-        this.startTime = (data.start || '10:00').slice(0, 5);
-        this.endTime = (data.end || '20:00').slice(0, 5);
-        
-        let processedBreaks = [];
-        if (data.breaks) {
-            const rawBreaks = typeof data.breaks === 'string' ? JSON.parse(data.breaks) : data.breaks;
-            processedBreaks = rawBreaks.map(b => ({
-                start: b.start.slice(0, 5),
-                end: b.end.slice(0, 5)
-            }));
-        }
-        this.breaks = processedBreaks;
-    } else {
-        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
-    }
-    this.viewStep = 'settings';
-},
+                goToSettings() {
+                    if(this.isClientView) return;
+                    const date = this.selectedDates[0];
+                    const data = this.dbData[date];
+                    if(data) {
+                        this.startTime = data.start || '10:00';
+                        this.endTime = data.end || '20:00';
+                        this.breaks = data.breaks ? JSON.parse(JSON.stringify(data.breaks)) : [];
+                    } else {
+                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                    }
+                    this.viewStep = 'settings';
+                },
                 loadClientNextVisit() {
                     if (!this.clientId) return;
                     fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`)
@@ -874,12 +906,6 @@ select.input-box {
                     if (diffDays === 1) return "Завтра";
                     return `через ${diffDays} дн.`;
                 },
-                cleanDate(isoStr) {
-                    if (!isoStr) return null;
-                    if (isoStr.length <= 24 && !isoStr.includes(isoStr.substring(0, 10), 10)) return new Date(isoStr);
-                    const match = isoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?)/);
-                    return match ? new Date(match[0]) : new Date(isoStr);
-                },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() {
@@ -891,62 +917,17 @@ select.input-box {
                         })
                         .finally(() => this.isLoading = false);
                 },
-
-                saveVisits() {
-                if (this.isSaving) return;
-                this.isSaving = true;
-                
-                // Собираем данные для отправки
-                const updates = this.visits.map(v => ({ 
-                    event_id: v.event_id, 
-                    status: v.visit_status 
-                }));
-
-                console.log('Saving visits:', updates);
-
-                fetch(URLS.SAVE_VISITS, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ updates: updates }) 
-                })
-                .then(res => {
-                    if (!res.ok) throw new Error('Ошибка сети');
-                    return res.text();
-                })
-                .then(() => { 
-                    this.safeAlert('✅ Статусы обновлены!'); 
-                    if (tg.close) tg.close(); 
-                })
-                .catch(err => { 
-                    this.safeAlert('Ошибка: ' + err); 
-                    this.isSaving = false; 
-                });
-            },
                 loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
                             const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
-                            
                             scheduleList.forEach(row => {
                                 let brk = [];
                                 try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                                
-                                // Чистим секунды и в перерывах тоже
-                                const cleanBreaks = brk.map(b => ({
-                                    start: b.start ? b.start.slice(0, 5) : '',
-                                    end: b.end ? b.end.slice(0, 5) : ''
-                                }));
-
-                                // ВОТ ПРАВИЛЬНОЕ МЕСТО (Внутри цикла):
-                                this.dbData[row.work_date] = { 
-                                    start: row.start_time ? row.start_time.slice(0, 5) : null, 
-                                    end: row.end_time ? row.end_time.slice(0, 5) : null, 
-                                    breaks: cleanBreaks 
-                                };
+                                this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
                             });
-                            
                             this.fetchSlotsAvailability();
                         })
                         .catch(err => console.error('Load schedule error:', err));

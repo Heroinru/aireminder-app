@@ -45,9 +45,9 @@
         }
 
         #app { 
-    padding: 16px; 
-    padding-bottom: 160px; /* Увеличили отступ снизу */
-}
+            padding: 16px; 
+            padding-bottom: 160px; /* Отступ для прокрутки над клавиатурой */
+        }
 
         /* HEADER */
         .brand-header {
@@ -79,24 +79,22 @@
             background: white; color: var(--text-main);
             box-shadow: var(--shadow); border: 1px solid #E5E7EB;
         }
+        
+        /* ИСПРАВЛЕННАЯ КНОПКА DANGER (высота как у остальных) */
         .btn-danger {
-    width: 100%; 
-    padding: 16px; /* Было 14px, теперь как у всех */
-    background: #FEF2F2;
-    color: #EF4444; 
-    border: 1px solid #FEE2E2;
-    border-radius: var(--radius); 
-    font-weight: 700;
-    cursor: pointer;
-    /* margin-bottom убрали, чтобы не ломать верстку в ряд */
-}
-        /* Вставь это после .btn-danger */
-.btn-warning {
-    background: #FFF7ED; 
-    color: #C2410C; 
-    border: 1px solid #FFEDD5;
-    font-weight: 800;
-}
+            width: 100%; 
+            padding: 16px; /* Было 14px */
+            background: #FEF2F2;
+            color: var(--error); 
+            border: 1px solid #FEE2E2;
+            border-radius: var(--radius); 
+            font-weight: 700;
+            cursor: pointer;
+        }
+        
+        .btn-warning {
+            background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; font-weight: 800;
+        }
 
         /* INPUTS & SELECTS */
         .input-box {
@@ -183,7 +181,7 @@
         }
         .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
 
-        /* PANELS */
+        /* PANELS & MODAL */
         .bottom-panel {
             position: fixed; bottom: 0; left: 0; right: 0;
             padding: 16px 20px 30px 20px; background: rgba(255, 255, 255, 0.95);
@@ -193,12 +191,12 @@
         .panel-actions { display: flex; gap: 10px; width: 100%; }
         
         .modal {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--bg-page); 
-    padding: 20px; 
-    padding-bottom: 160px; /* Добавили отступ для прокрутки над клавиатурой */
-    z-index: 200; overflow-y: auto;
-}
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-page); 
+            padding: 20px; 
+            padding-bottom: 160px; /* Отступ для прокрутки */
+            z-index: 200; overflow-y: auto;
+        }
         .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .slot-chip {
             background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;
@@ -355,11 +353,10 @@
             </div>
             <div class="bottom-panel">
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
-                <div v-else-if="editMode" class="panel-actions" style="flex-wrap: wrap;">
+                <div v-else-if="editMode" class="panel-actions" style="display: flex; gap: 8px;">
                     <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0" style="flex: 2;">⚙️ График ({{ selectedDates.length }})</button>
-                    <!-- КНОПКА ФОРС-МАЖОР -->
-                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0" style="flex: 1;">🆘</button>
-                    <button class="btn btn-secondary" @click="toggleEditMode" style="width: 100%;">Отмена</button>
+                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0" style="flex: 1; font-size: 20px;">🆘</button>
+                    <button class="btn btn-secondary" @click="toggleEditMode" style="flex: 1;">✖</button>
                 </div>
                 <div v-else-if="shareMode" class="panel-actions">
                     <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
@@ -399,38 +396,38 @@
             <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
         </div>
 
-        <!-- ==================== VIEW: EMERGENCY (NEW) ==================== -->
-<div v-if="viewStep === 'emergency'" class="modal">
-    <h2>🆘 Форс-мажор</h2>
-    <p style="font-size:14px; color:#666; margin-bottom:20px;">
-        Выбрано дней: <b>{{ selectedDates.length }}</b>.<br>
-        Мы отправим уведомления всем клиентам, у которых есть запись в эти дни.
-    </p>
+        <!-- ==================== VIEW: EMERGENCY ==================== -->
+        <div v-if="viewStep === 'emergency'" class="modal">
+            <h2>🆘 Форс-мажор</h2>
+            <p style="font-size:14px; color:#666; margin-bottom:20px;">
+                Выбрано дней: <b>{{ selectedDates.length }}</b>.<br>
+                Мы отправим уведомления всем клиентам, у которых есть запись в эти дни.
+            </p>
 
-    <div class="reason-chip" :class="{selected: emergencyReason === 'sick'}" @click="emergencyReason = 'sick'">
-        🤒 Я заболела
-    </div>
-    <div class="reason-chip" :class="{selected: emergencyReason === 'tech'}" @click="emergencyReason = 'tech'">
-        💡 Технические причины (свет/вода)
-    </div>
-    <div class="reason-chip" :class="{selected: emergencyReason === 'family'}" @click="emergencyReason = 'family'">
-        🏠 Семейные обстоятельства
-    </div>
-    <div class="reason-chip" :class="{selected: emergencyReason === 'custom'}" @click="emergencyReason = 'custom'">
-        ✏️ Свой текст
-    </div>
+            <div class="reason-chip" :class="{selected: emergencyReason === 'sick'}" @click="emergencyReason = 'sick'">
+                🤒 Я заболела
+            </div>
+            <div class="reason-chip" :class="{selected: emergencyReason === 'tech'}" @click="emergencyReason = 'tech'">
+                💡 Технические причины (свет/вода)
+            </div>
+            <div class="reason-chip" :class="{selected: emergencyReason === 'family'}" @click="emergencyReason = 'family'">
+                🏠 Семейные обстоятельства
+            </div>
+            <div class="reason-chip" :class="{selected: emergencyReason === 'custom'}" @click="emergencyReason = 'custom'">
+                ✏️ Свой текст
+            </div>
 
-    <div v-if="emergencyReason === 'custom'" style="margin-top:10px;">
-        <textarea v-model="emergencyCustomText" class="input-box" style="height:80px; line-height:1.2; padding:10px; text-align:left;" placeholder="Напишите причину..."></textarea>
-    </div>
+            <div v-if="emergencyReason === 'custom'" style="margin-top:10px;">
+                <textarea v-model="emergencyCustomText" class="input-box" style="height:80px; line-height:1.2; padding:10px; text-align:left;" placeholder="Напишите причину..."></textarea>
+            </div>
 
-    <div class="bottom-panel">
-        <div class="panel-actions" style="display: flex; gap: 10px;">
-            <button class="btn btn-secondary" @click="viewStep = 'grid'" style="flex: 1;">Отмена</button>
-            <button class="btn btn-danger" @click="sendEmergency" :disabled="isSaving" style="flex: 1;">📢 Разослать</button>
+            <div class="bottom-panel">
+                <div class="panel-actions" style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" @click="viewStep = 'grid'" style="flex: 1;">Отмена</button>
+                    <button class="btn btn-danger" @click="sendEmergency" :disabled="isSaving" style="flex: 1;">📢 Разослать</button>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
         <!-- ==================== VIEW: SLOTS & SETTINGS ==================== -->
         <div v-if="viewStep === 'slots'" class="modal">
@@ -482,7 +479,7 @@
             GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-dev`,
             GET_SERVICES: `${API_BASE}/get-services-dev`,     
             MANAGE_SERVICES: `${API_BASE}/manage-services-dev`,
-            EMERGENCY: `${API_BASE}/broadcast-emergency-dev` // NEW
+            EMERGENCY: `${API_BASE}/broadcast-emergency-dev`
         };
 
         const TIMES_LIST = Array.from({length: 96}, (_, i) => {
@@ -501,7 +498,6 @@
                     selectedDates: [], activeDate: null, currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
-                    // EMERGENCY DATA
                     emergencyReason: 'sick', emergencyCustomText: ''
                 }
             },
@@ -548,7 +544,6 @@
                 setConfirmed(visit) { visit.visit_status = 'confirmed'; if (!visit.next_reminder_days) visit.next_reminder_days = 28; },
                 saveVisits() { this.isSaving = true; const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null })); fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) }).then(() => { this.safeAlert('✅ Сохранено!'); if(tg.close) tg.close(); }).catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; }); },
                 
-                // --- EMERGENCY LOGIC ---
                 sendEmergency() {
                     if (this.isSaving) return;
                     this.isSaving = true;
@@ -579,33 +574,21 @@
                 toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
                 toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
                 toggleColumn(colIndex) { if((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if(this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x!==k); else this.selectedDates.push(k); } } },
-              goToSettings() {
-    if (this.isClientView) return;
-    
-    // Берем первую выбранную дату (например "2025-02-03")
-    const date = this.selectedDates[0];
-    
-    // Ищем данные в базе
-    const savedData = this.dbData[date];
-    
-    console.log('Настройка даты:', date, 'Данные:', savedData);
+                
+                goToSettings() {
+                    if (this.isClientView) return;
+                    const date = this.selectedDates[0];
+                    const savedData = this.dbData[date];
+                    if (savedData) {
+                        this.startTime = savedData.start || '10:00';
+                        this.endTime = savedData.end || '20:00';
+                        this.breaks = savedData.breaks ? JSON.parse(JSON.stringify(savedData.breaks)) : [];
+                    } else {
+                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                    }
+                    this.viewStep = 'settings';
+                },
 
-    if (savedData) {
-        // Если данные есть в базе — берем их
-        // Если start === null (выходной), ставим 10:00 для удобства
-        this.startTime = savedData.start || '10:00';
-        this.endTime = savedData.end || '20:00';
-        // Копируем перерывы
-        this.breaks = savedData.breaks ? JSON.parse(JSON.stringify(savedData.breaks)) : [];
-    } else {
-        // Если данных нет (чистый день) — ставим стандарт
-        this.startTime = '10:00';
-        this.endTime = '20:00';
-        this.breaks = [];
-    }
-    
-    this.viewStep = 'settings';
-},
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },
                 sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
                 isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; return k < today; },
@@ -620,51 +603,24 @@
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
-               loadSchedule() {
-    console.log('Загружаю график...');
-    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
-        .then(res => res.json())
-        .then(data => {
-            console.log('График получен:', data); // Для проверки в консоли
-            
-            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-            
-            // Берем массив расписания (поддержка разных форматов ответа)
-            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
-            
-            // Создаем НОВЫЙ объект
-            const newData = {};
-            
-            scheduleList.forEach(row => {
-                let brk = [];
-                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
                 
-                // Ключ - дата (2025-02-03)
-                newData[row.work_date] = { 
-                    start: row.start_time, 
-                    end: row.end_time, 
-                    breaks: brk 
-                };
-            });
-            
-            // ЖЕСТКОЕ ОБНОВЛЕНИЕ ДАННЫХ
-            this.dbData = newData;
-            
-            this.fetchSlotsAvailability();
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки графика:', err);
-            this.safeAlert('Не удалось загрузить график');
-        });
-},
-            
-            // ПРИСВАИВАЕМ ЦЕЛИКОМ (Это триггерит реактивность Vue)
-            this.dbData = newData;
-            
-            this.fetchSlotsAvailability();
-        })
-        .catch(err => console.error('Load schedule error:', err));
-}
+                loadSchedule() {
+                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
+                            const newData = {};
+                            scheduleList.forEach(row => {
+                                let brk = [];
+                                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
+                                newData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                            });
+                            this.dbData = newData;
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => console.error('Load schedule error:', err));
+                }
             }
         }).mount('#app');
     </script>

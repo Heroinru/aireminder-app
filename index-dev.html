@@ -597,18 +597,29 @@
                 toggleColumn(colIndex) { if((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if(this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x!==k); else this.selectedDates.push(k); } } },
                 
                 goToSettings() {
-                    if (this.isClientView) return;
-                    const date = this.selectedDates[0];
-                    const savedData = this.dbData[date];
-                    if (savedData) {
-                        this.startTime = savedData.start || '10:00';
-                        this.endTime = savedData.end || '20:00';
-                        this.breaks = savedData.breaks ? JSON.parse(JSON.stringify(savedData.breaks)) : [];
-                    } else {
-                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
-                    }
-                    this.viewStep = 'settings';
-                },
+    if (this.isClientView || this.selectedDates.length === 0) return;
+    
+    // Берем самую первую из выбранных дат
+    const date = this.selectedDates[0];
+    const found = this.dbData[date];
+    
+    console.log("Ищу настройки для:", date);
+    console.log("Найдено в базе:", found);
+
+    if (found) {
+        // Если в базе 'null' или пустая строка - это выходной, но для формы ставим 10:00
+        this.startTime = (found.start && found.start !== 'null') ? found.start.slice(0, 5) : '10:00';
+        this.endTime = (found.end && found.end !== 'null') ? found.end.slice(0, 5) : '20:00';
+        this.breaks = JSON.parse(JSON.stringify(found.breaks || []));
+    } else {
+        // Если данных нет совсем
+        this.startTime = '10:00';
+        this.endTime = '20:00';
+        this.breaks = [];
+    }
+    
+    this.viewStep = 'settings';
+},
 
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },
                 sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
@@ -632,23 +643,30 @@
             if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
             
             const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
-            const newData = {}; // Создаем новый объект для реактивности
+            const newData = {}; 
             
             scheduleList.forEach(row => {
-                let brk = [];
-                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                
-                // ВАЖНО: Обрезаем дату, чтобы она совпадала с ключами календаря
                 if (row.work_date) {
-                    const dateKey = row.work_date.split('T')[0];
-                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
+                    // ОЧИСТКА ДАТЫ: берем только YYYY-MM-DD, убираем время и пробелы
+                    const dateKey = row.work_date.split('T')[0].trim();
+                    
+                    let brk = [];
+                    try { 
+                        brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); 
+                    } catch (e) { brk = []; }
+                    
+                    newData[dateKey] = { 
+                        start: row.start_time, 
+                        end: row.end_time, 
+                        breaks: brk 
+                    };
                 }
             });
             
-            this.dbData = newData; // Обновляем данные целиком
+            this.dbData = newData; 
             this.fetchSlotsAvailability();
         })
-        .catch(err => console.error('Load schedule error:', err));
+        .catch(err => console.error('Ошибка загрузки:', err));
 }
             }
         }).mount('#app');

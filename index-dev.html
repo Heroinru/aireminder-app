@@ -530,7 +530,7 @@
                     if (this.masterId === 'undefined') this.masterId = '68559781';
 
                     if (urlMode === 'confirm') { this.mode = 'confirm'; this.viewStep = 'confirm'; this.loadVisits(); }
-                    else if (urlMode === 'client') { this.mode = 'calendar'; this.isClientView = true; this.loadSchedule(); this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); if (this.clientId) this.loadClientNextVisit(); }
+                    else if (urlMode === 'client') { this.mode = 'calendar'; this.isClientView = true; this.(); this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); if (this.clientId) this.loadClientNextVisit(); }
                     else { this.mode = 'calendar'; this.loadSchedule(); this.loadServices(); }
                 } catch (err) { alert('Ошибка запуска: ' + err.message); }
             },
@@ -646,7 +646,7 @@
             this.fetchSlotsAvailability();
         })
         .catch(err => console.error('Load schedule error:', err));
-}
+},
             }
         }).mount('#app');
     </script>

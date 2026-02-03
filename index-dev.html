@@ -535,63 +535,146 @@
                 } catch (err) { alert('Ошибка запуска: ' + err.message); }
             },
             methods: {
-                loadServices() { if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]); return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }).then(res => res.json()).then(data => { this.services = Array.isArray(data) ? data : []; }).catch(console.error); },
-                manageService(action, service = null) { const body = { action: action, master_id: this.masterId, ... (action === 'create' ? this.newService : { service_id: service.service_id }) }; fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(res => res.json()).then(() => { this.loadServices(); if (action === 'create') this.newService = { title: '', duration: 60, price: '' }; }).catch(err => this.safeAlert('Ошибка: ' + err)); },
-                selectService(svc) { if (!this.isClientView) return; this.selectedServiceDuration = parseInt(svc.duration); this.viewStep = 'grid'; this.fetchSlotsAvailability(); },
-                fetchSlotsAvailability() { if (!this.masterId || this.masterId === 'undefined') return; this.slotsAvailability = {}; const dates = []; for (let day = 1; day <= this.daysInMonth; day++) { const dateStr = this.formatDateKey(day); if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr); } if (dates.length === 0) return; const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null; const duration = this.selectedServiceDuration; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId, duration: duration }) }).then(res => res.json()).then(data => { const map = data.slots_by_date || data; Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; }); }).catch(e => console.error('Slots avail err:', e)); },
-                fetchSlotsForDate(dateStr) { if (!this.masterId || this.masterId === 'undefined') { this.safeAlert('Ошибка: не определен мастер'); return; } this.viewStep = 'slots'; this.currentSlots = []; this.isLoadingSlots = true; const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null; const duration = this.selectedServiceDuration; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: [dateStr], client_id: clientId, duration: duration }) }).then(res => res.json()).then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; }).catch(err => this.safeAlert('Ошибка: ' + err)).finally(() => this.isLoadingSlots = false); },
-                saveSchedule() { if (this.isSaving) return; this.isSaving = true; const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime; const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime; const payload = { master_id: this.masterId, dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration }; fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(res => { if(!res.ok) throw new Error('Ошибка сервера'); return res.text(); }).then(() => { this.safeAlert('Сохранено!'); this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; }); this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false; this.fetchSlotsAvailability(); }).catch(err => this.safeAlert('Ошибка сохранения: ' + err.message)).finally(() => this.isSaving = false); },
-                setConfirmed(visit) { visit.visit_status = 'confirmed'; if (!visit.next_reminder_days) visit.next_reminder_days = 28; },
-                saveVisits() { this.isSaving = true; const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null })); fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) }).then(() => { this.safeAlert('✅ Сохранено!'); if(tg.close) tg.close(); }).catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; }); },
+                loadServices() {
+                    if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]);
+                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
+                        .then(res => res.json())
+                        .then(data => { this.services = Array.isArray(data) ? data : []; })
+                        .catch(console.error);
+                },
                 
-               sendEmergency() {
-    if (this.isSaving) return;
-    this.isSaving = true;
-    
-    const payload = {
-        master_id: this.masterId,
-        dates: this.selectedDates,
-        reason: this.emergencyReason,
-        custom_text: this.emergencyCustomText
-    };
+                manageService(action, service = null) {
+                    const body = { action: action, master_id: this.masterId, ... (action === 'create' ? this.newService : { service_id: service.service_id }) };
+                    fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                        .then(res => res.json())
+                        .then(() => { this.loadServices(); if (action === 'create') this.newService = { title: '', duration: 60, price: '' }; })
+                        .catch(err => this.safeAlert('Ошибка: ' + err));
+                },
+                
+                selectService(svc) {
+                    if (!this.isClientView) return;
+                    this.selectedServiceDuration = parseInt(svc.duration);
+                    this.viewStep = 'grid';
+                    this.fetchSlotsAvailability();
+                },
+                
+                fetchSlotsAvailability() {
+                    if (!this.masterId || this.masterId === 'undefined') return;
+                    this.slotsAvailability = {};
+                    const dates = [];
+                    for (let day = 1; day <= this.daysInMonth; day++) {
+                        const dateStr = this.formatDateKey(day);
+                        if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr);
+                    }
+                    if (dates.length === 0) return;
+                    const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+                    const duration = this.selectedServiceDuration;
+                    fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId, duration: duration }) })
+                        .then(res => res.json())
+                        .then(data => {
+                            const map = data.slots_by_date || data;
+                            Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
+                        })
+                        .catch(e => console.error('Slots avail err:', e));
+                },
+                
+                fetchSlotsForDate(dateStr) {
+                    if (!this.masterId || this.masterId === 'undefined') { this.safeAlert('Ошибка: не определен мастер'); return; }
+                    this.viewStep = 'slots';
+                    this.currentSlots = [];
+                    this.isLoadingSlots = true;
+                    const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+                    const duration = this.selectedServiceDuration;
+                    fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: [dateStr], client_id: clientId, duration: duration }) })
+                        .then(res => res.json())
+                        .then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; })
+                        .catch(err => this.safeAlert('Ошибка: ' + err))
+                        .finally(() => this.isLoadingSlots = false);
+                },
+                
+                saveSchedule() {
+                    if (this.isSaving) return;
+                    this.isSaving = true;
+                    const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
+                    const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
+                    const payload = { master_id: this.masterId, dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration };
+                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                        .then(res => { if (!res.ok) throw new Error('Ошибка сервера'); return res.text(); })
+                        .then(() => {
+                            this.safeAlert('Сохранено!');
+                            this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
+                            this.selectedDates = [];
+                            this.viewStep = 'grid';
+                            this.editMode = false;
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => this.safeAlert('Ошибка сохранения: ' + err.message))
+                        .finally(() => this.isSaving = false);
+                },
+                
+                setConfirmed(visit) {
+                    visit.visit_status = 'confirmed';
+                    if (!visit.next_reminder_days) visit.next_reminder_days = 28;
+                },
+                
+                saveVisits() {
+                    this.isSaving = true;
+                    const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
+                    fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
+                        .then(() => { this.safeAlert('✅ Сохранено!'); if (tg.close) tg.close(); })
+                        .catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
+                },
 
-    fetch(URLS.EMERGENCY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-    .then(res => {
-        // Если N8n ничего не вернул (значит клиентов 0 и воркфлоу остановился), считаем это успехом с 0 клиентов
-        if (res.status === 200 && res.headers.get('content-length') === '0') {
-            return { success: true, count: 0 };
-        }
-        return res.json();
-    })
-    .then(data => {
-        // Исправляем "неизвестно". Если count пришел, показываем его, иначе 0
-        const count = (data.count !== undefined) ? data.count : 0;
-        
-        this.safeAlert(`✅ Рассылка завершена!\nНайдено клиентов: ${count}`);
-        this.selectedDates = [];
-        this.viewStep = 'grid';
-        this.editMode = false;
-    })
-    .catch(err => {
-        // Если произошла ошибка парсинга (SyntaxError), скорее всего это тоже 0 клиентов
-        console.warn(err);
-        this.safeAlert('✅ Рассылка завершена!\n(Клиентов на эти даты не найдено)');
-        this.selectedDates = [];
-        this.viewStep = 'grid';
-        this.editMode = false;
-    })
-    .finally(() => this.isSaving = false);
-},
+                sendEmergency() {
+                    if (this.isSaving) return;
+                    this.isSaving = true;
+                    const payload = { master_id: this.masterId, dates: this.selectedDates, reason: this.emergencyReason, custom_text: this.emergencyCustomText };
+                    fetch(URLS.EMERGENCY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                        .then(res => {
+                            if (res.status === 200 && res.headers.get('content-length') === '0') return { success: true, count: 0 };
+                            return res.json();
+                        })
+                        .then(data => {
+                            const count = (data.count !== undefined) ? data.count : 0;
+                            this.safeAlert(`✅ Рассылка завершена!\nНайдено клиентов: ${count}`);
+                            this.selectedDates = [];
+                            this.viewStep = 'grid';
+                            this.editMode = false;
+                        })
+                        .catch(err => {
+                            console.warn(err);
+                            this.safeAlert('✅ Рассылка завершена!\n(Клиентов на эти даты не найдено)');
+                            this.selectedDates = [];
+                            this.viewStep = 'grid';
+                            this.editMode = false;
+                        })
+                        .finally(() => this.isSaving = false);
+                },
 
                 makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(); },
                 isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
-                formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; },
+                formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
                 changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); this.fetchSlotsAvailability(); },
-                onDayClick(day) { const dateStr = this.formatDateKey(day); if (this.isClientView) { this.activeDate = new Date(this.currentYear, this.currentMonth, day); this.fetchSlotsForDate(dateStr); return; } if (this.editMode || this.shareMode) { const idx = this.selectedDates.indexOf(dateStr); if (idx === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(idx, 1); return; } this.activeDate = new Date(this.currentYear, this.currentMonth, day); this.fetchSlotsForDate(dateStr); },
+                
+                onDayClick(day) {
+                    const dateStr = this.formatDateKey(day);
+                    if (this.isClientView) { this.activeDate = new Date(this.currentYear, this.currentMonth, day); this.fetchSlotsForDate(dateStr); return; }
+                    if (this.editMode || this.shareMode) { const idx = this.selectedDates.indexOf(dateStr); if (idx === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(idx, 1); return; }
+                    this.activeDate = new Date(this.currentYear, this.currentMonth, day); this.fetchSlotsForDate(dateStr);
+                },
+                
                 isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
-                toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
-                toggleColumn(colIndex) { if((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if(this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x!==k); else this.selectedDates.push(k); } } },
+                toggleEditMode() { if (this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
+                toggleShareMode() { if (this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
+                
+                toggleColumn(colIndex) {
+                    if ((!this.editMode && !this.shareMode) || this.isClientView) return;
+                    for (let d = 1; d <= this.daysInMonth; d++) {
+                        let date = new Date(this.currentYear, this.currentMonth, d);
+                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
+                        if (myDay === colIndex) { const k = this.formatDateKey(d); if (this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x !== k); else this.selectedDates.push(k); }
+                    }
+                },
                 
                 goToSettings() {
                     if (this.isClientView) return;
@@ -602,27 +685,29 @@
                         this.endTime = savedData.end || '20:00';
                         this.breaks = savedData.breaks ? JSON.parse(JSON.stringify(savedData.breaks)) : [];
                     } else {
-                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                        this.startTime = '10:00';
+                        this.endTime = '20:00';
+                        this.breaks = [];
                     }
                     this.viewStep = 'settings';
                 },
-
+                
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },
                 sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
-                isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; return k < today; },
+                isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },
                 hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
                 hasBreaks(day) { const data = this.dbData[this.formatDateKey(day)]; return data && data.breaks && data.breaks.length > 0; },
                 getWorkTimes(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data || !data.start || !data.end) return { start: '', end: '' }; return { start: data.start.slice(0, 5), end: data.end.slice(0, 5) }; },
-                safeAlert(msg) { try { if(tg.showAlert) tg.showAlert(msg); else alert(msg); } catch(e){alert(msg);} },
-                formatTime(iso) { if(!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}); },
-                formatDatePretty(iso) { if(!iso) return ''; return new Date(iso).toLocaleDateString('ru-RU', {day:'numeric', month:'long'}); },
-                formatDateFull(date) { if(!date) return ''; return date.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'}); },
+                safeAlert(msg) { try { if (tg.showAlert) tg.showAlert(msg); else alert(msg); } catch (e) { alert(msg); } },
+                formatTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); },
+                formatDatePretty(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); },
+                formatDateFull(date) { if (!date) return ''; return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); },
                 getDaysUntil(dateStr) { const target = new Date(dateStr); const today = new Date(); const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate()); const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const diffTime = targetDate - todayDate; const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); if (diffDays === 0) return "Сегодня"; if (diffDays === 1) return "Завтра"; return `через ${diffDays} дн.`; },
                 addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
                 
-loadSchedule() {
+                loadSchedule() {
                     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
                         .then(res => res.json())
                         .then(data => {
@@ -632,7 +717,10 @@ loadSchedule() {
                             scheduleList.forEach(row => {
                                 let brk = [];
                                 try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                                newData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
+                                if (row.work_date) {
+                                    const dateKey = row.work_date.split('T')[0];
+                                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
+                                }
                             });
                             this.dbData = newData;
                             this.fetchSlotsAvailability();

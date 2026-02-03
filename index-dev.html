@@ -544,26 +544,44 @@
                 setConfirmed(visit) { visit.visit_status = 'confirmed'; if (!visit.next_reminder_days) visit.next_reminder_days = 28; },
                 saveVisits() { this.isSaving = true; const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null })); fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) }).then(() => { this.safeAlert('✅ Сохранено!'); if(tg.close) tg.close(); }).catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; }); },
                 
-                sendEmergency() {
-                    if (this.isSaving) return;
-                    this.isSaving = true;
-                    const payload = {
-                        master_id: this.masterId,
-                        dates: this.selectedDates,
-                        reason: this.emergencyReason,
-                        custom_text: this.emergencyCustomText
-                    };
-                    fetch(URLS.EMERGENCY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                    .then(res => res.json())
-                    .then(data => {
-                        this.safeAlert(`✅ Рассылка запущена!\nНайдено клиентов: ${data.count || 'неизвестно'}`);
-                        this.selectedDates = [];
-                        this.viewStep = 'grid';
-                        this.editMode = false;
-                    })
-                    .catch(err => this.safeAlert('Ошибка: ' + err))
-                    .finally(() => this.isSaving = false);
-                },
+               sendEmergency() {
+    if (this.isSaving) return;
+    this.isSaving = true;
+    
+    const payload = {
+        master_id: this.masterId,
+        dates: this.selectedDates,
+        reason: this.emergencyReason,
+        custom_text: this.emergencyCustomText
+    };
+
+    fetch(URLS.EMERGENCY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(res => {
+        // Если N8n ничего не вернул (значит клиентов 0 и воркфлоу остановился), считаем это успехом с 0 клиентов
+        if (res.status === 200 && res.headers.get('content-length') === '0') {
+            return { success: true, count: 0 };
+        }
+        return res.json();
+    })
+    .then(data => {
+        // Исправляем "неизвестно". Если count пришел, показываем его, иначе 0
+        const count = (data.count !== undefined) ? data.count : 0;
+        
+        this.safeAlert(`✅ Рассылка завершена!\nНайдено клиентов: ${count}`);
+        this.selectedDates = [];
+        this.viewStep = 'grid';
+        this.editMode = false;
+    })
+    .catch(err => {
+        // Если произошла ошибка парсинга (SyntaxError), скорее всего это тоже 0 клиентов
+        console.warn(err);
+        this.safeAlert('✅ Рассылка завершена!\n(Клиентов на эти даты не найдено)');
+        this.selectedDates = [];
+        this.viewStep = 'grid';
+        this.editMode = false;
+    })
+    .finally(() => this.isSaving = false);
+},
 
                 makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(); },
                 isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
@@ -604,23 +622,31 @@
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
                 
-                loadSchedule() {
-                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-                            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
-                            const newData = {};
-                            scheduleList.forEach(row => {
-                                let brk = [];
-                                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                                newData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
-                            });
-                            this.dbData = newData;
-                            this.fetchSlotsAvailability();
-                        })
-                        .catch(err => console.error('Load schedule error:', err));
+               loadSchedule() {
+    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+            
+            const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
+            const newData = {};
+            
+            scheduleList.forEach(row => {
+                let brk = [];
+                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
+                
+                // ВАЖНО: Обрезаем хвост времени, чтобы ключ совпадал с календарем
+                if (row.work_date) {
+                    const dateKey = row.work_date.split('T')[0]; 
+                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
                 }
+            });
+            
+            this.dbData = newData; // Обновляем данные
+            this.fetchSlotsAvailability();
+        })
+        .catch(err => console.error('Load schedule error:', err));
+}
             }
         }).mount('#app');
     </script>

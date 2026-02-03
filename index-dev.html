@@ -622,7 +622,7 @@
                 removeBreak(index) { this.breaks.splice(index, 1); },
                 loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
                 
-               loadSchedule() {
+loadSchedule() {
     fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
         .then(res => res.json())
         .then(data => {
@@ -646,7 +646,7 @@
             this.fetchSlotsAvailability();
         })
         .catch(err => console.error('Load schedule error:', err));
-},
+}
             }
         }).mount('#app');
     </script>

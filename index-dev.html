@@ -350,11 +350,14 @@
     </div>
 
     <!-- 3. ЭКРАН КАЛЕНДАРЯ (ВОТ ЧТО ПРОПАЛО) -->
-    <div v-else-if="viewStep === 'grid'">
-        <!-- Плашка выбранной услуги (только для клиента) -->
-        <div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:10px; border-radius:12px; margin-bottom:15px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
-            <span>⏱ <b>{{ selectedServiceDuration }} мин</b> (изменить)</span><span>✏️</span>
-        </div>
+   <!-- Плашка выбранной услуги (ОБНОВЛЕННАЯ) -->
+<div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:12px; border-radius:12px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+    <div style="display:flex; flex-direction:column;">
+        <span style="font-weight:800; font-size:15px; color:var(--text-main);">{{ selectedServiceTitle }}</span>
+        <span style="font-size:13px; color:var(--text-muted); margin-top:2px;">⏱ {{ selectedServiceDuration }} мин • <span style="text-decoration:underline;">изменить</span></span>
+    </div>
+    <span style="font-size:18px;">✏️</span>
+</div>
 
         <!-- Навигация -->
         <div class="calendar-nav">
@@ -505,7 +508,7 @@
             data() {
                 return {
                     clientId: null, mode: 'calendar', viewStep: 'grid', editMode: false, shareMode: false, masterId: null, isClientView: false,
-                    services: [], selectedServiceDuration: null, newService: { title: '', duration: 60, price: '' },
+                    services: [], selectedServiceDuration: null, selectedServiceTitle: '', newService: { title: '', duration: 60, price: '' },
                     visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
                     selectedDates: [], activeDate: null, currentSlots: [],
@@ -550,7 +553,7 @@
             methods: {
                 loadServices() { if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]); return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } }).then(res => res.json()).then(data => { this.services = Array.isArray(data) ? data : []; }).catch(console.error); },
                 manageService(action, service = null) { const body = { action: action, master_id: this.masterId, ... (action === 'create' ? this.newService : { service_id: service.service_id }) }; fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(res => res.json()).then(() => { this.loadServices(); if (action === 'create') this.newService = { title: '', duration: 60, price: '' }; }).catch(err => this.safeAlert('Ошибка: ' + err)); },
-                selectService(svc) { if (!this.isClientView) return; this.selectedServiceDuration = parseInt(svc.duration); this.viewStep = 'grid'; this.fetchSlotsAvailability(); },
+                selectService(svc) { if (!this.isClientView) return; this.selectedServiceDuration = parseInt(svc.duration); this.selectedServiceTitle = svc.title; this.viewStep = 'grid'; this.fetchSlotsAvailability(); },
                 fetchSlotsAvailability() { if (!this.masterId || this.masterId === 'undefined') return; this.slotsAvailability = {}; const dates = []; for (let day = 1; day <= this.daysInMonth; day++) { const dateStr = this.formatDateKey(day); if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr); } if (dates.length === 0) return; const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null; const duration = this.selectedServiceDuration; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId, duration: duration }) }).then(res => res.json()).then(data => { const map = data.slots_by_date || data; Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; }); }).catch(e => console.error('Slots avail err:', e)); },
                 fetchSlotsForDate(dateStr) { if (!this.masterId || this.masterId === 'undefined') { this.safeAlert('Ошибка: не определен мастер'); return; } this.viewStep = 'slots'; this.currentSlots = []; this.isLoadingSlots = true; const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null; const duration = this.selectedServiceDuration; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: [dateStr], client_id: clientId, duration: duration }) }).then(res => res.json()).then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; }).catch(err => this.safeAlert('Ошибка: ' + err)).finally(() => this.isLoadingSlots = false); },
                 saveSchedule() { if (this.isSaving) return; this.isSaving = true; const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime; const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime; const payload = { master_id: this.masterId, dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration }; fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(res => { if(!res.ok) throw new Error('Ошибка сервера'); return res.text(); }).then(() => { this.safeAlert('Сохранено!'); this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; }); this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false; this.fetchSlotsAvailability(); }).catch(err => this.safeAlert('Ошибка сохранения: ' + err.message)).finally(() => this.isSaving = false); },

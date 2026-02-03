@@ -1,942 +1,309 @@
-<!DOCTYPE html>
-<html lang="ru">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Remi AI</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
-    <!-- FONTS -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-    <style>
-        [v-cloak] { display: none !important; }
-
-        :root {
-            --bg-page: #FFF9F5;
-            --bg-card: #FFFFFF;
-            --primary: #FF9478;
-            --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
-            --text-main: #2E1065;
-            --text-muted: #9CA3AF;
-            --success: #10B981;
-            --error: #EF4444;
-            --radius: 16px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            --font: 'Manrope', sans-serif;
-            
-            --day-bg-work: #FFFFFF;
-            --day-bg-off: #E5E7EB;
-            --day-bg-available: #D1FAE5;
-            --day-bg-past: #F3F4F6;
+{
+  "name": "C6 DEV - Emergency",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "broadcast-emergency-dev",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
         }
-
-        body {
-            font-family: var(--font);
-            background-color: var(--bg-page);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        240
+      ],
+      "id": "webhook-trigger",
+      "name": "Webhook (POST)"
+    },
+    {
+      "parameters": {
+        "httpMethod": "OPTIONS",
+        "path": "broadcast-emergency-dev",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
         }
-
-        #app { padding: 16px; padding-bottom: 100px; }
-
-        /* HEADER */
-        .brand-header {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 20px; padding-bottom: 10px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        440
+      ],
+      "id": "webhook-options",
+      "name": "Webhook (OPTIONS)"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
         }
-        .logo-box {
-            width: 32px; height: 32px;
-            background: var(--primary); color: white;
-            font-weight: 800; font-size: 20px;
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            transform: rotate(3deg);
-        }
-        .brand-name { font-size: 18px; font-weight: 800; }
-
-        h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
-
-        /* BUTTONS */
-        .btn {
-            width: 100%; padding: 16px; border: none;
-            border-radius: var(--radius); background: var(--primary-grad);
-            color: white; font-size: 16px; font-weight: 700;
-            cursor: pointer; box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
-        }
-        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; }
-        .btn-secondary {
-            background: white; color: var(--text-main);
-            box-shadow: var(--shadow); border: 1px solid #E5E7EB;
-        }
-        .btn-danger {
-            width: 100%; padding: 14px; background: #FEF2F2;
-            color: var(--error); border: 1px solid #FEE2E2;
-            border-radius: var(--radius); font-weight: 700;
-            margin-bottom: 20px; cursor: pointer;
-        }
-
-        /* INPUTS & SELECTS */
-        .input-box {
-            background: white;
-            border: 1px solid #E5E7EB;
-            border-radius: var(--radius);
-            padding: 0 14px;
-            height: 50px;
-            line-height: 50px;
-            font-size: 16px; 
-            font-weight: 700;
-            width: 100%;
-            box-sizing: border-box;
-            text-align: center;
-            color: var(--text-main);
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        select.input-box {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.2em;
-            padding-right: 40px;
-        }
-
-        /* SERVICE CARDS */
-        .service-list { margin-bottom: 20px; }
-        .service-card {
-            background: white; padding: 16px;
-            border-radius: var(--radius); margin-bottom: 12px;
-            box-shadow: var(--shadow); border: 1px solid transparent;
-            display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .service-card:active { transform: scale(0.98); }
-        .service-card.is-active { border-color: var(--primary); background: #FFF9F5; }
-        .svc-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
-        .svc-meta { font-size: 13px; color: var(--text-muted); font-weight: 600; }
-        .svc-price { font-weight: 700; color: var(--primary); font-size: 15px; }
-        
-        .chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; }
-        .chip {
-            background: #F3F4F6; padding: 8px 12px; border-radius: 20px;
-            font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer;
-        }
-
-        /* CALENDAR */
-        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .month-name { font-size: 18px; font-weight: 800; text-transform: capitalize; }
-        .nav-arrow {
-            width: 36px; height: 36px; background: white; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: var(--shadow); color: var(--primary); font-size: 18px; cursor: pointer;
-        }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; margin-bottom: 20px; }
-        .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; }
-        
-        .day-cell {
-            aspect-ratio: 1/1.3; background: var(--day-bg-work);
-            border-radius: 12px; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 4px 2px;
-            position: relative; border: 1px solid transparent;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; cursor: pointer;
-        }
-        .day-num { font-size: 13px; font-weight: 700; color: var(--text-main); margin-left: 3px; margin-top: 2px; }
-        .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-bottom: 3px; }
-        .time-txt { font-size: 9px; font-weight: 800; color: var(--text-main); line-height: 1; }
-        .coffee-icon { position: absolute; top: 4px; right: 4px; font-size: 12px; line-height: 1; }
-
-        .day-cell.is-past { background: var(--day-bg-past); box-shadow: none; opacity: 0.6; }
-        .day-cell.is-past .day-num { color: #BDC3C7; }
-        .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; border-color: transparent; }
-        .day-cell.is-off .day-num { color: #9CA3AF; }
-        .day-cell.has-slots { background: var(--day-bg-available); border: 1px solid #34D399; }
-        .day-cell.has-slots .time-txt { color: #065F46; }
-        
-        .day-cell.is-selected {
-            background: var(--primary); border-color: var(--primary);
-            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
-            transform: translateY(-2px); z-index: 2;
-        }
-        .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
-
-        /* PANELS */
-        .bottom-panel {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 16px 20px 30px 20px; background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px); border-top: 1px solid rgba(0, 0, 0, 0.05);
-            z-index: 100; display: flex; flex-direction: column; gap: 10px;
-        }
-        .panel-actions { display: flex; gap: 10px; width: 100%; }
-        
-        .modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-page); padding: 20px; z-index: 200; overflow-y: auto;
-        }
-        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .slot-chip {
-            background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;
-            padding: 12px; border-radius: 12px; text-align: center; font-weight: 700;
-        }
-
-        /* VISIT CARD */
-        .visit-card {
-            background: white; padding: 16px;
-            border-radius: 16px; margin-bottom: 10px;
-            box-shadow: var(--shadow);
-        }
-        .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .visit-time { font-size: 22px; font-weight: 800; }
-        .status-row { display: flex; gap: 5px; margin-top: 10px; }
-        .status-opt {
-            flex: 1; text-align: center; padding: 10px 0; border-radius: 8px;
-            background: #f3f4f6; font-size: 16px; font-weight: 700; color: #666; cursor: pointer;
-        }
-        .status-opt.active-pending { background: white; color: black; border: 1px solid #ddd; }
-        .status-opt.active-confirmed { background: var(--success); color: white; }
-        .status-opt.active-noshow { background: var(--error); color: white; }
-
-        /* RETENTION BOX (NEW) */
-        .retention-box {
-            margin-top: 12px;
-            padding: 12px;
-            background: #F0FDF4; /* Светло-зеленый фон */
-            border: 1px solid #BBF7D0;
-            border-radius: 12px;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .ret-label { font-size: 11px; color: #15803D; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
-        .ret-controls { display: flex; align-items: center; gap: 10px; }
-        .ret-select {
-            flex: 1;
-            background: white;
-            border: 1px solid #86EFAC;
-            color: #166534;
-            font-weight: 700;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            outline: none;
-            font-family: var(--font);
-        }
-
-        /* UPCOMING VISIT */
-        .upcoming-visit-card {
-            background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
-            border: 1px solid #FFDCC2; border-radius: var(--radius);
-            padding: 16px; margin-bottom: 20px; display: flex; align-items: center;
-            gap: 16px; position: relative; box-shadow: 0 4px 15px rgba(255, 148, 120, 0.08); overflow: hidden;
-        }
-        .visit-badge-top {
-            position: absolute; top: 0; right: 0; background: #FFDCC2; color: #E66E50;
-            font-size: 10px; font-weight: 800; padding: 4px 12px; border-bottom-left-radius: 12px; text-transform: uppercase;
-        }
-        .visit-date-box {
-            background: var(--primary-grad); color: white; min-width: 65px; height: 65px;
-            border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .v-day { font-size: 24px; font-weight: 800; line-height: 1; }
-        .v-month { font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.9; }
-        .visit-info { flex: 1; }
-        .visit-label { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
-        .visit-service { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; line-height: 1.2; }
-        .visit-time-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #6B7280; }
-        .visit-timer { font-size: 12px; font-weight: 700; background: rgba(255, 255, 255, 0.8); padding: 2px 8px; border-radius: 20px; border: 1px solid #FFDCC2; color: #E66E50; }
-
-        .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
-        .form-group { flex: 1; }
-        .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        .break-row { background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
-        .break-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
-    </style>
-</head>
-
-<body>
-
-    <div id="app" v-cloak>
-        <div class="brand-header">
-            <div class="logo-box">R</div>
-            <div class="brand-name">Remi</div>
-        </div>
-
-        <!-- ==================== VIEW: SERVICES ==================== -->
-        <div v-if="viewStep === 'services'">
-            <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
-            
-            <div v-if="services.length === 0" style="text-align:center; color:#999; margin-top:40px;">
-                Пока нет услуг. {{ isClientView ? 'Свяжитесь с мастером.' : 'Добавьте первую!' }}
-            </div>
-
-            <!-- СПИСОК УСЛУГ -->
-            <div class="service-list">
-                <div v-for="svc in services" :key="svc.service_id" 
-                     class="service-card" 
-                     @click="selectService(svc)">
-                    <div>
-                        <div class="svc-title">{{ svc.title }}</div>
-                        <div class="svc-meta">⏱ {{ svc.duration }} мин</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="svc-price" v-if="svc.price">{{ svc.price }} ₽</div>
-                        <div v-if="!isClientView" 
-                             @click.stop="manageService('delete', svc)" 
-                             style="color:var(--error); font-size:12px; margin-top:5px; font-weight:700;">
-                             Удалить
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ИНТЕРФЕЙС МАСТЕРА -->
-            <div v-if="!isClientView" style="margin-top: 30px;">
-                <h3>Добавить услугу</h3>
-                <div class="form-group">
-                    <input type="text" v-model="newService.title" placeholder="Название (напр. Маникюр)" class="input-box" style="text-align:left; margin-bottom:10px;">
-                    <div class="chips-row">
-                        <div class="chip" @click="newService.title='Маникюр'">💅 Маникюр</div>
-                        <div class="chip" @click="newService.title='Педикюр'">🦶 Педикюр</div>
-                        <div class="chip" @click="newService.title='Ресницы'">👁 Ресницы</div>
-                        <div class="chip" @click="newService.title='Брови'">🤨 Брови</div>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <select v-model="newService.duration" class="input-box">
-                            <option :value="30">30 мин</option>
-                            <option :value="60">1 час</option>
-                            <option :value="90">1.5 часа</option>
-                            <option :value="120">2 часа</option>
-                            <option :value="150">2.5 часа</option>
-                            <option :value="180">3 часа</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <input type="text" v-model="newService.price" placeholder="Цена" class="input-box">
-                    </div>
-                </div>
-                <button class="btn" @click="manageService('create')" :disabled="!newService.title">Добавить</button>
-            </div>
-
-            <div class="bottom-panel" v-if="!isClientView">
-                <button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW: CALENDAR ==================== -->
-        <div v-else-if="viewStep === 'grid'">
-            
-            <!-- Выбранная услуга (для клиента) -->
-            <div v-if="isClientView && selectedServiceDuration" 
-                 @click="viewStep = 'services'"
-                 style="background:#F3F4F6; padding:10px; border-radius:12px; margin-bottom:15px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
-                <span>⏱ <b>{{ selectedServiceDuration }} мин</b> (изменить)</span>
-                <span>✏️</span>
-            </div>
-
-            <!-- БЛИЖАЙШАЯ ЗАПИСЬ (Только для клиента) -->
-            <div v-if="nextVisit" class="upcoming-visit-card">
-                <div class="visit-badge-top">Ближайшая</div>
-                <div class="visit-date-box">
-                    <span class="v-day">{{ new Date(nextVisit.appointment_time).getDate() }}</span>
-                    <span class="v-month">{{ new Date(nextVisit.appointment_time).toLocaleString('ru', { month: 'short' }).replace('.', '') }}</span>
-                </div>
-                <div class="visit-info">
-                    <div class="visit-label">
-                        <span>Ваша запись</span>
-                        <span class="visit-timer">{{ getDaysUntil(nextVisit.appointment_time) }}</span>
-                    </div>
-                    <div class="visit-service">{{ nextVisit.service_type }}</div>
-                    <div class="visit-time-row"><span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span></div>
-                </div>
-            </div>
-
-            <div class="calendar-nav">
-                <div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div>
-                <span class="month-name">{{ currentMonthName }}</span>
-                <div class="nav-arrow" @click="changeMonth(1)">&#9654;</div>
-            </div>
-
-            <div class="cal-grid">
-                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
-                <div v-for="n in firstDayOffset" :key="'e'+n"></div>
-                
-                <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{
-                        'is-selected': isSelected(date),
-                        'is-past': isPastDay(date) && !isSelected(date),
-                        'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date),
-                        'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date)
-                     }" @click="onDayClick(date)">
-                    <span class="day-num">{{ date }}</span>
-                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
-                    <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col">
-                        <span class="time-txt">{{ getWorkTimes(date).start }}</span>
-                        <span class="time-txt">{{ getWorkTimes(date).end }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bottom-panel">
-                <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
-                    👆 Выберите дату для записи
-                </div>
-                <div v-else-if="editMode" class="panel-actions">
-                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">⚙️ Настроить ({{ selectedDates.length }})</button>
-                    <button class="btn btn-secondary" @click="toggleEditMode" style="width: auto;">Отмена</button>
-                </div>
-                <div v-else-if="shareMode" class="panel-actions">
-                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
-                    <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">Отмена</button>
-                </div>
-                <!-- МЕНЮ МАСТЕРА -->
-                <div v-else class="panel-actions">
-                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
-                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
-                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW: CONFIRM (UPDATED) ==================== -->
-        <div v-else-if="mode === 'confirm'">
-            <h2>Визиты за сегодня</h2>
-            <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
-            <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
-            
-            <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
-                <div class="visit-header">
-                    <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
-                    <div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div>
-                </div>
-                <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
-                <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
-                
-                <!-- КНОПКИ СТАТУСА -->
-                <div class="status-row">
-                    <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
-                    <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="setConfirmed(visit)">✅ Пришел</div>
-                    <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Нет</div>
-                </div>
-
-                <!-- БЛОК НАПОМИНАНИЯ (RETENTION) -->
-                <div v-if="visit.visit_status === 'confirmed'" class="retention-box">
-                    <div class="ret-label">Когда позвать снова?</div>
-                    <div class="ret-controls">
-                        <select v-model="visit.next_reminder_days" class="ret-select">
-    <option :value="21">Через 3 недели</option>
-    <option :value="28">Через 4 недели</option>
-    <option :value="45">Через 1.5 мес</option>
-    <option :value="60">Через 2 мес</option>
-    <option :value="180">Через полгода</option>
-    <option :value="270">Через 9 мес</option> <!-- Новое -->
-    <option :value="365">Через год</option>   <!-- Новое -->
-    <option :value="0">Не напоминать</option>
-</select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bottom-panel" v-if="visits.length > 0">
-                <button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW: SLOTS ==================== -->
-        <div v-if="viewStep === 'slots'" class="modal">
-            <h2 style="text-align:center;">{{ formatDateFull(activeDate) }}</h2>
-            <div v-if="isLoadingSlots" style="text-align:center; margin-top:20px;">Загрузка...</div>
-            <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест</div>
-            <div v-else class="slots-grid">
-                <div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div>
-            </div>
-            <div class="bottom-panel">
-                <button class="btn btn-secondary" @click="viewStep = 'grid'">Закрыть</button>
-            </div>
-        </div>
-
-        <!-- ==================== VIEW: SETTINGS ==================== -->
-        <div v-if="viewStep === 'settings'" class="modal">
-            <h2>Настройка ({{ selectedDates.length }} дн.)</h2>
-            <button class="btn-danger" @click="makeDayOff">🏖 Сделать выходным</button>
-            <div class="form-row">
-                <div class="form-group"><div class="form-label">Начало</div><select v-model="startTime" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
-                <div class="form-group"><div class="form-label">Конец</div><select v-model="endTime" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><div class="form-label">Слот (мин)</div><input type="number" v-model="slotDuration" step="15" class="input-box"></div>
-            </div>
-            <hr style="border:0; border-top:1px solid #E5E7EB; margin: 20px 0;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <span style="font-weight:700;">Перерывы</span>
-                <button class="btn btn-secondary" @click="addBreak" style="width:auto; padding:8px 12px; font-size:12px;">+ Добавить</button>
-            </div>
-            <div v-for="(brk, index) in breaks" :key="index" class="break-row">
-                <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
-                <div class="form-row" style="margin-bottom:0;">
-                    <select v-model="brk.start" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select>
-                    <span>-</span>
-                    <select v-model="brk.end" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select>
-                </div>
-            </div>
-            <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="saveSchedule" :disabled="isSaving">Сохранить</button></div></div>
-        </div>
-
-    </div>
-
-    <script>
-        const { createApp } = Vue;
-        
-        let tg = { initDataUnsafe: {} };
-        try {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                tg.ready(); 
-                tg.expand();
-                try {
-                    if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5');
-                    if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5');
-                } catch(e) {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -160,
+        440
+      ],
+      "id": "respond-options",
+      "name": "Respond CORS"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "TDjBATMyPrPl9SkA",
+          "mode": "list",
+          "cachedResultName": "appointment_reminders_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/TDjBATMyPrPl9SkA"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "master_ref_id",
+              "keyValue": "={{ $json.body.master_id }}"
+            },
+            {
+              "keyName": "visit_status",
+              "operator": "notEqual",
+              "keyValue": "cancelled"
             }
-        } catch(e) { console.warn('TG init error:', e); }
-
-        const API_BASE = 'https://aireminder.ru/webhook';
-        const URLS = {
-            GET_SCHEDULE: `${API_BASE}/get-schedule-dev`,
-            SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
-            GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
-            GET_VISITS: `${API_BASE}/get-visits-dev`,
-            SAVE_VISITS: `${API_BASE}/save-visits-dev`,
-            GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-dev`,
-            GET_SERVICES: `${API_BASE}/get-services-dev`,     
-            MANAGE_SERVICES: `${API_BASE}/manage-services-dev`
-        };
-
-        const TIMES_LIST = Array.from({length: 96}, (_, i) => {
-            const h = Math.floor(i / 4).toString().padStart(2, '0');
-            const m = ((i % 4) * 15).toString().padStart(2, '0');
-            return `${h}:${m}`;
-        });
-
-        createApp({
-            data() {
-                return {
-                    clientId: null,
-                    mode: 'calendar',
-                    viewStep: 'grid',
-                    editMode: false,
-                    shareMode: false,
-                    masterId: null,
-                    isClientView: false,
-                    
-                    // Services Data
-                    services: [],
-                    selectedServiceDuration: null,
-                    newService: { title: '', duration: 60, price: '' },
-
-                    // Calendar Data
-                    visits: [],
-                    isLoading: false, isSaving: false, isLoadingSlots: false,
-                    currentDate: new Date(),
-                    weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-                    selectedDates: [],
-                    activeDate: null,
-                    currentSlots: [],
-                    startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
-                    dbData: {},
-                    slotsAvailability: {}, 
-                    timeOptions: TIMES_LIST,
-                    nextVisit: null
-                }
-            },
-            computed: {
-                currentYear() { return this.currentDate.getFullYear(); },
-                currentMonth() { return this.currentDate.getMonth(); },
-                currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
-                daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
-                firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
-            },
-            mounted() {
-                console.log('=== APP START ===');
-                try {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const startParam = tg.initDataUnsafe?.start_param;
-                    
-                    if (tg.initDataUnsafe?.user?.id) {
-                        this.clientId = tg.initDataUnsafe.user.id;
-                    } else if (urlParams.get('client_id')) {
-                        this.clientId = urlParams.get('client_id');
-                    }
-
-                    let urlMode = urlParams.get('mode');
-                    if (startParam) {
-                        if (startParam.startsWith('client_')) {
-                            urlMode = 'client';
-                            const extractedId = startParam.replace('client_', '');
-                            if (extractedId && extractedId !== 'undefined') {
-                                this.masterId = extractedId;
-                            }
-                        } else if (/^\d+$/.test(startParam)) {
-                            this.masterId = startParam;
-                        }
-                    }
-
-                    if (!this.masterId || this.masterId === 'undefined') {
-                        const masterIdParam = urlParams.get('master_id');
-                        if (masterIdParam && masterIdParam !== 'undefined') {
-                            this.masterId = masterIdParam;
-                        } else if (!this.clientId && tg.initDataUnsafe?.user?.id) {
-                            const userId = tg.initDataUnsafe.user.id;
-                            if (userId && userId !== 'undefined') {
-                                this.masterId = String(userId);
-                            }
-                        }
-                        if (!this.masterId || this.masterId === 'undefined') {
-                            this.masterId = '68559781';
-                        }
-                    }
-
-                    if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) {
-                        this.safeAlert('Ошибка: не указан ID мастера. Получите новую ссылку.');
-                        return;
-                    }
-
-                    if (this.masterId === 'undefined') {
-                        this.masterId = '68559781';
-                    }
-
-                    if (urlMode === 'confirm') {
-                        this.mode = 'confirm';
-                        this.viewStep = 'confirm'; 
-                        this.loadVisits();
-                    } else if (urlMode === 'client') {
-                        this.mode = 'calendar';
-                        this.isClientView = true;
-                        this.loadSchedule();
-                        this.loadServices().then(() => {
-                            if (this.services.length > 0) this.viewStep = 'services';
-                        });
-                        if (this.clientId) this.loadClientNextVisit();
-                    } else {
-                        this.mode = 'calendar';
-                        this.loadSchedule();
-                        this.loadServices(); 
-                    }
-
-                } catch (err) {
-                    console.error('Init Error:', err);
-                    alert('Ошибка запуска: ' + err.message);
-                }
-            },
-        
-            methods: {
-                // --- SERVICES ---
-                loadServices() {
-                    if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]);
-                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, {
-                        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
-                    })
-                    .then(res => res.json())
-                    .then(data => { this.services = Array.isArray(data) ? data : []; })
-                    .catch(console.error);
-                },
-                manageService(action, service = null) {
-                    const body = {
-                        action: action,
-                        master_id: this.masterId,
-                        ... (action === 'create' ? this.newService : { service_id: service.service_id })
-                    };
-                    fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                    .then(res => res.json())
-                    .then(() => {
-                        this.loadServices();
-                        if (action === 'create') this.newService = { title: '', duration: 60, price: '' };
-                    }).catch(err => this.safeAlert('Ошибка: ' + err));
-                },
-                selectService(svc) {
-                    if (!this.isClientView) return; 
-                    this.selectedServiceDuration = parseInt(svc.duration);
-                    this.viewStep = 'grid'; 
-                    this.fetchSlotsAvailability(); 
-                },
-
-                // --- CALENDAR & SLOTS ---
-                fetchSlotsAvailability() {
-                    if (!this.masterId || this.masterId === 'undefined') return;
-                    this.slotsAvailability = {};
-                    const dates = [];
-                    for (let day = 1; day <= this.daysInMonth; day++) {
-                        const dateStr = this.formatDateKey(day);
-                        if (!this.isPastDay(day) && !this.isDayOff(day)) {
-                            dates.push(dateStr);
-                        }
-                    }
-                    if (dates.length === 0) return;
-
-                    const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-                    const duration = this.selectedServiceDuration;
-
-                    fetch(URLS.GET_SLOTS, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId, duration: duration })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        const map = data.slots_by_date || data; 
-                        Object.keys(map).forEach(key => {
-                            if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true;
-                        });
-                    })
-                    .catch(e => console.error('Slots avail err:', e));
-                },
-                fetchSlotsForDate(dateStr) {
-                    if (!this.masterId || this.masterId === 'undefined') {
-                        this.safeAlert('Ошибка: не определен мастер');
-                        return;
-                    }
-                    this.viewStep = 'slots';
-                    this.currentSlots = [];
-                    this.isLoadingSlots = true;
-                    
-                    const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-                    const duration = this.selectedServiceDuration;
-
-                    fetch(URLS.GET_SLOTS, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ master_id: this.masterId, dates: [dateStr], client_id: clientId, duration: duration })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        const map = data.slots_by_date || data;
-                        this.currentSlots = map[dateStr] || map.slots || [];
-                    })
-                    .catch(err => this.safeAlert('Ошибка: ' + err))
-                    .finally(() => this.isLoadingSlots = false);
-                },
-
-                // --- SAVE SCHEDULE ---
-                saveSchedule() {
-                    if (this.isSaving) return;
-                    this.isSaving = true;
-                    const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
-                    const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
-
-                    const payload = {
-                        master_id: this.masterId,
-                        dates: this.selectedDates,
-                        start: startToSend,
-                        end: endToSend,
-                        breaks: this.breaks,
-                        slot_duration: this.slotDuration
-                    };
-
-                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                        .then(res => {
-                            if(!res.ok) throw new Error('Ошибка сервера');
-                            return res.text();
-                        })
-                        .then(() => {
-                            this.safeAlert('Сохранено!');
-                            this.selectedDates.forEach(date => {
-                                this.dbData[date] = {
-                                    start: startToSend,
-                                    end: endToSend,
-                                    breaks: JSON.parse(JSON.stringify(this.breaks))
-                                };
-                            });
-                            this.selectedDates = [];
-                            this.viewStep = 'grid';
-                            this.editMode = false;
-                            this.fetchSlotsAvailability();
-                        })
-                        .catch(err => this.safeAlert('Ошибка сохранения: ' + err.message))
-                        .finally(() => this.isSaving = false);
-                },
-
-                // --- RETENTION LOGIC (NEW) ---
-                setConfirmed(visit) {
-                    visit.visit_status = 'confirmed';
-                    // Если напоминание еще не установлено, ставим дефолт (например, 28 дней)
-                    if (!visit.next_reminder_days) {
-                        visit.next_reminder_days = 28; // 4 недели по стандарту
-                    }
-                },
-
-                saveVisits() {
-                    this.isSaving = true;
-                    // Собираем данные: ID, Статус + Дни до напоминания
-                    const updates = this.visits.map(v => ({ 
-                        event_id: v.event_id, 
-                        status: v.visit_status,
-                        next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null
-                    }));
-                    
-                    console.log('Sending updates:', updates);
-
-                    fetch(URLS.SAVE_VISITS, { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ updates: updates }) 
-                    })
-                    .then(() => { 
-                        this.safeAlert('✅ Сохранено!'); 
-                        if(tg.close) tg.close(); 
-                    })
-                    .catch(err => { 
-                        this.safeAlert('Ошибка: ' + err); 
-                        this.isSaving = false; 
-                    });
-                },
-
-                // --- HELPERS ---
-                makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(); },
-                isDayOff(day) {
-                    const data = this.dbData[this.formatDateKey(day)];
-                    if (!data) return false;
-                    const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00');
-                    return isZero(data.start) || isZero(data.end);
-                },
-                formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; },
-                changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); this.fetchSlotsAvailability(); },
-                onDayClick(day) {
-                    const dateStr = this.formatDateKey(day);
-                    if (this.isClientView) {
-                        this.activeDate = new Date(this.currentYear, this.currentMonth, day);
-                        this.fetchSlotsForDate(dateStr);
-                        return;
-                    }
-                    if (this.editMode || this.shareMode) {
-                        const idx = this.selectedDates.indexOf(dateStr);
-                        if (idx === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(idx, 1);
-                        return;
-                    }
-                    this.activeDate = new Date(this.currentYear, this.currentMonth, day);
-                    this.fetchSlotsForDate(dateStr);
-                },
-                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                toggleEditMode() { if(this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
-                toggleShareMode() { if(this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
-                toggleColumn(colIndex) {
-                    if((!this.editMode && !this.shareMode) || this.isClientView) return;
-                    for (let d = 1; d <= this.daysInMonth; d++) {
-                        let date = new Date(this.currentYear, this.currentMonth, d);
-                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
-                        if (myDay === colIndex) {
-                            const k = this.formatDateKey(d);
-                            if(this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x!==k);
-                            else this.selectedDates.push(k);
-                        }
-                    }
-                },
-                goToSettings() {
-                    if(this.isClientView) return;
-                    const date = this.selectedDates[0];
-                    const data = this.dbData[date];
-                    if(data) {
-                        this.startTime = data.start || '10:00';
-                        this.endTime = data.end || '20:00';
-                        this.breaks = data.breaks ? JSON.parse(JSON.stringify(data.breaks)) : [];
-                    } else {
-                        this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
-                    }
-                    this.viewStep = 'settings';
-                },
-                loadClientNextVisit() {
-                    if (!this.clientId) return;
-                    fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (Array.isArray(data) && data.length > 0 && data[0].found !== false) {
-                                this.nextVisit = data[0];
-                            } else if (data && typeof data === 'object' && data.found === true) {
-                                this.nextVisit = data;
-                            }
-                        })
-                        .catch(err => console.error('Error loading client visit:', err));
-                },
-                sendSlotsToChat() {
-                    if (this.selectedDates.length === 0) return;
-                    fetch(URLS.GET_SLOTS, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            master_id: this.masterId,
-                            dates: this.selectedDates,
-                            source: 'chat'
-                        })
-                    })
-                        .then(() => {
-                            this.safeAlert('Окошки отправлены в чат!');
-                            this.selectedDates = [];
-                            this.shareMode = false;
-                        })
-                        .catch(err => this.safeAlert('Ошибка: ' + err.message));
-                },
-                isPastDay(day) {
-                    const k = this.formatDateKey(day);
-                    const t = new Date();
-                    const today = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-                    return k < today;
-                },
-                hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
-                hasBreaks(day) { const data = this.dbData[this.formatDateKey(day)]; return data && data.breaks && data.breaks.length > 0; },
-                getWorkTimes(day) {
-                    const data = this.dbData[this.formatDateKey(day)];
-                    if (!data || !data.start || !data.end) return { start: '', end: '' };
-                    return { start: data.start.slice(0, 5), end: data.end.slice(0, 5) };
-                },
-                safeAlert(msg) { try { if(tg.showAlert) tg.showAlert(msg); else alert(msg); } catch(e){alert(msg);} },
-                formatTime(iso) { if(!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}); },
-                formatDatePretty(iso) { if(!iso) return ''; return new Date(iso).toLocaleDateString('ru-RU', {day:'numeric', month:'long'}); },
-                formatDateFull(date) { if(!date) return ''; return date.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'}); },
-                getDaysUntil(dateStr) {
-                    const target = new Date(dateStr);
-                    const today = new Date();
-                    const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-                    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                    const diffTime = targetDate - todayDate;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays === 0) return "Сегодня";
-                    if (diffDays === 1) return "Завтра";
-                    return `через ${diffDays} дн.`;
-                },
-                addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
-                removeBreak(index) { this.breaks.splice(index, 1); },
-                loadVisits() {
-                    this.isLoading = true;
-                    fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' }));
-                        })
-                        .finally(() => this.isLoading = false);
-                },
-                loadSchedule() {
-                    fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-                            const scheduleList = Array.isArray(data) ? data : (data.schedule || []);
-                            scheduleList.forEach(row => {
-                                let brk = [];
-                                try { brk = row.breaks ? JSON.parse(row.breaks) : []; } catch (e) { }
-                                this.dbData[row.work_date] = { start: row.start_time, end: row.end_time, breaks: brk };
-                            });
-                            this.fetchSlotsAvailability();
-                        })
-                        .catch(err => console.error('Load schedule error:', err));
-                }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        240
+      ],
+      "id": "get-appointments",
+      "name": "Get Appointments"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Получаем даты из запроса\nconst targetDates = $('Webhook (POST)').item.json.body.dates || [];\n\n// Фильтруем записи\nreturn items.filter(item => {\n    const apptTime = item.json.appointment_time;\n    if (!apptTime) return false;\n    \n    // Берем только дату (YYYY-MM-DD)\n    const dateKey = apptTime.split('T')[0];\n    \n    // Проверяем, входит ли дата в список выбранных\n    return targetDates.includes(dateKey);\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        240
+      ],
+      "id": "filter-dates",
+      "name": "Filter by Dates"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "yixtx4eC9r1PFAYb",
+          "mode": "list",
+          "cachedResultName": "AireminderTest_DEV",
+          "cachedResultUrl": "/projects/gAYQfHCyBbbCUw5c/datatables/yixtx4eC9r1PFAYb"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "keyValue": "={{ $json.client_phone }}"
             }
-        }).mount('#app');
-    </script>
-</body>
-
-</html>
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        280,
+        240
+      ],
+      "id": "get-client",
+      "name": "Get Client Telegram"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "client_phone",
+              "field2": "phone"
+            }
+          ]
+        },
+        "joinMode": "enrichInput1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        500,
+        240
+      ],
+      "id": "merge-data",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "client_phone",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        720,
+        240
+      ],
+      "id": "remove-dups",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.telegram_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        240
+      ],
+      "id": "filter-has-id",
+      "name": "Has Telegram ID?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_id }}",
+        "text": "={{ (() => {\n    const reason = $('Webhook (POST)').item.json.body.reason;\n    const custom = $('Webhook (POST)').item.json.body.custom_text;\n    const name = $json.client_name || 'клиент';\n    \n    let msg = `Здравствуйте, ${name}! 🌸\\n\\n`;\n    \n    if (reason === 'sick') {\n        msg += 'К сожалению, я сильно заболела 🤒. Мне очень жаль, но я не смогу принять вас в ближайшие дни. Здоровье подвело в самый неподходящий момент.';\n    } else if (reason === 'tech') {\n        msg += 'У нас в студии произошел технический форс-мажор (проблемы со светом/водой) 💡. Работать в таких условиях невозможно.';\n    } else if (reason === 'family') {\n        msg += 'По семейным обстоятельствам я вынуждена срочно отменить записи на ближайшие дни 🏠. Приношу свои извинения!';\n    } else {\n        msg += custom;\n    }\n    \n    msg += '\\n\\nДавайте подберем для вас новое удобное время? 👇';\n    return msg;\n})() }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📅 Выбрать новое время",
+                    "additionalFields": {
+                      "web_app": {
+                        "url": "=https://heroinru.github.io/aireminder-app/index-dev.html?mode=client&master_id={{ $('Webhook (POST)').item.json.body.master_id }}"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        240
+      ],
+      "id": "send-telegram",
+      "name": "Send Message",
+      "credentials": {
+        "telegramApi": {
+          "id": "TOjnZmt1uhH2WhUD",
+          "name": "Telegram DEV"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"count\": {{ $input.all().length }}\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1380,
+        240
+      ],
+      "id": "respond-success",
+      "name": "Respond Success"
+    }
+  ]
+}

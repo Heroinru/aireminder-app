@@ -248,6 +248,7 @@
 
         /* UPCOMING VISIT */
         .upcoming-visit-card {
+            margin-top: 10px;
             background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
             border: 1px solid #FFDCC2; border-radius: var(--radius);
             padding: 16px; margin-bottom: 20px; display: flex; align-items: center;
@@ -293,6 +294,22 @@
             <div class="brand-name">Remi</div>
         </div>
 
+        <div v-if="nextVisit" class="upcoming-visit-card">
+    <div class="visit-badge-top">Ближайшая</div>
+    <div class="visit-date-box">
+        <span class="v-day">{{ new Date(nextVisit.appointment_time).getDate() }}</span>
+        <span class="v-month">{{ new Date(nextVisit.appointment_time).toLocaleString('ru', { month: 'short' }).replace('.', '') }}</span>
+    </div>
+    <div class="visit-info">
+        <div class="visit-label">
+            <span>Ваша запись</span>
+            <span class="visit-timer">{{ getDaysUntil(nextVisit.appointment_time) }}</span>
+        </div>
+        <div class="visit-service">{{ nextVisit.service_type }}</div>
+        <div class="visit-time-row"><span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span></div>
+    </div>
+</div>
+
         <!-- ==================== VIEW: SERVICES ==================== -->
         <div v-if="viewStep === 'services'">
             <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
@@ -336,21 +353,7 @@
             <div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:10px; border-radius:12px; margin-bottom:15px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
                 <span>⏱ <b>{{ selectedServiceDuration }} мин</b> (изменить)</span><span>✏️</span>
             </div>
-            <div v-if="nextVisit" class="upcoming-visit-card">
-                <div class="visit-badge-top">Ближайшая</div>
-                <div class="visit-date-box"><span class="v-day">{{ new Date(nextVisit.appointment_time).getDate() }}</span><span class="v-month">{{ new Date(nextVisit.appointment_time).toLocaleString('ru', { month: 'short' }).replace('.', '') }}</span></div>
-                <div class="visit-info"><div class="visit-label"><span>Ваша запись</span><span class="visit-timer">{{ getDaysUntil(nextVisit.appointment_time) }}</span></div><div class="visit-service">{{ nextVisit.service_type }}</div><div class="visit-time-row"><span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span></div></div>
-            </div>
-            <div class="calendar-nav"><div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div><span class="month-name">{{ currentMonthName }}</span><div class="nav-arrow" @click="changeMonth(1)">&#9654;</div></div>
-            <div class="cal-grid">
-                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
-                <div v-for="n in firstDayOffset" :key="'e'+n"></div>
-                <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
-                    <span class="day-num">{{ date }}</span>
-                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
-                    <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
-                </div>
-            </div>
+            
             <div class="bottom-panel">
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
                 <div v-else-if="editMode" class="panel-actions" style="display: flex; gap: 8px;">

@@ -654,6 +654,7 @@
 
                 bookSlot(time) {
     // 1. Формируем красивую дату
+                    if (!this.isClientView) return; 
     const dateOptions = { day: 'numeric', month: 'long', weekday: 'long' };
     const dateStr = this.activeDate.toLocaleDateString('ru-RU', dateOptions);
     

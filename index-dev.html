@@ -443,7 +443,15 @@
             <h2 style="text-align:center;">{{ formatDateFull(activeDate) }}</h2>
             <div v-if="isLoadingSlots" style="text-align:center; margin-top:20px;">Загрузка...</div>
             <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест</div>
-            <div v-else class="slots-grid"><div v-for="slot in currentSlots" :key="slot" class="slot-chip">{{ slot }}</div></div>
+            <div v-else class="slots-grid"><div 
+    v-for="slot in currentSlots" 
+    :key="slot" 
+    class="slot-chip" 
+    @click="bookSlot(slot)" 
+    style="cursor: pointer;"
+>
+    {{ slot }}
+</div></div>
             <div class="bottom-panel"><button class="btn btn-secondary" @click="viewStep = 'grid'">Закрыть</button></div>
         </div>
 
@@ -507,6 +515,7 @@
                     newService: { title: '', duration: 60, price: '' },
                     visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                    masterUsername: null, // <--- ДОБАВИТЬ ВОТ ЭТО
                     selectedDates: [], activeDate: null, currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
@@ -604,6 +613,38 @@
                         .catch(err => this.safeAlert('Ошибка: ' + err))
                         .finally(() => this.isLoadingSlots = false);
                 },
+
+                bookSlot(time) {
+    // 1. Формируем красивую дату
+    const dateOptions = { day: 'numeric', month: 'long', weekday: 'long' };
+    const dateStr = this.activeDate.toLocaleDateString('ru-RU', dateOptions);
+    
+    // 2. Формируем текст сообщения
+    const service = this.selectedServiceTitle || 'процедуру';
+    const text = `Здравствуйте! Хочу записаться на ${service}, ${dateStr} в ${time}.`;
+    const encodedText = encodeURIComponent(text);
+    
+    // 3. Определяем ссылку (Личка или Бот)
+    let url = '';
+    if (this.masterUsername) {
+        // Если есть юзернейм -> идем в личку
+        url = `https://t.me/${this.masterUsername}?text=${encodedText}`;
+    } else {
+        // Если нет -> идем в бота (резерв)
+        const botName = 'pmn8nbot_bot'; // Твой бот
+        url = `https://t.me/${botName}?text=${encodedText}`;
+    }
+    
+    // 4. Открываем ссылку
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+        window.location.href = url;
+    }
+    
+    // Закрываем модалку (опционально)
+    // this.viewStep = 'grid'; 
+},
                 
                 saveSchedule() {
                     if (this.isSaving) return;
@@ -731,6 +772,8 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                            // --- ДОБАВИТЬ ВОТ ЭТУ СТРОКУ: ---
+                            if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
                             const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
                             const newData = {};
                             scheduleList.forEach(row => {

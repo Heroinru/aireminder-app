@@ -311,6 +311,41 @@
             </div>
         </div>
 
+        <!-- МОДАЛКА КОНФЛИКТОВ -->
+<div v-if="showConflictModal" class="modal" style="z-index: 300;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 40px;">⚠️</div>
+        <h2>Внимание!</h2>
+        <p style="color: #666; font-size: 14px; line-height: 1.5;">
+            На выбранные даты есть записи клиентов.
+            <br>Приложение <b>не отменит</b> их автоматически.
+        </p>
+    </div>
+
+    <div style="background: #FFF5F5; border: 1px solid #FECACA; border-radius: 12px; padding: 15px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+        <div v-for="(conf, idx) in conflictList" :key="idx" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #FEE2E2; display: flex; justify-content: space-between;">
+            <div>
+                <div style="font-weight: 800; color: #991B1B;">{{ conf.time }} — {{ conf.client }}</div>
+                <div style="font-size: 12px; color: #7F1D1D;">{{ conf.service }}</div>
+                <div style="font-size: 11px; color: #EF4444; margin-top: 2px;">
+                    {{ conf.type === 'day_off_block' ? 'День стал выходным' : 'Пересечение с обедом' }}
+                </div>
+            </div>
+            <div style="font-size: 12px; font-weight: 700; color: #991B1B;">{{ new Date(conf.date).getDate() }} число</div>
+        </div>
+    </div>
+
+    <div class="bottom-panel">
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <button class="btn btn-secondary" @click="showConflictModal = false">Ой, отмена</button>
+            <button class="btn btn-danger" @click="saveSchedule(true)">Всё равно сохранить</button>
+            <div style="text-align: center; font-size: 11px; color: #999;">
+                Нажимая красную кнопку, вы берете ответственность<br>за перенос клиентов на себя.
+            </div>
+        </div>
+    </div>
+</div>
+
         <!-- 2. ВЫБОР УСЛУГ -->
         <div v-if="viewStep === 'services'">
             <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
@@ -516,6 +551,9 @@
                     visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
                     masterUsername: null, // <--- ДОБАВИТЬ ВОТ ЭТО
+                    showConflictModal: false,
+                    conflictList: [],
+                    conflictType: '', // 'day_off' или 'break'
                     selectedDates: [], activeDate: null, currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
@@ -646,25 +684,58 @@
     // this.viewStep = 'grid'; 
 },
                 
-                saveSchedule() {
-                    if (this.isSaving) return;
-                    this.isSaving = true;
-                    const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
-                    const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
-                    const payload = { master_id: this.masterId, dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration };
-                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                        .then(res => { if (!res.ok) throw new Error('Ошибка сервера'); return res.text(); })
-                        .then(() => {
-                            this.safeAlert('Сохранено!');
-                            this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
-                            this.selectedDates = [];
-                            this.viewStep = 'grid';
-                            this.editMode = false;
-                            this.fetchSlotsAvailability();
-                        })
-                        .catch(err => this.safeAlert('Ошибка сохранения: ' + err.message))
-                        .finally(() => this.isSaving = false);
-                },
+                // Замени старый saveSchedule на этот:
+saveSchedule(force = false) { // Добавили аргумент force
+    if (this.isSaving) return;
+    this.isSaving = true;
+
+    const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
+    const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
+
+    const payload = {
+        master_id: this.masterId,
+        dates: this.selectedDates,
+        start: startToSend,
+        end: endToSend,
+        breaks: this.breaks,
+        slot_duration: this.slotDuration,
+        force: force // <-- Отправляем флаг принудительного сохранения
+    };
+
+    fetch(URLS.SAVE_SCHEDULE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json()) // Всегда ждем JSON
+    .then(data => {
+        // --- ПРОВЕРКА НА КОНФЛИКТ ---
+        if (data.status === 'conflict') {
+            this.conflictList = data.conflicts || [];
+            this.showConflictModal = true; // Показываем окно
+            this.isSaving = false; // Снимаем блок кнопки
+            return;
+        }
+        // -----------------------------
+
+        // Если все ок (или force сработал)
+        this.safeAlert('✅ Сохранено!');
+        this.selectedDates.forEach(date => {
+            this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) };
+        });
+        
+        // Сброс состояний
+        this.selectedDates = [];
+        this.viewStep = 'grid';
+        this.editMode = false;
+        this.showConflictModal = false; // Скрываем модалку если была
+        this.fetchSlotsAvailability();
+    })
+    .catch(err => {
+        this.safeAlert('Ошибка: ' + err.message);
+    })
+    .finally(() => this.isSaving = false);
+},
                 
                 setConfirmed(visit) {
                     visit.visit_status = 'confirmed';
@@ -709,7 +780,7 @@
                         .finally(() => this.isSaving = false);
                 },
 
-                makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(); },
+                makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
                 isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
                 formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
                 changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); this.fetchSlotsAvailability(); },

@@ -42,62 +42,12 @@
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            -webkit-tap-highlight-color: transparent;
         }
 
         #app { 
             padding: 16px; 
             padding-bottom: 160px; /* Отступ для прокрутки над клавиатурой */
         }
-
-        /* TOAST NOTIFICATIONS (NEW) */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            left: 16px;
-            right: 16px;
-            z-index: 9999;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-        }
-        .toast {
-            background: rgba(46, 16, 101, 0.9);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            backdrop-filter: blur(4px);
-            animation: slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: auto;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .toast.error { background: rgba(239, 68, 68, 0.95); }
-        .toast.success { background: rgba(16, 185, 129, 0.95); }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .toast-leave-active { transition: all 0.3s ease; }
-        .toast-leave-to { opacity: 0; transform: translateY(-20px); }
-
-        /* SPINNER (NEW) */
-        .spinner-box { display: flex; justify-content: center; padding: 40px 0; }
-        .spinner {
-            width: 32px; height: 32px;
-            border: 4px solid #FFE4DE;
-            border-bottom-color: var(--primary);
-            border-radius: 50%;
-            animation: rotation 1s linear infinite;
-        }
-        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* HEADER */
         .brand-header {
@@ -117,28 +67,51 @@
 
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
-        /* BUTTONS */
-        .btn {
-            width: 100%; padding: 16px; border: none;
-            border-radius: var(--radius); background: var(--primary-grad);
-            color: white; font-size: 16px; font-weight: 700;
-            cursor: pointer; box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
-            transition: transform 0.1s;
+        /* --- ОБНОВЛЕННЫЕ КНОПКИ (FIX JUMPING) --- */
+        .btn, .btn-secondary, .btn-danger, .btn-warning {
+            width: 100%;
+            height: 54px; /* Фиксированная высота */
+            padding: 0 8px;
+            border: none;
+            border-radius: var(--radius);
+            
+            /* Центрирование */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-sizing: border-box;
+            line-height: 1.1;
+            transition: all 0.2s;
         }
-        .btn:active { transform: scale(0.98); }
-        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; cursor: default; transform: none; }
+
+        .btn {
+            background: var(--primary-grad);
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
+        }
+        
+        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; cursor: not-allowed; }
+        
         .btn-secondary {
             background: white; color: var(--text-main);
             box-shadow: var(--shadow); border: 1px solid #E5E7EB;
         }
+        
         .btn-danger {
-            width: 100%; padding: 16px; background: #FEF2F2;
-            color: var(--error); border: 1px solid #FEE2E2;
-            border-radius: var(--radius); font-weight: 700; cursor: pointer;
+            background: #FEF2F2;
+            color: var(--error); 
+            border: 1px solid #FEE2E2;
         }
+        
         .btn-warning {
-            background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; font-weight: 800;
+            background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; font-size: 20px;
         }
+
+        .btn:active { transform: scale(0.98); }
 
         /* INPUTS & SELECTS */
         .input-box {
@@ -225,14 +198,24 @@
         }
         .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
 
-        /* PANELS & MODAL */
+        /* --- ОБНОВЛЕННАЯ НИЖНЯЯ ПАНЕЛЬ --- */
         .bottom-panel {
             position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 16px 20px 30px 20px; background: rgba(255, 255, 255, 0.95);
+            padding: 12px 16px 30px 16px; /* Равномерные отступы */
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(8px); border-top: 1px solid rgba(0, 0, 0, 0.05);
             z-index: 100; display: flex; flex-direction: column; gap: 10px;
         }
         .panel-actions { display: flex; gap: 10px; width: 100%; }
+        
+        /* Кнопки делят ширину поровну */
+        .panel-actions > .btn, 
+        .panel-actions > .btn-secondary, 
+        .panel-actions > .btn-danger,
+        .panel-actions > .btn-warning {
+            flex: 1; 
+            min-width: 0;
+        }
         
         .modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -333,14 +316,6 @@
 <body>
 
     <div id="app" v-cloak>
-        <!-- TOASTS -->
-        <div class="toast-container">
-            <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
-                <span>{{ toast.type === 'error' ? '⚠️' : '✅' }}</span>
-                <span>{{ toast.text }}</span>
-            </div>
-        </div>
-
         <div class="brand-header">
             <div class="logo-box">R</div>
             <div class="brand-name">Remi</div>
@@ -360,41 +335,6 @@
                 </div>
                 <div class="visit-service">{{ nextVisit.service_type }}</div>
                 <div class="visit-time-row"><span>⏰ {{ formatTime(nextVisit.appointment_time) }}</span></div>
-            </div>
-        </div>
-
-        <!-- МОДАЛКА КОНФЛИКТОВ -->
-        <div v-if="showConflictModal" class="modal" style="z-index: 300;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 40px;">⚠️</div>
-                <h2>Внимание!</h2>
-                <p style="color: #666; font-size: 14px; line-height: 1.5;">
-                    На выбранные даты есть записи клиентов.
-                    <br>Приложение <b>не отменит</b> их автоматически.
-                </p>
-            </div>
-
-            <div style="background: #FFF5F5; border: 1px solid #FECACA; border-radius: 12px; padding: 15px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
-                <div v-for="(conf, idx) in conflictList" :key="idx" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #FEE2E2; display: flex; justify-content: space-between;">
-                    <div>
-                        <div style="font-weight: 800; color: #991B1B;">{{ conf.time }} — {{ conf.client }}</div>
-                        <div style="font-size: 12px; color: #7F1D1D;">{{ conf.service }}</div>
-                        <div style="font-size: 11px; color: #EF4444; margin-top: 2px;">
-                            {{ conf.type === 'day_off_block' ? 'День стал выходным' : 'Пересечение с обедом' }}
-                        </div>
-                    </div>
-                    <div style="font-size: 12px; font-weight: 700; color: #991B1B;">{{ new Date(conf.date).getDate() }} число</div>
-                </div>
-            </div>
-
-            <div class="bottom-panel">
-                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-                    <button class="btn btn-secondary" @click="showConflictModal = false">Ой, отмена</button>
-                    <button class="btn btn-danger" @click="saveSchedule(true)">Всё равно сохранить</button>
-                    <div style="text-align: center; font-size: 11px; color: #999;">
-                        Нажимая красную кнопку, вы берете ответственность<br>за перенос клиентов на себя.
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -438,7 +378,7 @@
 
         <!-- 3. КАЛЕНДАРЬ -->
         <div v-else-if="viewStep === 'grid'">
-            <!-- Плашка услуги (НОВОЕ, С НАЗВАНИЕМ) -->
+            <!-- Плашка услуги -->
             <div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:12px; border-radius:12px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
                 <div style="display:flex; flex-direction:column;">
                     <span style="font-weight:800; font-size:15px; color:var(--text-main);">{{ selectedServiceTitle }}</span>
@@ -459,21 +399,41 @@
                 </div>
             </div>
 
+            <!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ (ВСЕГДА РОВНАЯ) -->
             <div class="bottom-panel">
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
-                <div v-else-if="editMode" class="panel-actions" style="display: flex; gap: 8px;">
-                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0" style="flex: 2;">⚙️ График ({{ selectedDates.length }})</button>
-                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0" style="flex: 1; font-size: 20px;">🆘</button>
-                    <button class="btn btn-secondary" @click="toggleEditMode" style="flex: 1;">✖</button>
+                
+                <div v-else-if="editMode" class="panel-actions">
+                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+                        ⚙️ График <span v-if="selectedDates.length > 0">&nbsp;({{ selectedDates.length }})</span>
+                    </button>
+                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0">
+                        🆘
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleEditMode">
+                        ✖
+                    </button>
                 </div>
+                
                 <div v-else-if="shareMode" class="panel-actions">
-                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">🚀 Отправить ({{ selectedDates.length }})</button>
-                    <button class="btn btn-secondary" @click="toggleShareMode" style="width: auto;">Отмена</button>
+                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
+                        🚀 Отправить ({{ selectedDates.length }})
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleShareMode">
+                        Отмена
+                    </button>
                 </div>
+                
                 <div v-else class="panel-actions">
-                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
-                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
-                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+                    <button class="btn btn-secondary" @click="toggleEditMode">
+                        ✏️ График
+                    </button>
+                    <button class="btn btn-secondary" @click="viewStep = 'services'">
+                        📝 Услуги
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleShareMode">
+                        📢 Пост
+                    </button>
                 </div>
             </div>
         </div>
@@ -481,7 +441,7 @@
         <!-- 4. ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
         <div v-else-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
-            <div v-if="isLoading" class="spinner-box"><div class="spinner"></div></div>
+            <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
             <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
                 <div class="visit-header"><div class="visit-time">{{ formatTime(visit.appointment_time) }}</div><div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div></div>
@@ -519,26 +479,22 @@
                 <textarea v-model="emergencyCustomText" class="input-box" style="height:80px; line-height:1.2; padding:10px; text-align:left;" placeholder="Напишите причину..."></textarea>
             </div>
             <div class="bottom-panel">
-                <div class="panel-actions" style="display: flex; gap: 10px;">
-                    <button class="btn btn-secondary" @click="viewStep = 'grid'" style="flex: 1;">Отмена</button>
-                    <button class="btn btn-danger" @click="sendEmergency" :disabled="isSaving" style="flex: 1;">📢 Разослать</button>
+                <div class="panel-actions">
+                    <button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button>
+                    <button class="btn btn-danger" @click="sendEmergency" :disabled="isSaving">📢 Разослать</button>
                 </div>
             </div>
         </div>
 
         <div v-if="viewStep === 'slots'" class="modal">
             <h2 style="text-align:center;">{{ formatDateFull(activeDate) }}</h2>
-            <div v-if="isLoadingSlots" class="spinner-box"><div class="spinner"></div></div>
+            <div v-if="isLoadingSlots" style="text-align:center; margin-top:20px;">Загрузка...</div>
             <div v-else-if="currentSlots.length === 0" style="text-align:center; margin-top:20px;">Нет свободных мест</div>
-            <div v-else class="slots-grid"><div 
-                v-for="slot in currentSlots" 
-                :key="slot" 
-                class="slot-chip" 
-                @click="bookSlot(slot)" 
-                style="cursor: pointer;"
-            >
-                {{ slot }}
-            </div></div>
+            <div v-else class="slots-grid">
+                <div v-for="slot in currentSlots" :key="slot" class="slot-chip" @click="bookSlot(slot)" style="cursor: pointer;">
+                    {{ slot }}
+                </div>
+            </div>
             <div class="bottom-panel"><button class="btn btn-secondary" @click="viewStep = 'grid'">Закрыть</button></div>
         </div>
 
@@ -556,7 +512,42 @@
                 <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
                 <div class="form-row" style="margin-bottom:0;"><select v-model="brk.start" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select><span>-</span><select v-model="brk.end" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
             </div>
-            <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="saveSchedule" :disabled="isSaving">Сохранить</button></div></div>
+            <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="saveSchedule(false)" :disabled="isSaving">Сохранить</button></div></div>
+        </div>
+
+        <!-- МОДАЛКА КОНФЛИКТОВ -->
+        <div v-if="showConflictModal" class="modal" style="z-index: 300;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 40px;">⚠️</div>
+                <h2>Внимание!</h2>
+                <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                    На выбранные даты есть записи клиентов.
+                    <br>Приложение <b>не отменит</b> их автоматически.
+                </p>
+            </div>
+
+            <div style="background: #FFF5F5; border: 1px solid #FECACA; border-radius: 12px; padding: 15px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+                <div v-for="(conf, idx) in conflictList" :key="idx" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #FEE2E2; display: flex; justify-content: space-between;">
+                    <div>
+                        <div style="font-weight: 800; color: #991B1B;">{{ conf.time }} — {{ conf.client }}</div>
+                        <div style="font-size: 12px; color: #7F1D1D;">{{ conf.service }}</div>
+                        <div style="font-size: 11px; color: #EF4444; margin-top: 2px;">
+                            {{ conf.type === 'day_off_block' ? 'День стал выходным' : 'Пересечение с обедом' }}
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 700; color: #991B1B;">{{ new Date(conf.date).getDate() }} число</div>
+                </div>
+            </div>
+
+            <div class="bottom-panel">
+                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                    <button class="btn btn-secondary" @click="showConflictModal = false">Ой, отмена</button>
+                    <button class="btn btn-danger" @click="saveSchedule(true)">Всё равно сохранить</button>
+                    <div style="text-align: center; font-size: 11px; color: #999;">
+                        Нажимая красную кнопку, вы берете ответственность<br>за перенос клиентов на себя.
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -602,15 +593,14 @@
                     newService: { title: '', duration: 60, price: '' },
                     visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-                    masterUsername: null,
-                    showConflictModal: false,
-                    conflictList: [],
-                    conflictType: '', 
                     selectedDates: [], activeDate: null, currentSlots: [],
                     startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                     dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
                     emergencyReason: 'sick', emergencyCustomText: '',
-                    toasts: [] // Для уведомлений
+                    masterUsername: null,
+                    showConflictModal: false,
+                    conflictList: [],
+                    conflictType: ''
                 }
             },
             computed: {
@@ -644,7 +634,7 @@
                     if (urlMode === 'confirm') { this.mode = 'confirm'; this.viewStep = 'confirm'; this.loadVisits(); }
                     else if (urlMode === 'client') { this.mode = 'calendar'; this.isClientView = true; this.loadSchedule(); this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); if (this.clientId) this.loadClientNextVisit(); }
                     else { this.mode = 'calendar'; this.loadSchedule(); this.loadServices(); }
-                } catch (err) { this.safeAlert('Ошибка запуска: ' + err.message); }
+                } catch (err) { alert('Ошибка запуска: ' + err.message); }
             },
             methods: {
                 loadServices() {
@@ -704,12 +694,13 @@
                         .catch(err => this.safeAlert('Ошибка: ' + err))
                         .finally(() => this.isLoadingSlots = false);
                 },
-
+                
                 bookSlot(time) {
-                    if (!this.isClientView) return; 
+                    // БЛОКИРОВКА ДЛЯ МАСТЕРА
+                    if (!this.isClientView) return;
+
                     const dateOptions = { day: 'numeric', month: 'long', weekday: 'long' };
                     const dateStr = this.activeDate.toLocaleDateString('ru-RU', dateOptions);
-                    
                     const service = this.selectedServiceTitle || 'процедуру';
                     const text = `Здравствуйте! Хочу записаться на ${service}, ${dateStr} в ${time}.`;
                     const encodedText = encodeURIComponent(text);
@@ -718,7 +709,7 @@
                     if (this.masterUsername) {
                         url = `https://t.me/${this.masterUsername}?text=${encodedText}`;
                     } else {
-                        const botName = 'pmn8nbot_bot';
+                        const botName = 'pmn8nbot_bot'; 
                         url = `https://t.me/${botName}?text=${encodedText}`;
                     }
                     
@@ -728,52 +719,43 @@
                         window.location.href = url;
                     }
                 },
-                
+
                 saveSchedule(force = false) {
                     if (this.isSaving) return;
                     this.isSaving = true;
-
                     const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
                     const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
-
-                    const payload = {
-                        master_id: this.masterId,
-                        dates: this.selectedDates,
-                        start: startToSend,
-                        end: endToSend,
-                        breaks: this.breaks,
+                    
+                    const payload = { 
+                        master_id: this.masterId, 
+                        dates: this.selectedDates, 
+                        start: startToSend, 
+                        end: endToSend, 
+                        breaks: this.breaks, 
                         slot_duration: this.slotDuration,
                         force: force
                     };
+                    
+                    fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 'conflict') {
+                                this.conflictList = data.conflicts || [];
+                                this.showConflictModal = true;
+                                this.isSaving = false;
+                                return;
+                            }
 
-                    fetch(URLS.SAVE_SCHEDULE, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status === 'conflict') {
-                            this.conflictList = data.conflicts || [];
-                            this.showConflictModal = true;
-                            this.isSaving = false;
-                            return;
-                        }
-                        this.showToast('✅ Сохранено!', 'success');
-                        this.selectedDates.forEach(date => {
-                            this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) };
-                        });
-                        
-                        this.selectedDates = [];
-                        this.viewStep = 'grid';
-                        this.editMode = false;
-                        this.showConflictModal = false;
-                        this.fetchSlotsAvailability();
-                    })
-                    .catch(err => {
-                        this.safeAlert('Ошибка: ' + err.message);
-                    })
-                    .finally(() => this.isSaving = false);
+                            this.safeAlert('✅ Сохранено!');
+                            this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
+                            this.selectedDates = [];
+                            this.viewStep = 'grid';
+                            this.editMode = false;
+                            this.showConflictModal = false;
+                            this.fetchSlotsAvailability();
+                        })
+                        .catch(err => this.safeAlert('Ошибка: ' + err.message))
+                        .finally(() => this.isSaving = false);
                 },
                 
                 setConfirmed(visit) {
@@ -785,7 +767,7 @@
                     this.isSaving = true;
                     const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
                     fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
-                        .then(() => { this.showToast('✅ Сохранено!', 'success'); if (tg.close) setTimeout(() => tg.close(), 1000); })
+                        .then(() => { this.safeAlert('✅ Сохранено!'); if (tg.close) tg.close(); })
                         .catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
                 },
 
@@ -801,9 +783,9 @@
                         .then(data => {
                             const count = (data.count !== undefined) ? data.count : 0;
                             if (count > 0) {
-                                this.showToast(`✅ Рассылка завершена! Отправлено: ${count}`, 'success');
+                                this.safeAlert(`✅ Рассылка завершена!\nОтправлено сообщений: ${count}`);
                             } else {
-                                this.showToast('ℹ️ Записей не найдено', 'error');
+                                this.safeAlert('ℹ️ На выбранные даты записей не найдено.');
                             }
                             this.selectedDates = [];
                             this.viewStep = 'grid';
@@ -811,7 +793,7 @@
                         })
                         .catch(err => {
                             console.warn(err);
-                            this.showToast('ℹ️ Записей не найдено', 'error');
+                            this.safeAlert('ℹ️ На выбранные даты записей не найдено.');
                             this.selectedDates = [];
                             this.viewStep = 'grid';
                             this.editMode = false;
@@ -861,25 +843,12 @@
                 },
                 
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },
-                sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.showToast('Окошки отправлены в чат!', 'success'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
+                sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
                 isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },
                 hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
                 hasBreaks(day) { const data = this.dbData[this.formatDateKey(day)]; return data && data.breaks && data.breaks.length > 0; },
                 getWorkTimes(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data || !data.start || !data.end) return { start: '', end: '' }; return { start: data.start.slice(0, 5), end: data.end.slice(0, 5) }; },
-                
-                // --- CUSTOM NOTIFICATIONS ---
-                showToast(text, type = 'success') {
-                    const id = Date.now();
-                    this.toasts.push({ id, text, type });
-                    setTimeout(() => {
-                        this.toasts = this.toasts.filter(t => t.id !== id);
-                    }, 3000);
-                },
-                safeAlert(msg) { 
-                    // Fallback to toast for errors
-                    this.showToast(msg, 'error'); 
-                },
-                
+                safeAlert(msg) { try { if (tg.showAlert) tg.showAlert(msg); else alert(msg); } catch (e) { alert(msg); } },
                 formatTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); },
                 formatDatePretty(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); },
                 formatDateFull(date) { if (!date) return ''; return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); },
@@ -893,7 +862,9 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                            // ЗАГРУЗКА ЮЗЕРНЕЙМА
                             if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
+
                             const scheduleList = data.schedule || (Array.isArray(data) ? data : []);
                             const newData = {};
                             scheduleList.forEach(row => {

@@ -67,35 +67,95 @@
 
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
-        /* BUTTONS */
-        .btn {
-            width: 100%; padding: 16px; border: none;
-            border-radius: var(--radius); background: var(--primary-grad);
-            color: white; font-size: 16px; font-weight: 700;
-            cursor: pointer; box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
-        }
-        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; }
-        .btn-secondary {
-            background: white; color: var(--text-main);
-            box-shadow: var(--shadow); border: 1px solid #E5E7EB;
-        }
-        
-        /* ИСПРАВЛЕННАЯ КНОПКА DANGER */
-        .btn-danger {
-            width: 100%; 
-            padding: 16px; 
-            background: #FEF2F2;
-            color: var(--error); 
-            border: 1px solid #FEE2E2;
-            border-radius: var(--radius); 
-            font-weight: 700;
-            cursor: pointer;
-        }
-        
-        .btn-warning {
-            background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; font-weight: 800;
-        }
+        /* ОБНОВЛЕННЫЕ СТИЛИ КНОПОК */
+.btn, .btn-secondary, .btn-danger, .btn-warning {
+    width: 100%;
+    height: 54px; /* Фиксированная высота — больше никаких скачков */
+    padding: 0 8px; /* Небольшие отступы по бокам */
+    border: none;
+    border-radius: var(--radius);
+    
+    /* Центрирование текста */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    font-size: 14px; /* Чуть компактнее, чтобы влезал длинный текст */
+    font-weight: 700;
+    cursor: pointer;
+    box-sizing: border-box;
+    line-height: 1.1; /* Чтобы текст в две строки (если вдруг) не ломал кнопку */
+    transition: all 0.2s;
+}
 
+/* Основная кнопка (градиент) */
+.btn {
+    background: var(--primary-grad);
+    color: white;
+    box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
+}
+
+/* Второстепенная (белая) */
+.btn-secondary {
+    background: white;
+    color: var(--text-main);
+    box-shadow: var(--shadow);
+    border: 1px solid #E5E7EB;
+}
+
+/* Опасная (красная) */
+.btn-danger {
+    background: #FEF2F2;
+    color: var(--error);
+    border: 1px solid #FEE2E2;
+}
+
+/* Предупреждающая (оранжевая) */
+.btn-warning {
+    background: #FFF7ED;
+    color: #C2410C;
+    border: 1px solid #FFEDD5;
+    font-size: 20px; /* Для эмодзи SOS можно чуть крупнее */
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    background: #D1D5DB;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+/* Контейнер панели */
+.bottom-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px 30px 16px; /* Отступы вокруг */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 100;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 10px; /* Расстояние между кнопками всегда 10px */
+    width: 100%;
+}
+
+/* Это заставит все кнопки внутри панели быть равной ширины */
+.panel-actions > .btn, 
+.panel-actions > .btn-secondary, 
+.panel-actions > .btn-danger,
+.panel-actions > .btn-warning {
+    flex: 1; /* Равномерное распределение */
+    min-width: 0; /* Разрешаем сжиматься, если текст длинный */
+}
         /* INPUTS & SELECTS */
         .input-box {
             background: white;
@@ -335,14 +395,54 @@
         </div>
     </div>
 
-    <div class="bottom-panel">
-        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <button class="btn btn-secondary" @click="showConflictModal = false">Ой, отмена</button>
-            <button class="btn btn-danger" @click="saveSchedule(true)">Всё равно сохранить</button>
-            <div style="text-align: center; font-size: 11px; color: #999;">
-                Нажимая красную кнопку, вы берете ответственность<br>за перенос клиентов на себя.
-            </div>
-        </div>
+   <div class="bottom-panel">
+    
+    <!-- Вариант 1: Клиент (подсказка) -->
+    <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">
+        👆 Выберите дату для записи
+    </div>
+
+    <!-- Вариант 2: Режим редактирования (Мастер) -->
+    <div v-else-if="editMode" class="panel-actions">
+        <!-- Кнопка 1: График -->
+        <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+            ⚙️ График <span v-if="selectedDates.length > 0">&nbsp;({{ selectedDates.length }})</span>
+        </button>
+        
+        <!-- Кнопка 2: SOS (Форс-мажор) -->
+        <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0">
+            🆘
+        </button>
+        
+        <!-- Кнопка 3: Отмена -->
+        <button class="btn btn-secondary" @click="toggleEditMode">
+            ✖
+        </button>
+    </div>
+
+    <!-- Вариант 3: Режим "Поделиться" (Пост) -->
+    <div v-else-if="shareMode" class="panel-actions">
+        <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
+            🚀 Отправить
+        </button>
+        <button class="btn btn-secondary" @click="toggleShareMode">
+            Отмена
+        </button>
+    </div>
+
+    <!-- Вариант 4: Обычное меню (Главная) -->
+    <div v-else class="panel-actions">
+        <button class="btn btn-secondary" @click="toggleEditMode">
+            ✏️ График
+        </button>
+        <button class="btn btn-secondary" @click="viewStep = 'services'">
+            📝 Услуги
+        </button>
+        <button class="btn btn-secondary" @click="toggleShareMode">
+            📢 Пост
+        </button>
+    </div>
+</div>
     </div>
 </div>
 

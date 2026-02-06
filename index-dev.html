@@ -906,17 +906,47 @@
                 
              goToSettings() {
                     if (this.isClientView || this.selectedDates.length === 0) return;
+                    
                     const date = this.selectedDates[0];
-                    const found = this.dbData[date];
+                    const found = this.dbData[date]; // Данные из базы по этой дате
+                    
+                    // Простая функция очистки времени
+                    function cleanTime(t) {
+                        if (!t || t === 'null' || t === '') return '10:00';
+                        var s = String(t).trim();
+                        if (s.length >= 5) return s.substring(0, 5);
+                        return s;
+                    }
+
                     if (found) {
-                        this.startTime = (found.start && found.start !== 'null') ? found.start.slice(0, 5) : '10:00';
-                        this.endTime = (found.end && found.end !== 'null') ? found.end.slice(0, 5) : '20:00';
-                        this.breaks = JSON.parse(JSON.stringify(found.breaks || []));
+                        this.startTime = cleanTime(found.start);
+                        this.endTime = cleanTime(found.end);
+                        
+                        // Обработка перерывов
+                        var rawBreaks = found.breaks;
+                        
+                        // Если строка - парсим
+                        if (typeof rawBreaks === 'string') {
+                            try { rawBreaks = JSON.parse(rawBreaks); } catch (e) { rawBreaks = []; }
+                        }
+                        // Если не массив - делаем пустым
+                        if (!Array.isArray(rawBreaks)) rawBreaks = [];
+
+                        // Нормализуем перерывы
+                        this.breaks = rawBreaks.map(function(b) {
+                            return {
+                                start: cleanTime(b.start),
+                                end: cleanTime(b.end)
+                            };
+                        });
+
                     } else {
+                        // Дефолт
                         this.startTime = '10:00';
                         this.endTime = '20:00';
                         this.breaks = [];
                     }
+                    
                     this.viewStep = 'settings';
                 },
 

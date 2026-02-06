@@ -491,11 +491,16 @@
                     </div>
                 </div>
 
-                <!-- 3. ПОТЕНЦИАЛ (Призрачная) -->
-                <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: white; border: 2px dashed #9CA3AF; color: #6B7280; margin-bottom: 25px; padding: 20px;">
-                    <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">🚀 Упущенная выгода</div>
+                <!-- 3. ПОТЕНЦИАЛ (КЛИКАБЕЛЬНАЯ) -->
+                <div class="upcoming-visit-card" @click="goToSmartPost" style="flex-direction: column; align-items: flex-start; gap: 5px; background: white; border: 2px dashed #F97316; color: #EA580C; margin-bottom: 25px; padding: 20px; cursor: pointer; transition: transform 0.1s;">
+                    <div style="display:flex; justify-content:space-between; width:100%;">
+                        <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">🚀 Упущенная выгода</div>
+                        <div style="font-size: 16px;">📢</div>
+                    </div>
                     <div style="font-size: 36px; font-weight: 800; line-height: 1;">+ {{ formatMoney(analyticsData.revenue_potential) }} ₽</div>
-                    <div style="font-size: 12px; font-weight: 600; margin-top: 5px;">Если заполнить свободные окна</div>
+                    <div style="font-size: 12px; font-weight: 700; margin-top: 5px; text-decoration: underline;">
+                        Нажмите, чтобы заполнить окна
+                    </div>
                 </div>
 
                 <!-- МЕТРИКИ -->
@@ -737,6 +742,21 @@
                         .then(res => res.json())
                         .then(() => { this.loadServices(); if (action === 'create') this.newService = { title: '', duration: 60, price: '' }; })
                         .catch(err => this.safeAlert('Ошибка: ' + err));
+                },
+
+                goToSmartPost() {
+                    // 1. Переходим в календарь
+                    this.viewStep = 'grid';
+                    
+                    // 2. Сбрасываем лишние режимы
+                    this.editMode = false;
+                    this.selectedDates = [];
+                    
+                    // 3. Включаем режим "Пост"
+                    this.shareMode = true;
+                    
+                    // (Опционально) Можно показать подсказку
+                    this.safeAlert('👇 Выберите свободные дни для поста');
                 },
                 
                 selectService(svc) {

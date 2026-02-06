@@ -424,15 +424,15 @@
                     </button>
                 </div>
                 
-                <div v-else class="panel-actions">
-                    <button class="btn btn-secondary" @click="toggleEditMode">
-                        ✏️ График
-                    </button>
-                    <button class="btn btn-secondary" @click="viewStep = 'services'">
-                        📝 Услуги
-                    </button>
-                    <button class="btn btn-secondary" @click="toggleShareMode">
-                        📢 Пост
+               <div v-else class="panel-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <!-- Верхний ряд -->
+                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
+                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
+                    
+                    <!-- Нижний ряд -->
+                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+                    <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
+                        📊 Отчет
                     </button>
                 </div>
             </div>
@@ -462,6 +462,57 @@
                 </div>
             </div>
             <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
+        </div>
+
+        <!-- 4.5. АНАЛИТИКА (НОВЫЙ БЛОК) -->
+        <div v-if="viewStep === 'analytics'">
+            <h2>📊 Аналитика за {{ currentMonthName }}</h2>
+            
+            <div v-if="isLoadingAnalytics" style="text-align:center; margin-top:50px; color:#999;">
+                Считаем деньги... ⏳
+            </div>
+
+            <div v-else>
+                <!-- Главная карточка: Доход -->
+                <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 10px; background: linear-gradient(135deg, #10B981, #059669); border: none; color: white;">
+                    <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">Заработано в этом месяце</div>
+                    <div style="font-size: 36px; font-weight: 800; line-height: 1;">{{ formatMoney(analyticsData.revenue_month) }} ₽</div>
+                    <div style="font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px;">
+                        Включая только подтвержденные
+                    </div>
+                </div>
+
+                <!-- Сетка показателей -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <!-- Карточка Визиты -->
+                    <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0;">
+                        <div style="font-size: 28px; font-weight: 800; color: var(--text-main);">{{ analyticsData.visits_month }}</div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Визитов (мес)</div>
+                    </div>
+                    <!-- Карточка Клиенты -->
+                    <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0;">
+                        <div style="font-size: 28px; font-weight: 800; color: var(--primary);">{{ analyticsData.clients_total }}</div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Всего клиентов</div>
+                    </div>
+                </div>
+
+                <!-- Совет (Заглушка для красоты) -->
+                <div class="retention-box" style="background: #FFF7ED; border-color: #FED7AA;">
+                    <div class="ret-label" style="color: #C2410C;">💡 Совет ИИ</div>
+                    <div style="font-size: 13px; color: #9A3412; line-height: 1.4;">
+                        <span v-if="analyticsData.visits_month < 10">
+                            Пока мало визитов. Попробуйте кнопку "📢 Пост" в календаре, чтобы заполнить окна!
+                        </span>
+                        <span v-else>
+                            Отличный темп! Не забывайте предлагать клиентам записаться на следующий месяц заранее.
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-panel">
+                <button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button>
+            </div>
         </div>
 
         <!-- 5. МОДАЛКИ -->
@@ -601,6 +652,8 @@
                     showConflictModal: false,
                     conflictList: [],
                     conflictType: ''
+                    analyticsData: { revenue_month: 0, visits_month: 0, clients_total: 0 },
+isLoadingAnalytics: false,
                 }
             },
             computed: {
@@ -679,6 +732,32 @@
                             Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
                         })
                         .catch(e => console.error('Slots avail err:', e));
+                },
+
+                goToAnalytics() {
+                    this.viewStep = 'analytics';
+                    this.loadAnalytics();
+                },
+                
+                loadAnalytics() {
+                    if (!this.masterId) return;
+                    this.isLoadingAnalytics = true;
+                    // Используем URL из твоего списка URLS, добавь туда GET_ANALYTICS если нет
+                    // Или пропишем жестко для теста, но лучше добавь в const URLS в начале скрипта
+                    const url = `${API_BASE}/get-analytics-dev?master_id=${this.masterId}`;
+                    
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.analyticsData = data;
+                        })
+                        .catch(err => console.error('Analytics error:', err))
+                        .finally(() => this.isLoadingAnalytics = false);
+                },
+
+                formatMoney(value) {
+                    if (!value) return '0';
+                    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
                 },
                 
                 fetchSlotsForDate(dateStr) {

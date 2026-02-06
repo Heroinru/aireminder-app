@@ -464,7 +464,7 @@
             <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
         </div>
 
-        <!-- 4.5. АНАЛИТИКА (ОБНОВЛЕННЫЙ БЛОК) -->
+       <!-- 4.5. АНАЛИТИКА (ФИНАЛ) -->
         <div v-if="viewStep === 'analytics'">
             <h2 style="margin-bottom: 20px;">Финансы: {{ currentMonthName }}</h2>
             
@@ -477,14 +477,18 @@
                 <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(135deg, #10B981, #059669); border: none; color: white; margin-bottom: 12px; padding: 20px;">
                     <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">✅ Уже в кассе</div>
                     <div style="font-size: 36px; font-weight: 800; line-height: 1;">{{ formatMoney(analyticsData.revenue_fact) }} ₽</div>
-                    <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">{{ analyticsData.visits_total }} визитов</div>
+                    <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">
+                        {{ analyticsData.visits_fact }} визитов (завершено)
+                    </div>
                 </div>
 
                 <!-- 2. ДОФАМИН (Золотая) -->
                 <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(135deg, #F59E0B, #D97706); border: none; color: white; margin-bottom: 12px; padding: 20px;">
                     <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">💊 В записи (Дофамин)</div>
                     <div style="font-size: 36px; font-weight: 800; line-height: 1;">+ {{ formatMoney(analyticsData.revenue_forecast) }} ₽</div>
-                    <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">Клиенты записаны, ждем визита</div>
+                    <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">
+                        {{ analyticsData.visits_forecast }} клиентов записано
+                    </div>
                 </div>
 
                 <!-- 3. ПОТЕНЦИАЛ (Призрачная) -->
@@ -512,7 +516,6 @@
                 <button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button>
             </div>
         </div>
-
         <!-- 5. МОДАЛКИ -->
         <div v-if="viewStep === 'emergency'" class="modal">
             <h2>🆘 Форс-мажор</h2>

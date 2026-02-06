@@ -904,22 +904,62 @@
                     }
                 },
                 
-                goToSettings() {
+               goToSettings() {
+                    // Защита от дурака
                     if (this.isClientView || this.selectedDates.length === 0) return;
-                    const date = this.selectedDates[0];
-                    const found = this.dbData[date];
                     
+                    const date = this.selectedDates[0];
+                    const found = this.dbData[date]; // Данные из базы по этой дате
+                    
+                    console.log('📅 Настройки для даты:', date, 'Данные:', found);
+
+                    // Функция очистки времени: "13:00:00" -> "13:00"
+                    const normalize = (t) => {
+                        if (!t || t === 'null') return '10:00'; // Дефолт, если пусто
+                        const str = String(t).trim();
+                        // Если формат H:MM:SS, берем первые 5 символов
+                        if (str.length >= 5) return str.slice(0, 5); 
+                        return str;
+                    };
+
                     if (found) {
-                        // Функция-помощник: превращает "9:00:00" или "9:00" в "09:00"
-                        const normalize = (t) => {
-                            if (!t || t === 'null') return null;
-                            // Разбиваем строку по двоеточию
-                            let parts = t.split(':');
-                            // Берем часы и минуты, добавляем 0 в начало если надо
-                            let h = parts[0].padStart(2, '0');
-                            let m = parts[1].padStart(2, '0');
-                            return `${h}:${m}`;
-                        };
+                        this.startTime = normalize(found.start);
+                        this.endTime = normalize(found.end);
+                        
+                        // ЛОГИКА ПЕРЕРЫВОВ (BREAKS)
+                        let rawBreaks = found.breaks;
+                        
+                        // Если n8n вернул строку JSON, парсим её. Если уже массив - оставляем.
+                        if (typeof rawBreaks === 'string') {
+                            try {
+                                rawBreaks = JSON.parse(rawBreaks);
+                            } catch (e) {
+                                console.error('Ошибка парсинга breaks:', e);
+                                rawBreaks = [];
+                            }
+                        }
+                        
+                        // Если вдруг null или undefined
+                        if (!Array.isArray(rawBreaks)) rawBreaks = [];
+
+                        // Нормализуем время внутри каждого перерыва
+                        this.breaks = rawBreaks.map(b => ({
+                            start: normalize(b.start),
+                            end: normalize(b.end)
+                        }));
+                        
+                        console.log('☕ Обработанные перерывы:', this.breaks);
+
+                    } else {
+                        // Если данных нет, ставим стандартные
+                        console.log('ℹ️ Данных на этот день нет, ставлю дефолт');
+                        this.startTime = '10:00';
+                        this.endTime = '20:00';
+                        this.breaks = [];
+                    }
+                    
+                    this.viewStep = 'settings';
+                },
 
                         // Применяем нормализацию к началу и концу дня
                         this.startTime = normalize(found.start) || '10:00';

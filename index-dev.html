@@ -695,7 +695,8 @@
             methods: {
                 loadServices() {
                     if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]);
-                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } })
+                    // ИСПРАВЛЕНИЕ: Убрал заголовки 'Cache-Control', чтобы избежать CORS ошибки
+                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`)
                         .then(res => res.json())
                         .then(data => { this.services = Array.isArray(data) ? data : []; })
                         .catch(console.error);

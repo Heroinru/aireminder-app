@@ -399,7 +399,7 @@
                 </div>
             </div>
 
-            <!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ (ВСЕГДА РОВНАЯ) -->
+            <!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ С АНАЛИТИКОЙ -->
             <div class="bottom-panel">
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
                 
@@ -424,7 +424,7 @@
                     </button>
                 </div>
                 
-               <div v-else class="panel-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div v-else class="panel-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <!-- Верхний ряд -->
                     <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
                     <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
@@ -625,7 +625,8 @@
             GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-dev`,
             GET_SERVICES: `${API_BASE}/get-services-dev`,     
             MANAGE_SERVICES: `${API_BASE}/manage-services-dev`,
-            EMERGENCY: `${API_BASE}/broadcast-emergency-dev`
+            EMERGENCY: `${API_BASE}/broadcast-emergency-dev`,
+            GET_ANALYTICS: `${API_BASE}/get-analytics-dev`
         };
 
         const TIMES_LIST = Array.from({length: 96}, (_, i) => {
@@ -651,9 +652,11 @@
                     masterUsername: null,
                     showConflictModal: false,
                     conflictList: [],
-                    conflictType: ''
+                    conflictType: '',
+                    
+                    // --- НОВЫЕ ДАННЫЕ АНАЛИТИКИ ---
                     analyticsData: { revenue_month: 0, visits_month: 0, clients_total: 0 },
-isLoadingAnalytics: false,
+                    isLoadingAnalytics: false
                 }
             },
             computed: {
@@ -732,32 +735,6 @@ isLoadingAnalytics: false,
                             Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
                         })
                         .catch(e => console.error('Slots avail err:', e));
-                },
-
-                goToAnalytics() {
-                    this.viewStep = 'analytics';
-                    this.loadAnalytics();
-                },
-                
-                loadAnalytics() {
-                    if (!this.masterId) return;
-                    this.isLoadingAnalytics = true;
-                    // Используем URL из твоего списка URLS, добавь туда GET_ANALYTICS если нет
-                    // Или пропишем жестко для теста, но лучше добавь в const URLS в начале скрипта
-                    const url = `${API_BASE}/get-analytics-dev?master_id=${this.masterId}`;
-                    
-                    fetch(url)
-                        .then(res => res.json())
-                        .then(data => {
-                            this.analyticsData = data;
-                        })
-                        .catch(err => console.error('Analytics error:', err))
-                        .finally(() => this.isLoadingAnalytics = false);
-                },
-
-                formatMoney(value) {
-                    if (!value) return '0';
-                    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
                 },
                 
                 fetchSlotsForDate(dateStr) {
@@ -919,6 +896,31 @@ isLoadingAnalytics: false,
                         this.breaks = [];
                     }
                     this.viewStep = 'settings';
+                },
+
+                // --- НОВЫЕ МЕТОДЫ АНАЛИТИКИ ---
+                goToAnalytics() {
+                    this.viewStep = 'analytics';
+                    this.loadAnalytics();
+                },
+                
+                loadAnalytics() {
+                    if (!this.masterId) return;
+                    this.isLoadingAnalytics = true;
+                    const url = `${URLS.GET_ANALYTICS}?master_id=${this.masterId}`;
+                    
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.analyticsData = data;
+                        })
+                        .catch(err => console.error('Analytics error:', err))
+                        .finally(() => this.isLoadingAnalytics = false);
+                },
+
+                formatMoney(value) {
+                    if (!value) return '0';
+                    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
                 },
                 
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },

@@ -694,12 +694,33 @@
             },
             methods: {
                 loadServices() {
-                    if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]);
-                    // ИСПРАВЛЕНИЕ: Убрал заголовки 'Cache-Control', чтобы избежать CORS ошибки
-                    return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&_t=${Date.now()}`)
-                        .then(res => res.json())
-                        .then(data => { this.services = Array.isArray(data) ? data : []; })
-                        .catch(console.error);
+                    // Проверка ID мастера
+                    if (!this.masterId || this.masterId === 'undefined') {
+                        console.warn('⚠️ loadServices: masterId не найден');
+                        return Promise.resolve([]);
+                    }
+
+                    // Чистый URL без заголовков, чтобы не злить CORS
+                    // Добавил random, чтобы телефон не кэшировал старый пустой список
+                    const url = `${URLS.GET_SERVICES}?master_id=${this.masterId}&rnd=${Math.random()}`;
+                    
+                    console.log('📡 Загружаю услуги:', url);
+
+                    return fetch(url)
+                        .then(res => {
+                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                            return res.json();
+                        })
+                        .then(data => {
+                            console.log('✅ Услуги пришли:', data);
+                            // Защита: если пришел не массив, делаем пустой массив
+                            this.services = Array.isArray(data) ? data : [];
+                        })
+                        .catch(err => {
+                            console.error('❌ Ошибка загрузки услуг:', err);
+                            // Если будет ошибка, она появится во всплывающем окне
+                            this.safeAlert('Не удалось загрузить услуги. Проверьте консоль.');
+                        });
                 },
                 
                 manageService(action, service = null) {

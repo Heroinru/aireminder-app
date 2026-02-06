@@ -338,41 +338,69 @@
             </div>
         </div>
 
-        <!-- 2. ВЫБОР УСЛУГ -->
+       <!-- 2. ВЫБОР УСЛУГ -->
         <div v-if="viewStep === 'services'">
             <h2>{{ isClientView ? 'Выберите услугу' : 'Мои услуги' }}</h2>
+            
             <div v-if="services.length === 0" style="text-align:center; color:#999; margin-top:40px;">
                 Пока нет услуг. {{ isClientView ? 'Свяжитесь с мастером.' : 'Добавьте первую!' }}
             </div>
+
+            <!-- Список услуг -->
             <div class="service-list">
                 <div v-for="svc in services" :key="svc.service_id" class="service-card" @click="selectService(svc)">
-                    <div><div class="svc-title">{{ svc.title }}</div><div class="svc-meta">⏱ {{ svc.duration }} мин</div></div>
+                    <div>
+                        <div class="svc-title">{{ svc.title }}</div>
+                        <div class="svc-meta">⏱ {{ svc.duration }} мин</div>
+                    </div>
                     <div style="text-align:right;">
                         <div class="svc-price" v-if="svc.price">{{ svc.price }} ₽</div>
-                        <div v-if="!isClientView" @click.stop="manageService('delete', svc)" style="color:var(--error); font-size:12px; margin-top:5px; font-weight:700;">Удалить</div>
+                        
+                        <!-- Кнопки управления (Только для мастера) -->
+                        <div v-if="!isClientView" style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 10px; align-items: center;">
+                            <div @click.stop="editService(svc)" style="font-size:18px; cursor:pointer; opacity:0.8;" title="Редактировать">✏️</div>
+                            <div @click.stop="manageService('delete', svc)" style="color:var(--error); font-size:18px; cursor:pointer;" title="Удалить">🗑</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div v-if="!isClientView" style="margin-top: 30px;">
-                <h3>Добавить услугу</h3>
+
+            <!-- Форма Добавления / Редактирования -->
+            <div v-if="!isClientView" style="margin-top: 30px; background: white; padding: 16px; border-radius: 16px; box-shadow: var(--shadow);">
+                <h3 style="margin-top:0;">{{ isEditing ? 'Редактировать услугу' : 'Добавить услугу' }}</h3>
+                
                 <div class="form-group">
                     <input type="text" v-model="newService.title" placeholder="Название" class="input-box" style="text-align:left; margin-bottom:10px;">
-                    <div class="chips-row">
+                    <!-- Чипсы показываем только если не редактируем -->
+                    <div v-if="!isEditing" class="chips-row">
                         <div class="chip" @click="newService.title='Маникюр'">💅 Маникюр</div>
                         <div class="chip" @click="newService.title='Педикюр'">🦶 Педикюр</div>
                         <div class="chip" @click="newService.title='Ресницы'">👁 Ресницы</div>
                     </div>
                 </div>
+                
                 <div class="form-row">
                     <div class="form-group">
                         <select v-model="newService.duration" class="input-box">
-                            <option :value="30">30 мин</option><option :value="60">1 час</option><option :value="90">1.5 часа</option><option :value="120">2 часа</option>
+                            <option :value="30">30 мин</option>
+                            <option :value="60">1 час</option>
+                            <option :value="90">1.5 часа</option>
+                            <option :value="120">2 часа</option>
+                            <option :value="150">2.5 часа</option>
+                            <option :value="180">3 часа</option>
                         </select>
                     </div>
                     <div class="form-group"><input type="text" v-model="newService.price" placeholder="Цена" class="input-box"></div>
                 </div>
-                <button class="btn" @click="manageService('create')" :disabled="!newService.title">Добавить</button>
+
+                <div style="display: flex; gap: 10px;">
+                    <button v-if="isEditing" class="btn btn-secondary" @click="cancelEdit">Отмена</button>
+                    <button class="btn" @click="manageService(isEditing ? 'update' : 'create')" :disabled="!newService.title">
+                        {{ isEditing ? 'Сохранить' : 'Добавить' }}
+                    </button>
+                </div>
             </div>
+
             <div class="bottom-panel" v-if="!isClientView"><button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button></div>
         </div>
 
@@ -644,11 +672,15 @@
         createApp({
             data() {
                 return {
+                    isEditing: false, // Флаг режима редактирования
+                    editingId: null,  // ID редактируемой услуги
                     clientId: null, mode: 'calendar', viewStep: 'grid', editMode: false, shareMode: false, masterId: null, isClientView: false,
                     services: [], 
                     selectedServiceDuration: null, 
                     selectedServiceTitle: '', 
                     newService: { title: '', duration: 60, price: '' },
+                    isEditing: false, // Режим редактирования
+                    editingId: null,  // ID услуги, которую правим
                     visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
                     selectedDates: [], activeDate: null, currentSlots: [],
@@ -736,11 +768,47 @@
                         });
                 },
                 
+               // --- УПРАВЛЕНИЕ УСЛУГАМИ (Edit/Delete/Create) ---
+                
+                editService(svc) {
+                    this.isEditing = true;
+                    this.editingId = svc.service_id;
+                    // Заполняем форму
+                    this.newService = {
+                        title: svc.title,
+                        duration: parseInt(svc.duration) || 60,
+                        price: svc.price
+                    };
+                    // Скроллим вниз к форме
+                    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+                },
+
+                cancelEdit() {
+                    this.isEditing = false;
+                    this.editingId = null;
+                    this.newService = { title: '', duration: 60, price: '' };
+                },
+
                 manageService(action, service = null) {
-                    const body = { action: action, master_id: this.masterId, ... (action === 'create' ? this.newService : { service_id: service.service_id }) };
+                    let svcId = null;
+                    // Для удаления ID берем из аргумента, для обновления - из памяти
+                    if (action === 'delete') svcId = service.service_id;
+                    else if (action === 'update') svcId = this.editingId;
+
+                    const body = { 
+                        action: action, 
+                        master_id: this.masterId, 
+                        service_id: svcId,
+                        ... (action !== 'delete' ? this.newService : {}) 
+                    };
+
                     fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
                         .then(res => res.json())
-                        .then(() => { this.loadServices(); if (action === 'create') this.newService = { title: '', duration: 60, price: '' }; })
+                        .then(() => { 
+                            this.loadServices(); 
+                            this.cancelEdit(); // Сброс
+                            this.safeAlert(action === 'delete' ? 'Удалено' : 'Сохранено!');
+                        })
                         .catch(err => this.safeAlert('Ошибка: ' + err));
                 },
 

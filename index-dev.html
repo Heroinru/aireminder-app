@@ -908,11 +908,34 @@
                     if (this.isClientView || this.selectedDates.length === 0) return;
                     const date = this.selectedDates[0];
                     const found = this.dbData[date];
+                    
                     if (found) {
-                        this.startTime = (found.start && found.start !== 'null') ? found.start.slice(0, 5) : '10:00';
-                        this.endTime = (found.end && found.end !== 'null') ? found.end.slice(0, 5) : '20:00';
+                        // Функция-помощник: превращает "9:00:00" или "9:00" в "09:00"
+                        const normalize = (t) => {
+                            if (!t || t === 'null') return null;
+                            // Разбиваем строку по двоеточию
+                            let parts = t.split(':');
+                            // Берем часы и минуты, добавляем 0 в начало если надо
+                            let h = parts[0].padStart(2, '0');
+                            let m = parts[1].padStart(2, '0');
+                            return `${h}:${m}`;
+                        };
+
+                        // Применяем нормализацию к началу и концу дня
+                        this.startTime = normalize(found.start) || '10:00';
+                        this.endTime = normalize(found.end) || '20:00';
+                        
+                        // Загружаем перерывы
                         this.breaks = JSON.parse(JSON.stringify(found.breaks || []));
+                        
+                        // Применяем нормализацию к времени перерывов тоже
+                        this.breaks.forEach(b => {
+                            b.start = normalize(b.start);
+                            b.end = normalize(b.end);
+                        });
+
                     } else {
+                        // Если данных нет, ставим стандартные
                         this.startTime = '10:00';
                         this.endTime = '20:00';
                         this.breaks = [];

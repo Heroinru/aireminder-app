@@ -712,6 +712,27 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
+                // --- СКРЫТЫЙ ТРЕКИНГ (SOS CHECK) ---
+                try {
+                    // Проверяем, что открыто внутри Telegram
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+                        const user = window.Telegram.WebApp.initDataUnsafe.user;
+                        
+                        if (user && user.id) {
+                            // Тихо отправляем сигнал на сервер
+                            fetch(`${API_BASE}/track-activity-dev`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    user_id: user.id,
+                                    action: 'app_open'
+                                })
+                            }).catch(e => console.log('Tracking silent error:', e));
+                        }
+                    }
+                } catch (e) {
+                    // Игнорируем ошибки трекера, чтобы не ломать апп
+                }
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const startParam = tg.initDataUnsafe?.start_param;

@@ -888,25 +888,24 @@
                         });
                 },
 
-              loadSosDates() {
+             loadSosDates() {
                     if (!this.masterId) return;
                     
                     fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}`)
                         .then(res => res.json())
                         .then(data => {
-                            // Логика распаковки:
-                            // 1. Если пришел массив объектов [ { dates: [...] } ]
-                            if (Array.isArray(data) && data.length > 0 && data[0].dates) {
-                                this.sosDates = data[0].dates;
-                            } 
-                            // 2. Если пришел объект { dates: [...] }
-                            else if (data.dates) {
-                                this.sosDates = data.dates;
-                            }
-                            // 3. Если пришел пустой массив
-                            else {
-                                this.sosDates = [];
-                            }
+                            let rawDates = [];
+                            if (Array.isArray(data) && data.length > 0 && data[0].dates) rawDates = data[0].dates;
+                            else if (data.dates) rawDates = data.dates;
+                            else if (Array.isArray(data)) rawDates = data;
+
+                            // Нормализация дат (чтобы точно YYYY-MM-DD)
+                            this.sosDates = rawDates.map(d => {
+                                // Если пришла полная дата 2026-02-12T00:00...
+                                if (d.includes('T')) return d.split('T')[0];
+                                return d;
+                            });
+                            
                             console.log('✅ SOS Dates:', this.sosDates);
                         })
                         .catch(console.error);

@@ -1126,7 +1126,7 @@
                     }
                 },
 
-               openDayDetails(dateStr) {
+             openDayDetails(dateStr) {
                     this.viewStep = 'day_details';
                     this.dayVisits = [];
                     this.currentSlots = []; 
@@ -1142,9 +1142,17 @@
                         })
                         .catch(e => console.error('Visits error:', e));
 
-                    // 2. Запрос СЛОТОВ (Свободное время)
-                    // ИСПРАВЛЕНИЕ: Берем выбранную длительность или 60 мин по умолчанию
-                    const durationToSend = this.selectedServiceDuration || 60;
+                    // 2. Запрос СЛОТОВ
+                    // ЛОГИКА ВОССТАНОВЛЕНА:
+                    // Если выбрана услуга -> берем её длительность.
+                    // Если НЕТ -> берем настройку слота мастера (this.slotDuration).
+                    // Если и её нет -> 60 мин.
+                    let durationToSend = 60;
+                    if (this.selectedServiceDuration) {
+                        durationToSend = this.selectedServiceDuration;
+                    } else if (this.slotDuration) {
+                        durationToSend = this.slotDuration;
+                    }
 
                     const p2 = fetch(URLS.GET_SLOTS, { 
                         method: 'POST', 
@@ -1153,7 +1161,7 @@
                             master_id: this.masterId, 
                             dates: [dateStr], 
                             client_id: 'MASTER_VIEW', 
-                            duration: durationToSend // <--- ТЕПЕРЬ ДИНАМИЧЕСКИ
+                            duration: durationToSend 
                         }) 
                     })
                     .then(res => res.json())

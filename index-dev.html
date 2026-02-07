@@ -864,8 +864,14 @@
                         this.viewStep = 'grid'; 
                         this.loadSchedule(); 
                         this.loadServices(); 
-                        this.loadSosDates(); // Загружаем красные точки
-                    }
+                        
+
+                        // ВСТАВИТЬ СЮДА (ВНЕ ЗАВИСИМОСТИ ОТ РЕЖИМА)
+                    setTimeout(() => {
+                        console.log('Запуск SOS...');
+                        this.loadSosDates();
+                    }, 500);
+                    
                 } catch (err) {
                     console.error('Critical Init Error:', err);
                 }

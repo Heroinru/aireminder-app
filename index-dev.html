@@ -1126,13 +1126,13 @@
                     }
                 },
 
-               openDayDetails(dateStr) {
+                openDayDetails(dateStr) {
                     this.viewStep = 'day_details';
                     this.dayVisits = [];
-                    this.currentSlots = []; 
+                    this.currentSlots = []; // Очищаем слоты
                     this.isLoadingSlots = true;
 
-                    // 1. Запрос ВИЗИТОВ
+                    // 1. Запрос ВИЗИТОВ (Люди, SOS)
                     const p1 = fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}&date=${dateStr}`)
                         .then(res => res.json())
                         .then(data => {
@@ -1141,31 +1141,6 @@
                             else if (Array.isArray(data)) this.dayVisits = data;
                         })
                         .catch(e => console.error('Visits error:', e));
-
-                    // 2. Запрос СЛОТОВ (Свободное время)
-                    // ИСПРАВЛЕНИЕ: Берем выбранную длительность или 60 мин по умолчанию
-                    const durationToSend = this.selectedServiceDuration || 60;
-
-                    const p2 = fetch(URLS.GET_SLOTS, { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            master_id: this.masterId, 
-                            dates: [dateStr], 
-                            client_id: 'MASTER_VIEW', 
-                            duration: durationToSend // <--- ТЕПЕРЬ ДИНАМИЧЕСКИ
-                        }) 
-                    })
-                    .then(res => res.json())
-                    .then(data => { 
-                        const map = data.slots_by_date || data; 
-                        this.currentSlots = map[dateStr] || map.slots || []; 
-                    })
-                    .catch(e => console.error('Slots error:', e));
-
-                    Promise.all([p1, p2])
-                        .finally(() => this.isLoadingSlots = false);
-                },
 
                     // 2. Запрос СЛОТОВ (Свободное время)
                     // Берем дефолтную длительность 60 мин, чтобы просто показать сетку

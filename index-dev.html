@@ -890,12 +890,33 @@
 
                 loadSosDates() {
                     if (!this.masterId) return;
+                    
+                    console.log('🔍 Запрос SOS дат...');
+                    
                     fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}`)
                         .then(res => res.json())
                         .then(data => {
-                            this.sosDates = data.dates || [];
+                            console.log('📦 Ответ SOS:', data);
+                            
+                            // Вариант 1: Пришел массив [ { dates: [...] } ]
+                            if (Array.isArray(data) && data.length > 0 && data[0].dates) {
+                                this.sosDates = data[0].dates;
+                            } 
+                            // Вариант 2: Пришел объект { dates: [...] }
+                            else if (data.dates) {
+                                this.sosDates = data.dates;
+                            } 
+                            // Вариант 3: Пришел просто массив дат (редко, но бывает)
+                            else if (Array.isArray(data)) {
+                                this.sosDates = data;
+                            }
+                            else {
+                                this.sosDates = [];
+                            }
+                            
+                            console.log('✅ Итоговый список SOS:', this.sosDates);
                         })
-                        .catch(console.error);
+                        .catch(err => console.error('❌ Ошибка загрузки SOS:', err));
                 },
 
                 hasSos(day) {

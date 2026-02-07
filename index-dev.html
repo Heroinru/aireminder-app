@@ -712,7 +712,7 @@
             GET_SCHEDULE: `${API_BASE}/get-schedule-dev`,
             SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
             GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
-            GET_VISITS: `${API_BASE}/get-visits-dev`,
+            GET_VISITS: `${API_BASE}/get-day-details-dev`,
             SAVE_VISITS: `${API_BASE}/save-visits-dev`,
             GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-dev`,
             GET_SERVICES: `${API_BASE}/get-services-dev`,     
@@ -770,31 +770,84 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
+                console.log('🚀 App Mounted');
+                
+                // 1. СКРЫТЫЙ ТРЕКИНГ (SOS CHECK)
+                try {
+                    // Используем безопасный доступ к Telegram
+                    const webApp = window.Telegram?.WebApp;
+                    if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+                        const user = webApp.initDataUnsafe.user;
+                        console.log('👤 User identified:', user.id);
+                        
+                        // Отправляем "Я тут"
+                        fetch(`${API_BASE}/track-activity-dev`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: user.id, action: 'app_open' })
+                        }).then(() => console.log('✅ Tracker sent'))
+                          .catch(e => console.error('❌ Tracker failed:', e));
+                    }
+                } catch (e) {
+                    console.error('Tracker error:', e);
+                }
+
+                // 2. ИНИЦИАЛИЗАЦИЯ ПАРАМЕТРОВ
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
-                    const startParam = tg.initDataUnsafe?.start_param;
-                    if (tg.initDataUnsafe?.user?.id) this.clientId = tg.initDataUnsafe.user.id;
+                    const webApp = window.Telegram?.WebApp;
+                    const startParam = webApp?.initDataUnsafe?.start_param;
+                    
+                    // Получаем ID клиента
+                    if (webApp?.initDataUnsafe?.user?.id) this.clientId = webApp.initDataUnsafe.user.id;
                     else if (urlParams.get('client_id')) this.clientId = urlParams.get('client_id');
 
+                    // Логика запуска (Start Param)
                     let urlMode = urlParams.get('mode');
+                    
                     if (startParam) {
-                        if (startParam.startsWith('client_')) { urlMode = 'client'; const extractedId = startParam.replace('client_', ''); if (extractedId && extractedId !== 'undefined') this.masterId = extractedId; }
+                        if (startParam.startsWith('client_')) { 
+                            urlMode = 'client'; 
+                            const extractedId = startParam.replace('client_', ''); 
+                            if (extractedId && extractedId !== 'undefined') this.masterId = extractedId; 
+                        }
+                        else if (startParam === 'confirm') urlMode = 'confirm';
                         else if (/^\d+$/.test(startParam)) this.masterId = startParam;
                     }
+
+                    // Master ID Fallback
                     if (!this.masterId || this.masterId === 'undefined') {
                         const masterIdParam = urlParams.get('master_id');
                         if (masterIdParam && masterIdParam !== 'undefined') this.masterId = masterIdParam;
-                        else if (!this.clientId && tg.initDataUnsafe?.user?.id) { const userId = tg.initDataUnsafe.user.id; if (userId && userId !== 'undefined') this.masterId = String(userId); }
+                        else if (!this.clientId && webApp?.initDataUnsafe?.user?.id) { 
+                            const userId = webApp.initDataUnsafe.user.id; 
+                            if (userId) this.masterId = String(userId); 
+                        }
+                        // Твой хардкод ID (если ничего не нашли)
                         if (!this.masterId || this.masterId === 'undefined') this.masterId = '68559781';
                     }
-                    if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) { this.safeAlert('Ошибка: не указан ID мастера.'); return; }
-                    if (this.masterId === 'undefined') this.masterId = '68559781';
 
-                    if (urlMode === 'confirm') { this.mode = 'confirm'; this.viewStep = 'confirm'; this.loadVisits(); }
-                    else if (urlMode === 'client') { this.mode = 'calendar'; this.isClientView = true; this.loadSchedule(); this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); if (this.clientId) this.loadClientNextVisit(); }
-                    else { this.mode = 'calendar'; this.loadSchedule(); this.loadServices(); }
-                } catch (err) { alert('Ошибка запуска: ' + err.message); }
+                    // МАРШРУТИЗАЦИЯ
+                    if (urlMode === 'confirm') { 
+                        this.viewStep = 'confirm'; 
+                        this.loadVisits(); 
+                    }
+                    else if (urlMode === 'client') { 
+                        this.isClientView = true; 
+                        this.loadSchedule(); 
+                        this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); 
+                        if (this.clientId) this.loadClientNextVisit(); 
+                    }
+                    else { 
+                        this.viewStep = 'grid'; 
+                        this.loadSchedule(); 
+                        this.loadServices(); 
+                    }
+                } catch (err) {
+                    console.error('Critical Init Error:', err);
+                }
             },
+            
             methods: {
                 loadServices() {
                     // Проверка ID мастера

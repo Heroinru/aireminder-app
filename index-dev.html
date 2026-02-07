@@ -416,6 +416,9 @@
             </div>
 
             <div class="calendar-nav"><div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div><span class="month-name">{{ currentMonthName }}</span><div class="nav-arrow" @click="changeMonth(1)">&#9654;</div></div>
+            <div style="background: #fee; color: red; padding: 5px; font-size: 10px; text-align: center;">
+                ПРОВЕРКА: {{ sosDates }}
+            </div>
             
             <div class="cal-grid">
                 <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>

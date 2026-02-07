@@ -1126,7 +1126,7 @@
                     }
                 },
 
-                openDayDetails(dateStr) {
+               openDayDetails(dateStr) {
                     this.viewStep = 'day_details';
                     this.dayVisits = [];
                     this.currentSlots = []; 
@@ -1142,9 +1142,9 @@
                         })
                         .catch(e => console.error('Visits error:', e));
 
-                    // 2. Запрос СЛОТОВ
-                    // Если длительность выбрана - берем её. Если нет - 60 мин.
-                    const durationToSend = this.selectedServiceDuration ? this.selectedServiceDuration : 60;
+                    // 2. Запрос СЛОТОВ (Свободное время)
+                    // ИСПРАВЛЕНИЕ: Берем выбранную длительность или 60 мин по умолчанию
+                    const durationToSend = this.selectedServiceDuration || 60;
 
                     const p2 = fetch(URLS.GET_SLOTS, { 
                         method: 'POST', 
@@ -1153,7 +1153,7 @@
                             master_id: this.masterId, 
                             dates: [dateStr], 
                             client_id: 'MASTER_VIEW', 
-                            duration: durationToSend 
+                            duration: durationToSend // <--- ТЕПЕРЬ ДИНАМИЧЕСКИ
                         }) 
                     })
                     .then(res => res.json())

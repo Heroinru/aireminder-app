@@ -466,29 +466,53 @@
             </div>
         </div>
 
-        <!-- 4. ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
+       <!-- 4. ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
         <div v-else-if="mode === 'confirm'">
             <h2>Визиты за сегодня</h2>
+            
             <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
             <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>
+            
             <div v-else v-for="visit in visits" :key="visit.event_id" class="visit-card">
-                <div class="visit-header"><div class="visit-time">{{ formatTime(visit.appointment_time) }}</div><div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div></div>
-                <div style="font-weight:700;">{{ visit.client_name || 'Без имени' }}</div>
+                <div class="visit-header">
+                    <div class="visit-time">{{ formatTime(visit.appointment_time) }}</div>
+                    <div style="font-size:12px; font-weight:700; color:var(--primary);">{{ formatDatePretty(visit.appointment_time) }}</div>
+                </div>
+                
+                <!-- ИМЯ + СТАТУС ПРОСМОТРА SOS -->
+                <div style="font-weight:700; display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                    <span>{{ visit.client_name || 'Без имени' }}</span>
+                    
+                    <!-- Индикаторы (показываются только если был SOS) -->
+                    <span v-if="visit.sos_status === 'sent'" title="Отправлено, не читал" style="font-size: 16px; cursor: help;">✉️</span>
+                    <span v-if="visit.sos_status === 'seen'" title="Клиент видел уведомление" style="font-size: 16px; cursor: help;">👁️</span>
+                </div>
+
                 <div style="font-size:14px; color:#999;">{{ visit.service_type }}</div>
+                
                 <div class="status-row">
                     <div class="status-opt" :class="{ 'active-pending': visit.visit_status === 'pending' }" @click="visit.visit_status = 'pending'">⏳</div>
                     <div class="status-opt" :class="{ 'active-confirmed': visit.visit_status === 'confirmed' }" @click="setConfirmed(visit)">✅ Пришел</div>
                     <div class="status-opt" :class="{ 'active-noshow': visit.visit_status === 'no_show' }" @click="visit.visit_status = 'no_show'">⛔️ Нет</div>
                 </div>
+                
                 <div v-if="visit.visit_status === 'confirmed'" class="retention-box">
                     <div class="ret-label">Когда позвать снова?</div>
                     <div class="ret-controls">
                         <select v-model="visit.next_reminder_days" class="ret-select">
-                            <option :value="21">Через 3 недели</option><option :value="28">Через 4 недели</option><option :value="45">Через 1.5 мес</option><option :value="60">Через 2 мес</option><option :value="180">Через полгода</option><option :value="270">Через 9 мес</option><option :value="365">Через год</option><option :value="0">Не напоминать</option>
+                            <option :value="21">Через 3 недели</option>
+                            <option :value="28">Через 4 недели</option>
+                            <option :value="45">Через 1.5 мес</option>
+                            <option :value="60">Через 2 мес</option>
+                            <option :value="180">Через полгода</option>
+                            <option :value="270">Через 9 мес</option>
+                            <option :value="365">Через год</option>
+                            <option :value="0">Не напоминать</option>
                         </select>
                     </div>
                 </div>
             </div>
+            
             <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
         </div>
 

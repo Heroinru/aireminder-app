@@ -1129,10 +1129,10 @@
                 openDayDetails(dateStr) {
                     this.viewStep = 'day_details';
                     this.dayVisits = [];
-                    this.currentSlots = []; // Очищаем слоты
+                    this.currentSlots = []; 
                     this.isLoadingSlots = true;
 
-                    // 1. Запрос ВИЗИТОВ (Люди, SOS)
+                    // 1. Запрос ВИЗИТОВ
                     const p1 = fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}&date=${dateStr}`)
                         .then(res => res.json())
                         .then(data => {
@@ -1142,8 +1142,10 @@
                         })
                         .catch(e => console.error('Visits error:', e));
 
-                    // 2. Запрос СЛОТОВ (Свободное время)
-                    // Берем дефолтную длительность 60 мин, чтобы просто показать сетку
+                    // 2. Запрос СЛОТОВ
+                    // Если длительность выбрана - берем её. Если нет - 60 мин.
+                    const durationToSend = this.selectedServiceDuration ? this.selectedServiceDuration : 60;
+
                     const p2 = fetch(URLS.GET_SLOTS, { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' }, 
@@ -1151,7 +1153,7 @@
                             master_id: this.masterId, 
                             dates: [dateStr], 
                             client_id: 'MASTER_VIEW', 
-                            duration: 60 
+                            duration: durationToSend 
                         }) 
                     })
                     .then(res => res.json())
@@ -1161,7 +1163,6 @@
                     })
                     .catch(e => console.error('Slots error:', e));
 
-                    // Ждем оба ответа и выключаем загрузку
                     Promise.all([p1, p2])
                         .finally(() => this.isLoadingSlots = false);
                 },

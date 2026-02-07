@@ -474,10 +474,7 @@
             <div v-if="isLoadingSlots" style="text-align:center; margin-top:50px;">Загрузка...</div>
             
             <div v-else>
-                <div v-if="dayVisits.length === 0" style="text-align:center; padding: 40px; color: #9CA3AF; border: 2px dashed #E5E7EB; border-radius: 16px;">
-                    Нет записей на этот день 🏖
-                </div>
-
+                <!-- 1. СПИСОК ЗАПИСЕЙ (Люди / SOS) -->
                 <div v-for="visit in dayVisits" :key="visit.event_id" 
                      class="visit-card" 
                      :style="{ 
@@ -516,6 +513,23 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- 2. СЕТКА СВОБОДНЫХ СЛОТОВ (Время) -->
+                <div v-if="currentSlots.length > 0" style="margin-top: 25px;">
+                    <div style="font-size:12px; font-weight:700; color:#9CA3AF; text-transform:uppercase; margin-bottom:10px;">
+                        Свободное время
+                    </div>
+                    <div class="slots-grid">
+                        <div v-for="slot in currentSlots" :key="slot" class="slot-chip" style="background: white; border: 1px solid #E5E7EB; color: #374151; cursor: default;">
+                            {{ slot }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ЗАГЛУШКА (Если пусто) -->
+                <div v-if="dayVisits.length === 0 && currentSlots.length === 0" style="text-align:center; padding: 40px; color: #9CA3AF; border: 2px dashed #E5E7EB; border-radius: 16px; margin-top: 20px;">
+                    День полностью закрыт или выходной 🏖
                 </div>
             </div>
 
@@ -1113,17 +1127,42 @@
                 },
 
                 openDayDetails(dateStr) {
-                    this.viewStep = 'day_details'; // Переключаем экран
-                    this.dayVisits = [];    // Чистим список
-                    this.isLoadingSlots = true; // Показываем лоадер
+                    this.viewStep = 'day_details';
+                    this.dayVisits = [];
+                    this.currentSlots = []; // Очищаем слоты
+                    this.isLoadingSlots = true;
 
-                    // Запрашиваем данные у нашего нового воркфлоу
-                    fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}&date=${dateStr}`)
+                    // 1. Запрос ВИЗИТОВ (Люди, SOS)
+                    const p1 = fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}&date=${dateStr}`)
                         .then(res => res.json())
                         .then(data => {
-                            this.dayVisits = data.visits || [];
+                            if (data.visits) this.dayVisits = data.visits;
+                            else if (Array.isArray(data) && data.length > 0 && data[0].visits) this.dayVisits = data[0].visits;
+                            else if (Array.isArray(data)) this.dayVisits = data;
                         })
-                        .catch(err => console.error(err))
+                        .catch(e => console.error('Visits error:', e));
+
+                    // 2. Запрос СЛОТОВ (Свободное время)
+                    // Берем дефолтную длительность 60 мин, чтобы просто показать сетку
+                    const p2 = fetch(URLS.GET_SLOTS, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ 
+                            master_id: this.masterId, 
+                            dates: [dateStr], 
+                            client_id: 'MASTER_VIEW', 
+                            duration: 60 
+                        }) 
+                    })
+                    .then(res => res.json())
+                    .then(data => { 
+                        const map = data.slots_by_date || data; 
+                        this.currentSlots = map[dateStr] || map.slots || []; 
+                    })
+                    .catch(e => console.error('Slots error:', e));
+
+                    // Ждем оба ответа и выключаем загрузку
+                    Promise.all([p1, p2])
                         .finally(() => this.isLoadingSlots = false);
                 },
                 

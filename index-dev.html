@@ -880,9 +880,7 @@
                         .then(data => {
                             this.services = Array.isArray(data) ? data : [];
                             // Дефолтная длительность для сетки (если мастер не выбрал услугу)
-                            if (this.services.length > 0 && !this.selectedServiceDuration) {
-                                this.selectedServiceDuration = parseInt(this.services[0].duration);
-                            }
+                           
                         })
                         .catch(err => {
                             console.error('Services error:', err);

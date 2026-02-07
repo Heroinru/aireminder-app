@@ -427,7 +427,7 @@
                 </div>
             </div>
 
-            <!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ С АНАЛИТИКОЙ -->
+            <!-- НИЖНЯЯ ПАНЕЛЬ С НОВЫМИ КНОПКАМИ -->
             <div class="bottom-panel">
                 <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
                 
@@ -452,16 +452,20 @@
                     </button>
                 </div>
                 
-                <div v-else class="panel-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <!-- Верхний ряд -->
-                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
-                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
-                    
-                    <!-- Нижний ряд -->
-                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
-                    <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
-                        📊 Отчет
+                <div v-else class="panel-actions" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- ГЛАВНАЯ КНОПКА ОПЕРАЦИОНКИ -->
+                    <button class="btn" @click="goToVisits" style="background: white; color: var(--text-main); border: 2px solid var(--primary); box-shadow: none;">
+                        ✅ Визиты и Статусы
                     </button>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
+                        <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
+                        <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+                        <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
+                            📊 Отчет
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -736,36 +740,32 @@
                 firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             },
             mounted() {
-                // --- СКРЫТЫЙ ТРЕКИНГ (SOS CHECK) ---
                 try {
-                    // Проверяем, что открыто внутри Telegram
-                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-                        const user = window.Telegram.WebApp.initDataUnsafe.user;
-                        
-                        if (user && user.id) {
-                            // Тихо отправляем сигнал на сервер
-                            fetch(`${API_BASE}/track-activity-dev`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    user_id: user.id,
-                                    action: 'app_open'
-                                })
-                            }).catch(e => console.log('Tracking silent error:', e));
+                    // --- СКРЫТЫЙ ТРЕКИНГ (SOS CHECK) ---
+                    try {
+                        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+                            const user = window.Telegram.WebApp.initDataUnsafe.user;
+                            if (user && user.id) {
+                                fetch(`${API_BASE}/track-activity-dev`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user_id: user.id, action: 'app_open' })
+                                }).catch(e => console.log('Tracking silent error:', e));
+                            }
                         }
-                    }
-                } catch (e) {
-                    // Игнорируем ошибки трекера, чтобы не ломать апп
-                }
-                try {
+                    } catch (e) {}
+
                     const urlParams = new URLSearchParams(window.location.search);
                     const startParam = tg.initDataUnsafe?.start_param;
                     if (tg.initDataUnsafe?.user?.id) this.clientId = tg.initDataUnsafe.user.id;
                     else if (urlParams.get('client_id')) this.clientId = urlParams.get('client_id');
 
+                    // --- ЛОГИКА ЗАПУСКА И НАВИГАЦИИ ---
                     let urlMode = urlParams.get('mode');
+                    
                     if (startParam) {
                         if (startParam.startsWith('client_')) { urlMode = 'client'; const extractedId = startParam.replace('client_', ''); if (extractedId && extractedId !== 'undefined') this.masterId = extractedId; }
+                        else if (startParam === 'confirm') urlMode = 'confirm';
                         else if (/^\d+$/.test(startParam)) this.masterId = startParam;
                     }
                     if (!this.masterId || this.masterId === 'undefined') {
@@ -777,9 +777,19 @@
                     if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) { this.safeAlert('Ошибка: не указан ID мастера.'); return; }
                     if (this.masterId === 'undefined') this.masterId = '68559781';
 
-                    if (urlMode === 'confirm') { this.mode = 'confirm'; this.viewStep = 'confirm'; this.loadVisits(); }
-                    else if (urlMode === 'client') { this.mode = 'calendar'; this.isClientView = true; this.loadSchedule(); this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); if (this.clientId) this.loadClientNextVisit(); }
-                    else { this.mode = 'calendar'; this.loadSchedule(); this.loadServices(); }
+                    // МАРШРУТИЗАЦИЯ
+                    if (urlMode === 'confirm') { this.viewStep = 'confirm'; this.loadVisits(); }
+                    else if (urlMode === 'client') { 
+                        this.isClientView = true; 
+                        this.loadSchedule(); 
+                        this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); 
+                        if (this.clientId) this.loadClientNextVisit(); 
+                    }
+                    else { 
+                        this.viewStep = 'grid'; 
+                        this.loadSchedule(); 
+                        this.loadServices(); 
+                    }
                 } catch (err) { alert('Ошибка запуска: ' + err.message); }
             },
             methods: {
@@ -870,6 +880,11 @@
                     
                     // (Опционально) Можно показать подсказку
                     this.safeAlert('👇 Выберите свободные дни для поста');
+                },
+
+                goToVisits() {
+                    this.viewStep = 'confirm';
+                    this.loadVisits();
                 },
                 
                 selectService(svc) {

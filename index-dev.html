@@ -466,56 +466,61 @@
             </div>
         </div>
 
-        <!-- ДЕТАЛИ ДНЯ (Deep Dive) -->
+       <!-- ДЕТАЛИ ДНЯ (Deep Dive) -->
         <div v-if="viewStep === 'day_details'">
             <h2 style="text-align:center; margin-bottom:5px;">{{ formatDateFull(activeDate) }}</h2>
-            <div style="text-align:center; color:#999; font-size:12px; margin-bottom:20px;">Расписание и статусы</div>
+            <div style="text-align:center; color:#999; font-size:12px; margin-bottom:20px;">Детали дня</div>
 
             <div v-if="isLoadingSlots" style="text-align:center; margin-top:50px;">Загрузка...</div>
             
             <div v-else>
-                <!-- 1. СПИСОК ЗАПИСЕЙ (Люди / SOS) -->
-                <div v-for="visit in dayVisits" :key="visit.event_id" 
-                     class="visit-card" 
-                     :style="{ 
-                        borderLeft: visit.sos_status ? '4px solid #EF4444' : '4px solid #10B981',
-                        background: visit.sos_status ? '#FEF2F2' : 'white'
-                     }">
+                <!-- 1. СПИСОК ЗАПИСЕЙ (ТОЛЬКО ЕСЛИ ЕСТЬ SOS) -->
+                <div v-if="dayVisits && dayVisits.some(v => v.sos_status)">
+                    <div style="font-size:12px; font-weight:700; color:#EF4444; text-transform:uppercase; margin-bottom:10px;">
+                        ⚠️ Требуют внимания (SOS)
+                    </div>
                     
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div>
-                            <div class="visit-time" style="font-size:18px;">
-                                {{ formatTime(visit.appointment_time) }}
-                            </div>
-                            <div style="font-weight:800; font-size:16px; margin-top:4px;">
-                                {{ visit.client_name || 'Клиент' }}
-                            </div>
-                            <div style="font-size:13px; color:#6B7280;">{{ visit.service_type }}</div>
-                        </div>
-
-                        <div style="text-align:right;">
-                            <!-- СТАТУСЫ SOS -->
-                            <div v-if="visit.sos_status">
-                                <div style="color:#DC2626; font-weight:800; font-size:11px; text-transform:uppercase;">SOS Отмена</div>
-                                <div style="margin-top:6px;">
-                                    <span v-if="visit.sos_status === 'sent'" style="background:#FECACA; color:#991B1B; padding:4px 8px; border-radius:10px; font-size:11px; font-weight:700;">
-                                        ✉️ Отправлено
-                                    </span>
-                                    <span v-if="visit.sos_status === 'seen'" style="background:#D1FAE5; color:#065F46; padding:4px 8px; border-radius:10px; font-size:11px; font-weight:700;">
-                                        ✅ Прочитано
-                                    </span>
+                    <div v-for="visit in dayVisits" :key="visit.event_id" 
+                         class="visit-card" 
+                         :style="{ 
+                            borderLeft: visit.sos_status ? '4px solid #EF4444' : '4px solid #10B981',
+                            background: visit.sos_status ? '#FEF2F2' : 'white'
+                         }">
+                        
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div class="visit-time" style="font-size:18px;">
+                                    {{ formatTime(visit.appointment_time) }}
                                 </div>
+                                <div style="font-weight:800; font-size:16px; margin-top:4px;">
+                                    {{ visit.client_name || 'Клиент' }}
+                                </div>
+                                <div style="font-size:13px; color:#6B7280;">{{ visit.service_type }}</div>
                             </div>
-                            <!-- ОБЫЧНЫЕ СТАТУСЫ -->
-                            <div v-else>
-                                <span v-if="visit.visit_status === 'confirmed'" style="color:#059669; font-weight:700; font-size:12px;">✅ Подтвержден</span>
-                                <span v-else style="color:#D97706; font-weight:700; font-size:12px;">⏳ Ожидание</span>
+
+                            <div style="text-align:right;">
+                                <!-- СТАТУСЫ SOS -->
+                                <div v-if="visit.sos_status">
+                                    <div style="color:#DC2626; font-weight:800; font-size:11px; text-transform:uppercase;">SOS Отмена</div>
+                                    <div style="margin-top:6px;">
+                                        <span v-if="visit.sos_status === 'sent'" style="background:#FECACA; color:#991B1B; padding:4px 8px; border-radius:10px; font-size:11px; font-weight:700;">
+                                            ✉️ Отправлено
+                                        </span>
+                                        <span v-if="visit.sos_status === 'seen'" style="background:#D1FAE5; color:#065F46; padding:4px 8px; border-radius:10px; font-size:11px; font-weight:700;">
+                                            ✅ Прочитано
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- ОБЫЧНЫЕ СТАТУСЫ (Показываем только в контексте SOS-дня) -->
+                                <div v-else>
+                                    <span style="color:#059669; font-weight:700; font-size:12px;">✅ Ок</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. СЕТКА СВОБОДНЫХ СЛОТОВ (Время) -->
+                <!-- 2. СЕТКА СВОБОДНЫХ СЛОТОВ (Всегда показываем, если есть) -->
                 <div v-if="currentSlots.length > 0" style="margin-top: 25px;">
                     <div style="font-size:12px; font-weight:700; color:#9CA3AF; text-transform:uppercase; margin-bottom:10px;">
                         Свободное время
@@ -527,9 +532,10 @@
                     </div>
                 </div>
 
-                <!-- 3. ЗАГЛУШКА (Если пусто) -->
-                <div v-if="dayVisits.length === 0 && currentSlots.length === 0" style="text-align:center; padding: 40px; color: #9CA3AF; border: 2px dashed #E5E7EB; border-radius: 16px; margin-top: 20px;">
-                    День полностью закрыт или выходной 🏖
+                <!-- 3. ЗАГЛУШКА (Если день полностью занят и нет SOS) -->
+                <div v-if="currentSlots.length === 0 && (!dayVisits || !dayVisits.some(v => v.sos_status))" style="text-align:center; padding: 40px; color: #9CA3AF; border: 2px dashed #E5E7EB; border-radius: 16px; margin-top: 20px;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">🔒</div>
+                    Мест нет (или выходной)
                 </div>
             </div>
 

@@ -423,6 +423,10 @@
                 <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
                     <span class="day-num">{{ date }}</span>
                     <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
+                    <!-- Иконка SOS -->
+                    <span v-if="hasSos(date)" style="position: absolute; top: 4px; left: 4px; font-size: 14px; line-height: 1; z-index: 5;">
+                        🆘
+                    </span>
                     <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
                 </div>
             </div>
@@ -739,6 +743,7 @@
             MANAGE_SERVICES: `${API_BASE}/manage-services-dev`,
             EMERGENCY: `${API_BASE}/broadcast-emergency-dev`,
             GET_ANALYTICS: `${API_BASE}/get-analytics-dev`
+            GET_SOS_DATES: `${API_BASE}/get-sos-dates-dev`,
         };
 
         const TIMES_LIST = Array.from({length: 96}, (_, i) => {
@@ -768,6 +773,7 @@
                     masterUsername: null,
                     showConflictModal: false,
                     conflictList: [],
+                    sosDates: [], // Список дат с SOS
                     conflictType: '',
                     
                     
@@ -898,6 +904,21 @@
                             this.safeAlert('Не удалось загрузить услуги. Проверьте консоль.');
                         });
                 },
+
+                loadSosDates() {
+                if (!this.masterId) return;
+                fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        this.sosDates = data.dates || [];
+                    })
+                    .catch(console.error);
+            },
+
+                hasSos(day) {
+                const k = this.formatDateKey(day);
+                return this.sosDates.includes(k);
+            },
                 
                // --- УПРАВЛЕНИЕ УСЛУГАМИ (Edit/Delete/Create) ---
                 

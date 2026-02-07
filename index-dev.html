@@ -719,7 +719,7 @@
 
     </div>
 
-    <script>
+  <script>
         const { createApp } = Vue;
         
         let tg = { initDataUnsafe: {} };
@@ -736,14 +736,14 @@
             GET_SCHEDULE: `${API_BASE}/get-schedule-dev`,
             SAVE_SCHEDULE: `${API_BASE}/save-schedule-dev`,
             GET_SLOTS: `${API_BASE}/get-free-slots-dev`,
-            GET_VISITS: `${API_BASE}/get-day-details-dev`,
+            GET_VISITS: `${API_BASE}/get-day-details-dev`, // Исправленный адрес
             SAVE_VISITS: `${API_BASE}/save-visits-dev`,
             GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-dev`,
             GET_SERVICES: `${API_BASE}/get-services-dev`,     
             MANAGE_SERVICES: `${API_BASE}/manage-services-dev`,
             EMERGENCY: `${API_BASE}/broadcast-emergency-dev`,
-            GET_ANALYTICS: `${API_BASE}/get-analytics-dev`
-            GET_SOS_DATES: `${API_BASE}/get-sos-dates-dev`,
+            GET_ANALYTICS: `${API_BASE}/get-analytics-dev`,
+            GET_SOS_DATES: `${API_BASE}/get-sos-dates-dev`
         };
 
         const TIMES_LIST = Array.from({length: 96}, (_, i) => {
@@ -755,15 +755,16 @@
         createApp({
             data() {
                 return {
-                    isEditing: false, // Флаг режима редактирования
-                    editingId: null,  // ID редактируемой услуги
                     clientId: null, mode: 'calendar', viewStep: 'grid', editMode: false, shareMode: false, masterId: null, isClientView: false,
                     services: [], 
                     selectedServiceDuration: null, 
                     selectedServiceTitle: '', 
+                    
+                    // Редактирование услуг
                     newService: { title: '', duration: 60, price: '' },
-                    isEditing: false, // Режим редактирования
-                    editingId: null,  // ID услуги, которую правим
+                    isEditing: false, 
+                    editingId: null,
+                    
                     visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
                     currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
                     selectedDates: [], activeDate: null, currentSlots: [],
@@ -773,11 +774,11 @@
                     masterUsername: null,
                     showConflictModal: false,
                     conflictList: [],
-                    sosDates: [], // Список дат с SOS
                     conflictType: '',
                     
-                    
-                    // Обновленная структура данных
+                    // Новые данные
+                    dayVisits: [], // Для Deep Dive
+                    sosDates: [],  // Для иконок в календаре
                     analyticsData: { 
                         revenue_fact: 0, 
                         revenue_forecast: 0, 
@@ -800,35 +801,26 @@
                 
                 // 1. СКРЫТЫЙ ТРЕКИНГ (SOS CHECK)
                 try {
-                    // Используем безопасный доступ к Telegram
                     const webApp = window.Telegram?.WebApp;
                     if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
                         const user = webApp.initDataUnsafe.user;
-                        console.log('👤 User identified:', user.id);
-                        
-                        // Отправляем "Я тут"
                         fetch(`${API_BASE}/track-activity-dev`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ user_id: user.id, action: 'app_open' })
-                        }).then(() => console.log('✅ Tracker sent'))
-                          .catch(e => console.error('❌ Tracker failed:', e));
+                        }).catch(e => console.log('Tracking silent error:', e));
                     }
-                } catch (e) {
-                    console.error('Tracker error:', e);
-                }
+                } catch (e) {}
 
-                // 2. ИНИЦИАЛИЗАЦИЯ ПАРАМЕТРОВ
+                // 2. ИНИЦИАЛИЗАЦИЯ
                 try {
                     const urlParams = new URLSearchParams(window.location.search);
                     const webApp = window.Telegram?.WebApp;
                     const startParam = webApp?.initDataUnsafe?.start_param;
                     
-                    // Получаем ID клиента
                     if (webApp?.initDataUnsafe?.user?.id) this.clientId = webApp.initDataUnsafe.user.id;
                     else if (urlParams.get('client_id')) this.clientId = urlParams.get('client_id');
 
-                    // Логика запуска (Start Param)
                     let urlMode = urlParams.get('mode');
                     
                     if (startParam) {
@@ -841,7 +833,6 @@
                         else if (/^\d+$/.test(startParam)) this.masterId = startParam;
                     }
 
-                    // Master ID Fallback
                     if (!this.masterId || this.masterId === 'undefined') {
                         const masterIdParam = urlParams.get('master_id');
                         if (masterIdParam && masterIdParam !== 'undefined') this.masterId = masterIdParam;
@@ -849,9 +840,11 @@
                             const userId = webApp.initDataUnsafe.user.id; 
                             if (userId) this.masterId = String(userId); 
                         }
-                        // Твой хардкод ID (если ничего не нашли)
                         if (!this.masterId || this.masterId === 'undefined') this.masterId = '68559781';
                     }
+
+                    if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) { this.safeAlert('Ошибка: не указан ID мастера.'); return; }
+                    if (this.masterId === 'undefined') this.masterId = '68559781';
 
                     // МАРШРУТИЗАЦИЯ
                     if (urlMode === 'confirm') { 
@@ -868,7 +861,7 @@
                         this.viewStep = 'grid'; 
                         this.loadSchedule(); 
                         this.loadServices(); 
-                        this.loadSosDates();
+                        this.loadSosDates(); // Загружаем красные точки
                     }
                 } catch (err) {
                     console.error('Critical Init Error:', err);
@@ -877,62 +870,50 @@
             
             methods: {
                 loadServices() {
-                    // Проверка ID мастера
-                    if (!this.masterId || this.masterId === 'undefined') {
-                        console.warn('⚠️ loadServices: masterId не найден');
-                        return Promise.resolve([]);
-                    }
-
-                    // Чистый URL без заголовков, чтобы не злить CORS
-                    // Добавил random, чтобы телефон не кэшировал старый пустой список
+                    if (!this.masterId || this.masterId === 'undefined') return Promise.resolve([]);
                     const url = `${URLS.GET_SERVICES}?master_id=${this.masterId}&rnd=${Math.random()}`;
-                    
-                    console.log('📡 Загружаю услуги:', url);
-
                     return fetch(url)
                         .then(res => {
                             if (!res.ok) throw new Error(`HTTP ${res.status}`);
                             return res.json();
                         })
                         .then(data => {
-                            console.log('✅ Услуги пришли:', data);
-                            // Защита: если пришел не массив, делаем пустой массив
                             this.services = Array.isArray(data) ? data : [];
+                            // Дефолтная длительность для сетки (если мастер не выбрал услугу)
+                            if (this.services.length > 0 && !this.selectedServiceDuration) {
+                                this.selectedServiceDuration = parseInt(this.services[0].duration);
+                            }
                         })
                         .catch(err => {
-                            console.error('❌ Ошибка загрузки услуг:', err);
-                            // Если будет ошибка, она появится во всплывающем окне
-                            this.safeAlert('Не удалось загрузить услуги. Проверьте консоль.');
+                            console.error('Services error:', err);
+                            this.safeAlert('Не удалось загрузить услуги.');
                         });
                 },
 
                 loadSosDates() {
-                if (!this.masterId) return;
-                fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        this.sosDates = data.dates || [];
-                    })
-                    .catch(console.error);
-            },
+                    if (!this.masterId) return;
+                    fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.sosDates = data.dates || [];
+                        })
+                        .catch(console.error);
+                },
 
                 hasSos(day) {
-                const k = this.formatDateKey(day);
-                return this.sosDates.includes(k);
-            },
+                    const k = this.formatDateKey(day);
+                    return this.sosDates && this.sosDates.includes(k);
+                },
                 
-               // --- УПРАВЛЕНИЕ УСЛУГАМИ (Edit/Delete/Create) ---
-                
+                // --- УПРАВЛЕНИЕ УСЛУГАМИ ---
                 editService(svc) {
                     this.isEditing = true;
                     this.editingId = svc.service_id;
-                    // Заполняем форму
                     this.newService = {
                         title: svc.title,
                         duration: parseInt(svc.duration) || 60,
                         price: svc.price
                     };
-                    // Скроллим вниз к форме
                     setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
                 },
 
@@ -944,7 +925,6 @@
 
                 manageService(action, service = null) {
                     let svcId = null;
-                    // Для удаления ID берем из аргумента, для обновления - из памяти
                     if (action === 'delete') svcId = service.service_id;
                     else if (action === 'update') svcId = this.editingId;
 
@@ -959,29 +939,21 @@
                         .then(res => res.json())
                         .then(() => { 
                             this.loadServices(); 
-                            this.cancelEdit(); // Сброс
+                            this.cancelEdit(); 
                             this.safeAlert(action === 'delete' ? 'Удалено' : 'Сохранено!');
                         })
                         .catch(err => this.safeAlert('Ошибка: ' + err));
                 },
 
                 goToSmartPost() {
-                    // 1. Переходим в календарь
                     this.viewStep = 'grid';
-                    
-                    // 2. Сбрасываем лишние режимы
                     this.editMode = false;
                     this.selectedDates = [];
-                    
-                    // 3. Включаем режим "Пост"
                     this.shareMode = true;
-                    
-                    // (Опционально) Можно показать подсказку
                     this.safeAlert('👇 Выберите свободные дни для поста');
                 },
                 
                 selectService(svc) {
-                    if (!this.isClientView) return;
                     this.selectedServiceDuration = parseInt(svc.duration);
                     this.selectedServiceTitle = svc.title;
                     this.viewStep = 'grid';
@@ -1023,9 +995,7 @@
                 },
                 
                 bookSlot(time) {
-                    // БЛОКИРОВКА ДЛЯ МАСТЕРА
                     if (!this.isClientView) return;
-
                     const dateOptions = { day: 'numeric', month: 'long', weekday: 'long' };
                     const dateStr = this.activeDate.toLocaleDateString('ru-RU', dateOptions);
                     const service = this.selectedServiceTitle || 'процедуру';
@@ -1072,7 +1042,6 @@
                                 this.isSaving = false;
                                 return;
                             }
-
                             this.safeAlert('✅ Сохранено!');
                             this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
                             this.selectedDates = [];
@@ -1138,23 +1107,60 @@
                     this.activeDate = new Date(this.currentYear, this.currentMonth, day);
                     
                     if (this.isClientView) { 
-                        // Клиент: видит слоты для записи
                         this.fetchSlotsForDate(dateStr); 
                     } else {
-                        // Мастер: видит детали дня и статусы SOS
                         if (this.editMode || this.shareMode) { 
-                            // Если режим редактирования графика - выделяем
                             const idx = this.selectedDates.indexOf(dateStr); 
                             if (idx === -1) this.selectedDates.push(dateStr); 
                             else this.selectedDates.splice(idx, 1); 
                         } else {
-                            // Обычный режим - проваливаемся в день
                             this.openDayDetails(dateStr);
                         }
                     }
                 },
+                
+                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
+                toggleEditMode() { if (this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
+                toggleShareMode() { if (this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
+                
+                toggleColumn(colIndex) {
+                    if ((!this.editMode && !this.shareMode) || this.isClientView) return;
+                    for (let d = 1; d <= this.daysInMonth; d++) {
+                        let date = new Date(this.currentYear, this.currentMonth, d);
+                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
+                        if (myDay === colIndex) { const k = this.formatDateKey(d); if (this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x !== k); else this.selectedDates.push(k); }
+                    }
+                },
+                
+                goToSettings() {
+                    if (this.isClientView || this.selectedDates.length === 0) return;
+                    const date = this.selectedDates[0];
+                    const found = this.dbData[date];
+                    
+                    function cleanTime(t) {
+                        if (!t || t === 'null' || t === '') return '10:00';
+                        var s = String(t).trim();
+                        if (s.length >= 5) return s.substring(0, 5);
+                        return s;
+                    }
 
-             openDayDetails(dateStr) {
+                    if (found) {
+                        this.startTime = cleanTime(found.start);
+                        this.endTime = cleanTime(found.end);
+                        var rawBreaks = found.breaks;
+                        if (typeof rawBreaks === 'string') { try { rawBreaks = JSON.parse(rawBreaks); } catch (e) { rawBreaks = []; } }
+                        if (!Array.isArray(rawBreaks)) rawBreaks = [];
+                        this.breaks = rawBreaks.map(function(b) { return { start: cleanTime(b.start), end: cleanTime(b.end) }; });
+                    } else {
+                        this.startTime = '10:00';
+                        this.endTime = '20:00';
+                        this.breaks = [];
+                    }
+                    this.viewStep = 'settings';
+                },
+
+                // --- НОВЫЙ МЕТОД ДЛЯ ДЕТАЛЕЙ ДНЯ ---
+                openDayDetails(dateStr) {
                     this.viewStep = 'day_details';
                     this.dayVisits = [];
                     this.currentSlots = []; 
@@ -1171,10 +1177,6 @@
                         .catch(e => console.error('Visits error:', e));
 
                     // 2. Запрос СЛОТОВ
-                    // ЛОГИКА ВОССТАНОВЛЕНА:
-                    // Если выбрана услуга -> берем её длительность.
-                    // Если НЕТ -> берем настройку слота мастера (this.slotDuration).
-                    // Если и её нет -> 60 мин.
                     let durationToSend = 60;
                     if (this.selectedServiceDuration) {
                         durationToSend = this.selectedServiceDuration;
@@ -1202,67 +1204,12 @@
                     Promise.all([p1, p2])
                         .finally(() => this.isLoadingSlots = false);
                 },
-                
-                isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-                toggleEditMode() { if (this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
-                toggleShareMode() { if (this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
-                
-                toggleColumn(colIndex) {
-                    if ((!this.editMode && !this.shareMode) || this.isClientView) return;
-                    for (let d = 1; d <= this.daysInMonth; d++) {
-                        let date = new Date(this.currentYear, this.currentMonth, d);
-                        let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
-                        if (myDay === colIndex) { const k = this.formatDateKey(d); if (this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x !== k); else this.selectedDates.push(k); }
-                    }
-                },
-                
-             goToSettings() {
-                    if (this.isClientView || this.selectedDates.length === 0) return;
-                    
-                    const date = this.selectedDates[0];
-                    const found = this.dbData[date]; // Данные из базы по этой дате
-                    
-                    // Простая функция очистки времени
-                    function cleanTime(t) {
-                        if (!t || t === 'null' || t === '') return '10:00';
-                        var s = String(t).trim();
-                        if (s.length >= 5) return s.substring(0, 5);
-                        return s;
-                    }
 
-                    if (found) {
-                        this.startTime = cleanTime(found.start);
-                        this.endTime = cleanTime(found.end);
-                        
-                        // Обработка перерывов
-                        var rawBreaks = found.breaks;
-                        
-                        // Если строка - парсим
-                        if (typeof rawBreaks === 'string') {
-                            try { rawBreaks = JSON.parse(rawBreaks); } catch (e) { rawBreaks = []; }
-                        }
-                        // Если не массив - делаем пустым
-                        if (!Array.isArray(rawBreaks)) rawBreaks = [];
-
-                        // Нормализуем перерывы
-                        this.breaks = rawBreaks.map(function(b) {
-                            return {
-                                start: cleanTime(b.start),
-                                end: cleanTime(b.end)
-                            };
-                        });
-
-                    } else {
-                        // Дефолт
-                        this.startTime = '10:00';
-                        this.endTime = '20:00';
-                        this.breaks = [];
-                    }
-                    
-                    this.viewStep = 'settings';
+                goToVisits() {
+                    this.viewStep = 'confirm';
+                    this.loadVisits();
                 },
 
-                // --- НОВЫЕ МЕТОДЫ АНАЛИТИКИ ---
                 goToAnalytics() {
                     this.viewStep = 'analytics';
                     this.loadAnalytics();
@@ -1282,11 +1229,6 @@
                         .finally(() => this.isLoadingAnalytics = false);
                 },
 
-                formatMoney(value) {
-                    if (!value) return '0';
-                    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-                },
-                
                 loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(err => console.error('Error loading client visit:', err)); },
                 sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
                 isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },

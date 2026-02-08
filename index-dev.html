@@ -862,11 +862,12 @@
                         if (this.clientId) this.loadClientNextVisit(); 
                     }
                     else { 
-                        this.viewStep = 'grid'; 
-                        this.loadSchedule(); 
-                        this.loadServices(); 
-                        this.loadSosDates(); // Загружаем красные точки
-                    }
+    this.viewStep = 'grid'; 
+    this.loadSchedule(); 
+    this.loadServices(); 
+    // Загружаем SOS даты, передавая masterId
+    if (this.masterId) this.loadSosDates(); 
+}
                 } catch (err) {
                     console.error('Critical Init Error:', err);
                 }

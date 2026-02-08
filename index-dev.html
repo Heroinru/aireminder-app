@@ -874,40 +874,33 @@
             },
 
             // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА SOS ---
-      loadSosDates() {
+   loadSosDates() {
                 if (!this.masterId) return;
                 
-                // ВРЕМЕННАЯ ДИАГНОСТИКА
+                // ВРЕМЕННЫЙ ВАРИАНТ: ЖЕСТКАЯ ПРИВЯЗКА К ФОРМАТУ N8N
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
-                    .then(async res => {
-                        const text = await res.text(); // Читаем как текст, чтобы видеть ВСЁ
-                        alert("ПРИШЛО ОТ СЕРВЕРА:\n" + text); // 1. Покажет, что реально пришло
-                        
-                        try {
-                            const data = JSON.parse(text); // Пробуем превратить в объект
-                            
-                            let rawDates = [];
-                            if (Array.isArray(data) && data.length > 0 && data[0].dates) {
-                                rawDates = data[0].dates;
-                            } else if (data && data.dates) {
-                                rawDates = data.dates;
-                            }
-                            
-                            this.sosDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d));
-                            
-                            alert("РАСПОЗНАНО ДАТ:\n" + JSON.stringify(this.sosDates)); // 2. Покажет, что понял код
-                            
-                            // Авто-переход
-                            if (this.sosDates.length > 0) {
-                                const firstSos = new Date(this.sosDates[0]);
-                                this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
-                                this.fetchSlotsAvailability();
-                            }
-                        } catch (e) {
-                            alert("ОШИБКА ПАРСИНГА:\n" + e.message);
+                    .then(res => res.json())
+                    .then(data => {
+                        // Если n8n вернул массив [{ dates: [...] }]
+                        if (data[0] && data[0].dates) {
+                            this.sosDates = data[0].dates;
+                        } 
+                        // Если вернул объект { dates: [...] }
+                        else if (data.dates) {
+                            this.sosDates = data.dates;
                         }
+                        // Если вернул массив строк ["2026..."]
+                        else if (Array.isArray(data)) {
+                            this.sosDates = data;
+                        }
+                        
+                        // Принудительно обновляем Vue (на всякий случай)
+                        this.$forceUpdate();
                     })
-                    .catch(err => alert("ОШИБКА СЕТИ:\n" + err));
+                    .catch(e => {
+                        // Если ошибка - покажем её в алерт (чтобы ты увидел)
+                        alert("SOS ERROR: " + e);
+                    });
             },
 
             hasSos(day) {

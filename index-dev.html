@@ -845,16 +845,16 @@
                     if (this.clientId) this.loadClientNextVisit(); 
                 }
                 else { 
-                    this.viewStep = 'grid'; 
+                    this.viewStep = 'grid';
+                    // ИСПРАВЛЕНИЕ: Загружаем SOS даты первым делом
+                    if (this.masterId) this.loadSosDates();
                     this.loadSchedule(); 
                     this.loadServices(); 
-                    if (this.masterId) this.loadSosDates();
                 }
             } catch (err) { console.error('Init Error:', err); }
         },
         
         methods: {
-            // ВОЗВРАЩЕНО: Форматирование денег для отчета
             formatMoney(val) {
                 if (val === undefined || val === null) return '0';
                 return val.toLocaleString('ru-RU');
@@ -868,31 +868,48 @@
                     .catch(err => console.error('Services error:', err));
             },
 
-            // ИСПРАВЛЕНО: Точный парсинг структуры n8n
+            // ИСПРАВЛЕНИЕ: Бронебойный парсинг SOS дат (предложение другого ИИ)
             loadSosDates() {
                 if (!this.masterId) return;
-                // Добавляем rnd, чтобы телеграм не кэшировал запрос
+                console.log('🔍 Загрузка SOS дат...');
+                
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
                     .then(res => res.json())
                     .then(data => {
+                        console.log('📦 RAW SOS:', data);
                         let rawDates = [];
-                        // 1. Если пришел массив объектов [{ "dates": [...] }] - это твой случай
-                        if (Array.isArray(data) && data.length > 0 && data[0].dates) {
-                            rawDates = data[0].dates;
+
+                        // 1. Проверяем, массив ли это
+                        if (Array.isArray(data)) {
+                            if (data.length > 0) {
+                                // Формат [{ dates: [...] }] (твой случай)
+                                if (data[0].dates) {
+                                    rawDates = data[0].dates;
+                                }
+                                // Формат ['2026-02-10', ...] (простой массив строк)
+                                else if (typeof data[0] === 'string') {
+                                    rawDates = data;
+                                }
+                            }
                         } 
-                        // 2. Если пришел просто объект { "dates": [...] }
+                        // 2. Проверяем, объект ли это { dates: [...] }
                         else if (data && data.dates) {
                             rawDates = data.dates;
                         }
 
-                        // Убираем время, если оно есть
-                        this.sosDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : d);
-                        console.log('✅ SOS Dates:', this.sosDates);
+                        // Нормализация дат (убираем время T)
+                        this.sosDates = rawDates.map(d => {
+                            if (typeof d === 'string') return d.includes('T') ? d.split('T')[0] : d;
+                            return String(d);
+                        });
+                        
+                        console.log('✅ SOS Dates Loaded:', this.sosDates);
                     })
-                    .catch(console.error);
+                    .catch(err => console.error('❌ SOS Error:', err));
             },
 
             hasSos(day) {
+                // Простая проверка без лишних логов для производительности
                 return this.sosDates && this.sosDates.includes(this.formatDateKey(day));
             },
             
@@ -1003,7 +1020,6 @@
                 if (!visit.next_reminder_days) visit.next_reminder_days = 28;
             },
             
-            // ИСПРАВЛЕНО: Фильтр для скрытия подтвержденных визитов
             loadVisits() { 
                 this.isLoading = true; 
                 fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
@@ -1011,7 +1027,7 @@
                     .then(data => { 
                         this.visits = (data.visits || [])
                             .map(v => ({ ...v, visit_status: v.visit_status || 'pending' }))
-                            .filter(v => v.visit_status === 'pending'); // <-- ВОТ ЭТОТ ФИЛЬТР
+                            .filter(v => v.visit_status === 'pending'); 
                     })
                     .finally(() => this.isLoading = false); 
             },
@@ -1020,10 +1036,7 @@
                 this.isSaving = true;
                 const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
                 fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
-                    .then(() => { 
-                        this.safeAlert('✅ Сохранено!'); 
-                        this.loadVisits(); // <-- ПЕРЕЗАГРУЗКА СПИСКА
-                    })
+                    .then(() => { this.safeAlert('✅ Сохранено!'); this.loadVisits(); })
                     .catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
             },
 
@@ -1044,7 +1057,15 @@
             makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
             isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
             formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
-            changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); this.fetchSlotsAvailability(); },
+            
+            // ИСПРАВЛЕНИЕ: Обновляем SOS даты при смене месяца
+            changeMonth(d) { 
+                this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); 
+                if (!this.isClientView && this.masterId) {
+                    this.loadSosDates(); 
+                }
+                this.fetchSlotsAvailability(); 
+            },
             
             onDayClick(day) {
                 const dateStr = this.formatDateKey(day);

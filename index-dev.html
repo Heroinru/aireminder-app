@@ -726,6 +726,7 @@
   <script>
         const { createApp } = Vue;
     
+    // Инициализация Telegram
     let tg = { initDataUnsafe: {} };
     try {
         if (window.Telegram && window.Telegram.WebApp) {
@@ -781,13 +782,15 @@
                 conflictType: '',
                 
                 // Новые данные
-                dayVisits: [], // Для Deep Dive
-                sosDates: [],  // Для иконок в календаре
+                dayVisits: [], 
+                sosDates: [],
+                // ИСПРАВЛЕНО: Полная инициализация структуры аналитики
                 analyticsData: { 
                     revenue_fact: 0, 
                     revenue_forecast: 0, 
                     revenue_potential: 0, 
-                    visits_total: 0,
+                    visits_fact: 0,
+                    visits_forecast: 0,
                     metrics: { avg_check: 0, hour_price: 0 } 
                 },
                 isLoadingAnalytics: false
@@ -803,7 +806,7 @@
         mounted() {
             console.log('🚀 App Mounted');
             
-            // 1. СКРЫТЫЙ ТРЕКИНГ (SOS CHECK)
+            // 1. СКРЫТЫЙ ТРЕКИНГ
             try {
                 const webApp = window.Telegram?.WebApp;
                 if (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
@@ -865,7 +868,6 @@
                     this.viewStep = 'grid'; 
                     this.loadSchedule(); 
                     this.loadServices(); 
-                    // ЗАГРУЗКА SOS ДАТ (ИСПРАВЛЕНО)
                     if (this.masterId) this.loadSosDates();
                 }
             } catch (err) {
@@ -895,30 +897,22 @@
             loadSosDates() {
                 if (!this.masterId || this.masterId === 'undefined') return;
                 
-                // Добавлен параметр rnd для обхода кэша
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
                     .then(res => res.json())
                     .then(data => {
                         console.log('📦 SOS Raw Data:', data);
                         let rawDates = [];
 
-                        // Парсинг ответа от n8n (поддержка разных форматов)
-                        if (Array.isArray(data) && data.length > 0) {
-                            // Формат: [{ "dates": [...] }]
-                            if (data[0].dates) {
-                                rawDates = data[0].dates;
-                            } 
-                            // Формат: ["2026-02-06", ...]
-                            else if (typeof data[0] === 'string') {
-                                rawDates = data;
-                            }
-                        } 
-                        // Формат: { "dates": [...] }
-                        else if (data && data.dates) {
+                        // 1. Прямая проверка твоего формата: [{ "dates": [...] }]
+                        if (Array.isArray(data) && data.length > 0 && data[0].dates && Array.isArray(data[0].dates)) {
+                            rawDates = data[0].dates;
+                        }
+                        // 2. Запасной вариант: { "dates": [...] }
+                        else if (data && data.dates && Array.isArray(data.dates)) {
                             rawDates = data.dates;
                         }
 
-                        // Нормализация дат (убираем время, если есть)
+                        // Нормализация дат (убираем время)
                         const cleanDates = rawDates.map(d => {
                             if (typeof d === 'string' && d.includes('T')) return d.split('T')[0];
                             return d;
@@ -932,7 +926,6 @@
 
             hasSos(day) {
                 const k = this.formatDateKey(day);
-                // Проверка на наличие даты в массиве
                 return this.sosDates && this.sosDates.includes(k);
             },
             
@@ -1090,11 +1083,17 @@
                 if (!visit.next_reminder_days) visit.next_reminder_days = 28;
             },
             
+            // --- ИСПРАВЛЕННАЯ ФУНКЦИЯ СОХРАНЕНИЯ ВИЗИТОВ ---
             saveVisits() {
                 this.isSaving = true;
                 const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
+                
                 fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
-                    .then(() => { this.safeAlert('✅ Сохранено!'); if (tg.close) tg.close(); })
+                    .then(() => { 
+                        this.safeAlert('✅ Сохранено!'); 
+                        // Перезагружаем список, чтобы убрать подтвержденные
+                        this.loadVisits();
+                    })
                     .catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
             },
 
@@ -1253,7 +1252,10 @@
                 fetch(url)
                     .then(res => res.json())
                     .then(data => {
-                        this.analyticsData = data;
+                        // Безопасное обновление данных
+                        if (data) {
+                            this.analyticsData = { ...this.analyticsData, ...data };
+                        }
                     })
                     .catch(err => console.error('Analytics error:', err))
                     .finally(() => this.isLoadingAnalytics = false);
@@ -1272,7 +1274,20 @@
             getDaysUntil(dateStr) { const target = new Date(dateStr); const today = new Date(); const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate()); const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const diffTime = targetDate - todayDate; const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); if (diffDays === 0) return "Сегодня"; if (diffDays === 1) return "Завтра"; return `через ${diffDays} дн.`; },
             addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
             removeBreak(index) { this.breaks.splice(index, 1); },
-            loadVisits() { this.isLoading = true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })); }).finally(() => this.isLoading = false); },
+            
+            // --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ ВИЗИТОВ ---
+            loadVisits() { 
+                this.isLoading = true; 
+                fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
+                    .then(res => res.json())
+                    .then(data => { 
+                        this.visits = (data.visits || [])
+                            .map(v => ({ ...v, visit_status: v.visit_status || 'pending' }))
+                            // Фильтр: показываем только pending (ожидающие) и no_show, confirmed скрываем
+                            .filter(v => v.visit_status === 'pending');
+                    })
+                    .finally(() => this.isLoading = false); 
+            },
             
             loadSchedule() {
                 fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`)

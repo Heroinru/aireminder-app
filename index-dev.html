@@ -869,42 +869,40 @@
             },
 
             // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА SOS ---
-            loadSosDates() {
+      loadSosDates() {
                 if (!this.masterId) return;
                 
+                // ВРЕМЕННАЯ ДИАГНОСТИКА
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        let rawDates = [];
-                        // Максимально подробный парсинг (как советовал другой ИИ)
-                        if (Array.isArray(data)) {
-                            if (data.length > 0) {
-                                if (data[0].dates) rawDates = data[0].dates;
-                                else if (typeof data[0] === 'string') rawDates = data;
-                            }
-                        } else if (data && data.dates) {
-                            rawDates = data.dates;
-                        }
-
-                        // Нормализация
-                        const cleanDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d));
+                    .then(async res => {
+                        const text = await res.text(); // Читаем как текст, чтобы видеть ВСЁ
+                        alert("ПРИШЛО ОТ СЕРВЕРА:\n" + text); // 1. Покажет, что реально пришло
                         
-                        // ОБНОВЛЯЕМ ДАННЫЕ
-                        this.sosDates = [...cleanDates];
-
-                        // --- АВТОМАТИЧЕСКИЙ ПЕРЕХОД К SOS ДАТЕ ---
-                        // Если нашли SOS даты, и они не в текущем месяце -> прыгаем туда
-                        if (this.sosDates.length > 0) {
-                            const firstSos = new Date(this.sosDates[0]);
-                            const current = this.currentDate;
-                            if (firstSos.getMonth() !== current.getMonth() || firstSos.getFullYear() !== current.getFullYear()) {
-                                console.log('🚀 Прыгаем к SOS дате:', this.sosDates[0]);
-                                this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
-                                this.fetchSlotsAvailability(); // Обновляем слоты для нового месяца
+                        try {
+                            const data = JSON.parse(text); // Пробуем превратить в объект
+                            
+                            let rawDates = [];
+                            if (Array.isArray(data) && data.length > 0 && data[0].dates) {
+                                rawDates = data[0].dates;
+                            } else if (data && data.dates) {
+                                rawDates = data.dates;
                             }
+                            
+                            this.sosDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d));
+                            
+                            alert("РАСПОЗНАНО ДАТ:\n" + JSON.stringify(this.sosDates)); // 2. Покажет, что понял код
+                            
+                            // Авто-переход
+                            if (this.sosDates.length > 0) {
+                                const firstSos = new Date(this.sosDates[0]);
+                                this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
+                                this.fetchSlotsAvailability();
+                            }
+                        } catch (e) {
+                            alert("ОШИБКА ПАРСИНГА:\n" + e.message);
                         }
                     })
-                    .catch(console.error);
+                    .catch(err => alert("ОШИБКА СЕТИ:\n" + err));
             },
 
             hasSos(day) {

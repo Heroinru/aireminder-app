@@ -724,7 +724,7 @@
     </div>
 
   <script>
-        const { createApp } = Vue;
+       const { createApp } = Vue;
     
     let tg = { initDataUnsafe: {} };
     try {
@@ -854,7 +854,7 @@
         },
         
         methods: {
-            // ВОТ ОНА - ВОЗВРАЩЕННАЯ ФУНКЦИЯ, КОТОРАЯ ЧИНИТ ОТЧЕТ
+            // ВОЗВРАЩЕНО: Форматирование денег для отчета
             formatMoney(val) {
                 if (val === undefined || val === null) return '0';
                 return val.toLocaleString('ru-RU');
@@ -868,19 +868,24 @@
                     .catch(err => console.error('Services error:', err));
             },
 
+            // ИСПРАВЛЕНО: Точный парсинг структуры n8n
             loadSosDates() {
                 if (!this.masterId) return;
+                // Добавляем rnd, чтобы телеграм не кэшировал запрос
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
                     .then(res => res.json())
-                    .then(data => {alert(`MasterID: ${this.masterId}\nData: ${JSON.stringify(data)}`); 
+                    .then(data => {
                         let rawDates = [];
-                        // Парсинг: проверяем массив и поле dates внутри первого элемента
+                        // 1. Если пришел массив объектов [{ "dates": [...] }] - это твой случай
                         if (Array.isArray(data) && data.length > 0 && data[0].dates) {
                             rawDates = data[0].dates;
-                        } else if (data && data.dates) {
+                        } 
+                        // 2. Если пришел просто объект { "dates": [...] }
+                        else if (data && data.dates) {
                             rawDates = data.dates;
                         }
-                        // Очистка от времени
+
+                        // Убираем время, если оно есть
                         this.sosDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : d);
                         console.log('✅ SOS Dates:', this.sosDates);
                     })
@@ -998,7 +1003,7 @@
                 if (!visit.next_reminder_days) visit.next_reminder_days = 28;
             },
             
-            // ИСПРАВЛЕНО: Добавлен фильтр для скрытия подтвержденных
+            // ИСПРАВЛЕНО: Фильтр для скрытия подтвержденных визитов
             loadVisits() { 
                 this.isLoading = true; 
                 fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
@@ -1006,7 +1011,7 @@
                     .then(data => { 
                         this.visits = (data.visits || [])
                             .map(v => ({ ...v, visit_status: v.visit_status || 'pending' }))
-                            .filter(v => v.visit_status === 'pending'); // Показываем только ожидающие
+                            .filter(v => v.visit_status === 'pending'); // <-- ВОТ ЭТОТ ФИЛЬТР
                     })
                     .finally(() => this.isLoading = false); 
             },
@@ -1015,7 +1020,10 @@
                 this.isSaving = true;
                 const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
                 fetch(URLS.SAVE_VISITS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates: updates }) })
-                    .then(() => { this.safeAlert('✅ Сохранено!'); this.loadVisits(); })
+                    .then(() => { 
+                        this.safeAlert('✅ Сохранено!'); 
+                        this.loadVisits(); // <-- ПЕРЕЗАГРУЗКА СПИСКА
+                    })
                     .catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
             },
 

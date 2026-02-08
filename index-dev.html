@@ -415,6 +415,11 @@
                 <span style="font-size:18px;">✏️</span>
             </div>
 
+            <!-- ОТЛАДОЧНАЯ ПАНЕЛЬ -->
+<div style="background: #000; color: #0f0; padding: 10px; font-size: 12px; margin-bottom: 10px; border-radius: 8px;">
+    DEBUG SOS: {{ sosDates }}
+</div>
+
             <div class="calendar-nav"><div class="nav-arrow" @click="changeMonth(-1)">&#9664;</div><span class="month-name">{{ currentMonthName }}</span><div class="nav-arrow" @click="changeMonth(1)">&#9654;</div></div>
             <div style="background: #fee; color: red; padding: 5px; font-size: 10px; text-align: center;">
                 ПРОВЕРКА: {{ sosDates }}

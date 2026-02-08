@@ -872,7 +872,7 @@
                 if (!this.masterId) return;
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
                     .then(res => res.json())
-                    .then(data => {
+                    .then(data => {alert(`MasterID: ${this.masterId}\nData: ${JSON.stringify(data)}`); 
                         let rawDates = [];
                         // Парсинг: проверяем массив и поле dates внутри первого элемента
                         if (Array.isArray(data) && data.length > 0 && data[0].dates) {

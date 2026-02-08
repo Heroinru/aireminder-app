@@ -851,7 +851,6 @@
                 }
                 else { 
                     this.viewStep = 'grid';
-                    // Сначала SOS, чтобы обновить календарь, если там есть даты
                     if (this.masterId) this.loadSosDates();
                     this.loadSchedule(); 
                     this.loadServices(); 
@@ -873,38 +872,58 @@
                     .catch(err => console.error('Services error:', err));
             },
 
-            // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА SOS ---
-   loadSosDates() {
+            // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА SOS (DOUBLE JSON FIX) ---
+            loadSosDates() {
                 if (!this.masterId) return;
                 
-                // ВРЕМЕННЫЙ ВАРИАНТ: ЖЕСТКАЯ ПРИВЯЗКА К ФОРМАТУ N8N
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        // Если n8n вернул массив [{ dates: [...] }]
-                        if (data[0] && data[0].dates) {
-                            this.sosDates = data[0].dates;
-                        } 
-                        // Если вернул объект { dates: [...] }
-                        else if (data.dates) {
-                            this.sosDates = data.dates;
+                    .then(res => res.text()) // 1. Читаем как текст
+                    .then(text => {
+                        let data;
+                        try {
+                            data = JSON.parse(text); // 2. Первый парсинг
+                            
+                            // 3. ПРОВЕРКА НА ДВОЙНОЙ JSON (Фикс от другого ИИ)
+                            if (typeof data === 'string') {
+                                try { data = JSON.parse(data); } catch(e) {}
+                            }
+                        } catch (e) {
+                            console.error('JSON Parse error', e);
+                            return;
                         }
-                        // Если вернул массив строк ["2026..."]
-                        else if (Array.isArray(data)) {
-                            this.sosDates = data;
-                        }
+
+                        let rawDates = [];
                         
-                        // Принудительно обновляем Vue (на всякий случай)
-                        this.$forceUpdate();
+                        // 4. Ищем даты во всех форматах
+                        if (Array.isArray(data)) {
+                            if (data.length > 0) {
+                                if (data[0].dates) rawDates = data[0].dates;
+                                else if (typeof data[0] === 'string') rawDates = data;
+                            }
+                        } else if (data && data.dates) {
+                            rawDates = data.dates;
+                        }
+
+                        // 5. Нормализация
+                        const cleanDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d));
+                        
+                        // 6. Присвоение
+                        this.sosDates = [...cleanDates];
+
+                        // 7. Авто-переход к дате
+                        if (this.sosDates.length > 0) {
+                            const firstSos = new Date(this.sosDates[0]);
+                            const current = this.currentDate;
+                            if (firstSos.getMonth() !== current.getMonth() || firstSos.getFullYear() !== current.getFullYear()) {
+                                this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
+                                this.fetchSlotsAvailability();
+                            }
+                        }
                     })
-                    .catch(e => {
-                        // Если ошибка - покажем её в алерт (чтобы ты увидел)
-                        alert("SOS ERROR: " + e);
-                    });
+                    .catch(console.error);
             },
 
             hasSos(day) {
-                // Проверка без лишних логов, но надежная
                 const key = this.formatDateKey(day);
                 return this.sosDates && this.sosDates.includes(key);
             },
@@ -1056,7 +1075,6 @@
             
             changeMonth(d) { 
                 this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); 
-                // ИСПРАВЛЕНИЕ: Обновляем SOS при смене месяца
                 if (!this.isClientView && this.masterId) {
                     this.loadSosDates(); 
                 }

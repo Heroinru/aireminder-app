@@ -892,28 +892,31 @@
                         });
                 },
 
-             loadSosDates() {
-                    if (!this.masterId) return;
-                    
-                    fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            let rawDates = [];
-                            if (Array.isArray(data) && data.length > 0 && data[0].dates) rawDates = data[0].dates;
-                            else if (data.dates) rawDates = data.dates;
-                            else if (Array.isArray(data)) rawDates = data;
+       loadSosDates() {
+    if (!this.masterId) return;
+    
+    // ДОБАВИЛИ: &rnd=${Math.random()} чтобы телеграм не кэшировал запрос
+    fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
+        .then(res => res.json())
+        .then(data => {
+            let rawDates = [];
+            if (Array.isArray(data) && data.length > 0 && data[0].dates) rawDates = data[0].dates;
+            else if (data.dates) rawDates = data.dates;
+            else if (Array.isArray(data)) rawDates = data;
 
-                            // Нормализация дат (чтобы точно YYYY-MM-DD)
-                            this.sosDates = rawDates.map(d => {
-                                // Если пришла полная дата 2026-02-12T00:00...
-                                if (d.includes('T')) return d.split('T')[0];
-                                return d;
-                            });
-                            
-                            console.log('✅ SOS Dates:', this.sosDates);
-                        })
-                        .catch(console.error);
-                },
+            // Нормализация дат
+            const newDates = rawDates.map(d => {
+                if (d.includes('T')) return d.split('T')[0];
+                return d;
+            });
+            
+            // ЯВНОЕ ОБНОВЛЕНИЕ: Vue 3 иногда теряет реактивность при замене массива
+            this.sosDates = [...newDates];
+            
+            console.log('✅ SOS Dates loaded:', this.sosDates);
+        })
+        .catch(console.error);
+},
 
                 hasSos(day) {
                     const k = this.formatDateKey(day);

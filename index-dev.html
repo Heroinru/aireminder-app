@@ -552,7 +552,8 @@
         </div>
 
         <!-- 4. ПОДТВЕРЖДЕНИЕ ВИЗИТОВ -->
-        <div v-else-if="mode === 'confirm'">
+        <!-- ИСПРАВЛЕНО: используем viewStep вместо mode -->
+<div v-else-if="viewStep === 'confirm'">
             <h2>Визиты за сегодня</h2>
             <div v-if="isLoading" style="text-align:center; margin-top:50px; color:#999;">Загрузка...</div>
             <div v-else-if="visits.length === 0" style="text-align:center; margin-top:50px; color:#999;">🎉 Визитов нет</div>

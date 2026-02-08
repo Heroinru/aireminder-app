@@ -782,7 +782,10 @@
                 conflictList: [],
                 conflictType: '',
                 dayVisits: [], 
-                sosDates: [],
+                
+                // ИЗМЕНЕНИЕ: Теперь это Объект (Словарь), как dbData для кофе
+                sosMap: {}, 
+                
                 analyticsData: { 
                     revenue_fact: 0, revenue_forecast: 0, revenue_potential: 0, 
                     visits_fact: 0, visits_forecast: 0, 
@@ -872,29 +875,24 @@
                     .catch(err => console.error('Services error:', err));
             },
 
-            // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА SOS (DOUBLE JSON FIX) ---
+            // --- ИСПРАВЛЕННАЯ ЗАГРУЗКА (СЛОВАРЬ ВМЕСТО МАССИВА) ---
             loadSosDates() {
                 if (!this.masterId) return;
                 
                 fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
-                    .then(res => res.text()) // 1. Читаем как текст
+                    .then(res => res.text())
                     .then(text => {
                         let data;
                         try {
-                            data = JSON.parse(text); // 2. Первый парсинг
-                            
-                            // 3. ПРОВЕРКА НА ДВОЙНОЙ JSON (Фикс от другого ИИ)
+                            data = JSON.parse(text);
                             if (typeof data === 'string') {
                                 try { data = JSON.parse(data); } catch(e) {}
                             }
                         } catch (e) {
-                            console.error('JSON Parse error', e);
                             return;
                         }
 
                         let rawDates = [];
-                        
-                        // 4. Ищем даты во всех форматах
                         if (Array.isArray(data)) {
                             if (data.length > 0) {
                                 if (data[0].dates) rawDates = data[0].dates;
@@ -904,15 +902,21 @@
                             rawDates = data.dates;
                         }
 
-                        // 5. Нормализация
-                        const cleanDates = rawDates.map(d => (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d));
-                        
-                        // 6. Присвоение
-                        this.sosDates = [...cleanDates];
+                        // СОЗДАЕМ СЛОВАРЬ (КАК У КОФЕ)
+                        const newMap = {};
+                        let firstDate = null;
 
-                        // 7. Авто-переход к дате
-                        if (this.sosDates.length > 0) {
-                            const firstSos = new Date(this.sosDates[0]);
+                        rawDates.forEach(d => {
+                            const dateStr = (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d);
+                            newMap[dateStr] = true; // Записываем в словарь
+                            if (!firstDate) firstDate = dateStr;
+                        });
+
+                        this.sosMap = newMap; // Обновляем данные
+
+                        // Авто-переход
+                        if (firstDate) {
+                            const firstSos = new Date(firstDate);
                             const current = this.currentDate;
                             if (firstSos.getMonth() !== current.getMonth() || firstSos.getFullYear() !== current.getFullYear()) {
                                 this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
@@ -923,9 +927,11 @@
                     .catch(console.error);
             },
 
+            // --- ИСПРАВЛЕННАЯ ПРОВЕРКА (МГНОВЕННАЯ, КАК У КОФЕ) ---
             hasSos(day) {
                 const key = this.formatDateKey(day);
-                return this.sosDates && this.sosDates.includes(key);
+                // Проверяем наличие ключа в словаре (точно так же, как hasBreaks проверяет dbData)
+                return this.sosMap[key] === true;
             },
             
             editService(svc) {

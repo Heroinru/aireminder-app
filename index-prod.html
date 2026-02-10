@@ -310,55 +310,139 @@
             font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 10px;
         }
         .reason-chip.selected { border-color: var(--primary); background: #FFF9F5; color: var(--primary); }
+
+        /* SMART WIDGET STYLES */
+.smart-widget { margin-bottom: 20px; animation: slideDown 0.3s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.widget-header { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; margin-bottom: 8px; }
+.widget-title { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.widget-badge { font-size: 10px; background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+
+/* Горизонтальный скролл */
+.widget-scroll { 
+    display: flex; gap: 12px; overflow-x: auto; 
+    padding-bottom: 5px; scroll-snap-type: x mandatory; 
+    /* Скрываем скроллбар */
+    -ms-overflow-style: none; scrollbar-width: none; 
+}
+.widget-scroll::-webkit-scrollbar { display: none; }
+
+.visit-snap-card {
+    min-width: 92%; scroll-snap-align: center;
+    background: white; border-radius: 16px; padding: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #F3F4F6;
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; overflow: hidden; height: 80px; box-sizing: border-box;
+}
+
+/* Левая часть карточки */
+.v-time-box {
+    width: 48px; height: 48px; background: #FFF9F5; color: var(--primary);
+    border-radius: 12px; display: flex; flex-direction: column; 
+    align-items: center; justify-content: center; margin-right: 12px;
+}
+.vt-hour { font-size: 15px; font-weight: 900; line-height: 1; }
+.vt-min { font-size: 11px; font-weight: 700; line-height: 1; margin-top: 1px; }
+
+.v-info { display: flex; flex-direction: column; justify-content: center; max-width: 130px; }
+.v-client { font-size: 15px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-service { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+/* Кнопки действий */
+.v-actions { display: flex; gap: 8px; }
+.btn-mini-icon {
+    width: 40px; height: 40px; border-radius: 12px; border: 1px solid #FEE2E2;
+    color: var(--error); background: white; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+}
+.btn-mini-ok {
+    height: 40px; padding: 0 16px; border-radius: 12px;
+    background: #10B981; color: white; border: none;
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); cursor: pointer;
+}
+
+/* Оверлей напоминания */
+.reminder-overlay {
+    position: absolute; inset: 0; background: rgba(255,255,255,0.96);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+    z-index: 10; animation: fadeIn 0.2s;
+}
+.rem-chips { display: flex; gap: 6px; }
+.rem-chip {
+    padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: none; cursor: pointer;
+}
+.rc-gray { background: #F3F4F6; color: var(--primary); }
+.rc-green { background: #10B981; color: white; }
+.rc-close { color: #9CA3AF; background: none; font-size: 16px; padding: 0 5px; }
     </style>
 </head>
 
 <body>
-    <!-- === НАЧАЛО ОТЛАДКИ === -->
-<div id="debug-overlay" style="position:fixed; top:0; left:0; right:0; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; padding:10px; z-index:9999; word-break:break-all;">
-    Loading...
-</div>
-<script>
-    function updateDebug() {
-        const d = document.getElementById('debug-overlay');
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
-        
-        let msg = "DEBUG INFO:<br>";
-        msg += "URL: " + window.location.href + "<br><br>";
-        
-        if (!tg) {
-            msg += "<b style='color:red'>TG WebApp: MISSING</b><br>";
-        } else {
-            msg += "TG Version: " + tg.version + "<br>";
-            msg += "Platform: " + tg.platform + "<br>";
-            
-            if (tg.initData) {
-                msg += "<b style='color:#0f0'>INIT DATA: FOUND (" + tg.initData.length + " chars)</b><br>";
-                msg += "Data: " + tg.initData.substring(0, 30) + "...<br>";
-            } else {
-                msg += "<b style='color:red'>INIT DATA: EMPTY</b><br>";
-            }
-        }
-        
-        // Проверяем Хеш (резервный способ)
-        if (window.location.hash) {
-             msg += "HASH: " + window.location.hash.substring(0, 30) + "...";
-        } else {
-             msg += "HASH: Empty";
-        }
-
-        d.innerHTML = msg;
-    }
-
-    // Обновляем сразу и через 1 секунду (на случай задержки)
-    updateDebug();
-    setTimeout(updateDebug, 1000);
-    setTimeout(updateDebug, 3000);
-</script>
-<!-- === КОНЕЦ ОТЛАДКИ === -->
-
+   
     <div id="app" v-cloak>
         <div class="brand-header">
+            <!-- WIDGET: SMART FOCUS -->
+<div v-if="upcomingVisits.length > 0 && !isClientView" class="smart-widget">
+    
+    <div class="widget-header">
+        <span class="widget-title">Ближайшая запись</span>
+        <span class="widget-badge">Осталось: {{ upcomingVisits.length }}</span>
+    </div>
+
+    <!-- ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ -->
+    <div class="widget-scroll">
+        
+        <div v-for="visit in upcomingVisits" :key="visit.event_id" class="visit-snap-card">
+             
+            <!-- Левая часть: Время и Инфо -->
+            <div style="display:flex; align-items:center;">
+                <div class="v-time-box">
+                    <span class="vt-hour">{{ formatTime(visit.appointment_time).split(':')[0] }}</span>
+                    <span class="vt-min">{{ formatTime(visit.appointment_time).split(':')[1] }}</span>
+                </div>
+                <div class="v-info">
+                    <div class="v-client">{{ visit.client_name }}</div>
+                    <div class="v-service">{{ visit.service_type }}</div>
+                </div>
+            </div>
+
+            <!-- Правая часть: Действия -->
+            <div v-if="visit.visit_status === 'pending'" class="v-actions">
+                <!-- Не пришел -->
+                <div class="btn-mini-icon" @click="markVisit(visit, 'no_show')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>
+                <!-- Пришел -->
+                <div class="btn-mini-ok" @click="markVisit(visit, 'confirmed')">
+                    <span>Был</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+            </div>
+
+            <!-- Статус (если нажато, но еще не скрылось/не настроено) -->
+            <div v-else style="padding-right: 8px;">
+                <span v-if="visit.visit_status === 'confirmed'" style="font-size:12px; font-weight:800; color:#10B981;">✅ Готово</span>
+                <span v-else style="font-size:12px; font-weight:800; color:#EF4444;">⛔️ Отмена</span>
+            </div>
+
+            <!-- LTV Напоминание (Появляется поверх после нажатия "Был") -->
+            <div v-if="visit.visit_status === 'confirmed' && !visit.reminderSet" class="reminder-overlay">
+                <span style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase;">Напомнить?</span>
+                <div class="rem-chips">
+                    <button @click="setReminder(visit, 21)" class="rem-chip rc-gray">3 нед</button>
+                    <button @click="setReminder(visit, 30)" class="rem-chip rc-green">1 мес</button>
+                    <button @click="setReminder(visit, 0)" class="rem-chip rc-close">✕</button>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- Отступ для скролла -->
+        <div style="min-width:1px;"></div>
+    </div>
+</div>
             <div class="logo-box">R</div>
             <div class="brand-name">Remi</div>
         </div>
@@ -833,6 +917,24 @@
             currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
             daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
             firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+            // 👇 ВОТ ЭТО НОВОЕ (Сортировка для виджета)
+            upcomingVisits() {
+                // Если визитов нет - возвращаем пустой список
+                if (!this.visits || this.visits.length === 0) return [];
+                
+                // Делаем копию и сортируем
+                return [...this.visits].sort((a, b) => {
+                    // 1. Сначала те, у кого статус 'pending' (ожидание)
+                    const aPending = a.visit_status === 'pending';
+                    const bPending = b.visit_status === 'pending';
+                    
+                    if (aPending && !bPending) return -1; // a раньше
+                    if (!aPending && bPending) return 1;  // b раньше
+                    
+                    // 2. Если статус одинаковый - сортируем по времени
+                    return new Date(a.appointment_time) - new Date(b.appointment_time);
+                });
+            }
         },
         mounted() {
             console.log('🚀 App Mounted');
@@ -890,6 +992,7 @@
                     if (this.masterId) this.loadSosDates();
                     this.loadSchedule(); 
                     this.loadServices(); 
+                    this.loadVisits();
                 }
             } catch (err) { console.error('Init Error:', err); }
         },
@@ -915,6 +1018,44 @@
             formatMoney(val) {
                 if (val === undefined || val === null) return '0';
                 return val.toLocaleString('ru-RU');
+            },// 👇 ДОБАВЛЯЕМ ЭТО:
+
+            // 1. Нажатие кнопок в виджете
+            markVisit(visit, status) {
+                visit.visit_status = status;
+                
+                // Если нажали "Не пришел" — сразу сохраняем
+                if (status === 'no_show') {
+                    this.saveSingleVisit(visit);
+                }
+                // Если "Был" — ничего не делаем, ждем пока выберет напоминание (LTV)
+            },
+
+            // 2. Выбор напоминания (3 недели / месяц / крестик)
+            setReminder(visit, days) {
+                visit.next_reminder_days = days;
+                visit.reminderSet = true; // Скрываем шторку напоминания
+                this.saveSingleVisit(visit); // Сохраняем всё вместе
+            },
+
+            // 3. Отправка на сервер (Безопасно, через initData)
+            saveSingleVisit(visit) {
+                const updateData = {
+                    event_id: visit.event_id,
+                    status: visit.visit_status,
+                    next_reminder_days: visit.next_reminder_days
+                };
+
+                fetch(URLS.SAVE_VISITS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        initData: this.getInitData(), // <--- ВАЖНО!
+                        updates: [updateData] 
+                    }) 
+                })
+                .then(() => console.log('Saved'))
+                .catch(err => this.safeAlert('Ошибка: ' + err));
             },
 
             loadServices() {

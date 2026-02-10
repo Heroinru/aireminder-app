@@ -980,7 +980,7 @@
                 this.currentSlots = [];
                 this.isLoadingSlots = true;
                 const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-                fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: [dateStr], client_id: clientId, duration: this.selectedServiceDuration }) })
+                fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: window.Telegram.WebApp.initData, master_id: this.masterId, dates: [dateStr], client_id: clientId, duration: this.selectedServiceDuration }) })
                     .then(res => res.json())
                     .then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; })
                     .catch(err => this.safeAlert('Ошибка: ' + err))

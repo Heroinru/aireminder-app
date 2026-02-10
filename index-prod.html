@@ -852,7 +852,24 @@
             } catch (err) { console.error('Init Error:', err); }
         },
         
-        methods: {
+       methods: {
+            // --- НОВАЯ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ДАННЫХ АВТОРИЗАЦИИ ---
+            getInitData() {
+                // 1. Пробуем стандартный способ
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                    return window.Telegram.WebApp.initData;
+                }
+                // 2. Если пусто, ищем в хеше URL (Телеграм иногда кладет их туда)
+                const hash = window.location.hash.slice(1);
+                const urlParams = new URLSearchParams(hash);
+                if (urlParams.has('tgWebAppData')) {
+                    return urlParams.get('tgWebAppData');
+                }
+                // 3. Если совсем ничего нет
+                return "";
+            },
+            // -----------------------------------------------------
+
             formatMoney(val) {
                 if (val === undefined || val === null) return '0';
                 return val.toLocaleString('ru-RU');
@@ -875,7 +892,6 @@
                         let data;
                         try {
                             data = JSON.parse(text);
-                            // Защита от двойного JSON (строка внутри строки)
                             if (typeof data === 'string') {
                                 try { data = JSON.parse(data); } catch(e) {}
                             }
@@ -891,7 +907,6 @@
                             rawDates = data.dates;
                         }
 
-                        // Заполняем словарь
                         const newMap = {};
                         let firstDate = null;
 
@@ -903,7 +918,6 @@
 
                         this.sosMap = newMap;
 
-                        // Авто-переход к дате SOS, если она не в текущем месяце
                         if (firstDate) {
                             const firstSos = new Date(firstDate);
                             const current = this.currentDate;
@@ -916,6 +930,44 @@
                     .catch(console.error);
             },
 
+            // --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ЗАГРУЗКИ СЛОТОВ ---
+            fetchSlotsAvailability() {
+                if (!this.masterId) return;
+                this.slotsAvailability = {};
+                const dates = [];
+                for (let day = 1; day <= this.daysInMonth; day++) {
+                    const dateStr = this.formatDateKey(day);
+                    if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr);
+                }
+                if (dates.length === 0) return;
+                
+                const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+                
+                // Используем наш надежный метод
+                const authData = this.getInitData();
+
+                fetch(URLS.GET_SLOTS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        initData: authData, // <--- ТЕПЕРЬ ТУТ БУДУТ ДАННЫЕ
+                        master_id: this.masterId, 
+                        dates: dates, 
+                        client_id: clientId, 
+                        duration: this.selectedServiceDuration 
+                    }) 
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const map = data.slots_by_date || data;
+                    Object.keys(map).forEach(key => { 
+                        if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; 
+                    });
+                })
+                .catch(console.error);
+            },
+            
+            // ... (дальше должны идти остальные твои функции: fetchSlotsForDate, bookSlot и т.д.) ...
             hasSos(day) {
                 const key = this.formatDateKey(day);
                 return this.sosMap[key] === true;

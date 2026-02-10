@@ -225,11 +225,20 @@
     }
 
     /* Оверлей напоминания в виджете */
-    .reminder-overlay {
-        position: absolute; inset: 0; background: rgba(255,255,255,0.98);
-        display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
-        z-index: 10; animation: fadeIn 0.2s;
-    }
+   /* Оверлей напоминания */
+.reminder-overlay {
+    position: absolute; 
+    inset: 0; /* Растянуть на всю карточку */
+    background: rgba(255, 255, 255, 0.95); /* Почти непрозрачный белый */
+    backdrop-filter: blur(4px); /* Размытие фона под ним */
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    padding: 0 12px;
+    z-index: 20; /* Поверх всего */
+    animation: fadeIn 0.2s ease-out;
+    border-radius: 16px; /* Чтобы углы совпадали с карточкой */
+}
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .rem-chips { display: flex; gap: 6px; }
     .rem-chip { padding: 6px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; border: none; cursor: pointer; }
@@ -807,23 +816,24 @@
             firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
             // 👇 ВОТ ЭТО НОВОЕ (Сортировка для виджета)
             upcomingVisits() {
-                // Если визитов нет - возвращаем пустой список
                 if (!this.visits || this.visits.length === 0) return [];
                 
-                // Делаем копию и сортируем
                 return [...this.visits].sort((a, b) => {
-                    // 1. Сначала те, у кого статус 'pending' (ожидание)
-                    const aPending = a.visit_status === 'pending';
-                    const bPending = b.visit_status === 'pending';
+                    // ОПРЕДЕЛЯЕМ ПРИОРИТЕТ
+                    // Карточка приоритетна, если она 'pending' ИЛИ если мы ее только что подтвердили, но еще не выбрали напоминание
+                    const isPriority = (v) => v.visit_status === 'pending' || (v.visit_status === 'confirmed' && !v.reminderSet);
+
+                    const aPrio = isPriority(a);
+                    const bPrio = isPriority(b);
                     
-                    if (aPending && !bPending) return -1; // a раньше
-                    if (!aPending && bPending) return 1;  // b раньше
+                    // 1. Приоритетные (Текущие) - всегда слева
+                    if (aPrio && !bPrio) return -1;
+                    if (!aPrio && bPrio) return 1;
                     
-                    // 2. Если статус одинаковый - сортируем по времени
+                    // 2. Если приоритет одинаковый - сортируем по времени
                     return new Date(a.appointment_time) - new Date(b.appointment_time);
                 });
             }
-        },
         mounted() {
             console.log('🚀 App Mounted');
             try {

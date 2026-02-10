@@ -682,7 +682,7 @@
                 <div class="break-head"><span>Пауза {{ index+1 }}</span><span @click="removeBreak(index)" style="color:var(--error); cursor:pointer;">Удалить</span></div>
                 <div class="form-row" style="margin-bottom:0;"><select v-model="brk.start" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select><span>-</span><select v-model="brk.end" class="input-box"><option v-for="t in timeOptions" :key="t" :value="t">{{ t }}</option></select></div>
             </div>
-            <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="saveSchedule(false)" :disabled="isSaving">Сохранить</button></div></div>
+            <div class="bottom-panel"><div class="panel-actions"><button class="btn btn-secondary" @click="viewStep = 'grid'">Отмена</button><button class="btn" @click="(false)" :disabled="isSaving">Сохранить</button></div></div>
         </div>
 
         <!-- МОДАЛКА КОНФЛИКТОВ -->
@@ -712,7 +712,7 @@
             <div class="bottom-panel">
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                     <button class="btn btn-secondary" @click="showConflictModal = false">Ой, отмена</button>
-                    <button class="btn btn-danger" @click="saveSchedule(true)">Всё равно сохранить</button>
+                    <button class="btn btn-danger" @click="(true)">Всё равно сохранить</button>
                     <div style="text-align: center; font-size: 11px; color: #999;">
                         Нажимая красную кнопку, вы берете ответственность<br>за перенос клиентов на себя.
                     </div>
@@ -936,7 +936,7 @@
 
             manageService(action, service = null) {
                 let svcId = action === 'delete' ? service.service_id : this.editingId;
-                const body = { action, master_id: this.masterId, service_id: svcId, ...(action !== 'delete' ? this.newService : {}) };
+                const body = { initData: window.Telegram.WebApp.initData, action, master_id: this.masterId, service_id: svcId, ...(action !== 'delete' ? this.newService : {}) };
                 fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
                     .then(res => res.json())
                     .then(() => { this.loadServices(); this.cancelEdit(); this.safeAlert(action === 'delete' ? 'Удалено' : 'Сохранено!'); })
@@ -965,7 +965,7 @@
                 }
                 if (dates.length === 0) return;
                 const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-                fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: dates, client_id: clientId, duration: this.selectedServiceDuration }) })
+                fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: window.Telegram.WebApp.initData, master_id: this.masterId, dates: dates, client_id: clientId, duration: this.selectedServiceDuration }) })
                     .then(res => res.json())
                     .then(data => {
                         const map = data.slots_by_date || data;
@@ -1002,7 +1002,7 @@
                 const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
                 const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
                 
-                fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration, force: force }) })
+                fetch(URLS.SAVE_SCHEDULE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: window.Telegram.WebApp.initData, master_id: this.masterId, dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration, force: force }) })
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 'conflict') {

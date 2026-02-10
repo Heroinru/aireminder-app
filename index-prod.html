@@ -723,14 +723,18 @@
                 .catch(err => this.safeAlert('Ошибка: ' + err.message))
                 .finally(() => this.isSaving = false);
             },
-            
             loadVisits() { 
                 this.isLoading = true; 
                 fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
                     .then(res => res.json())
                     .then(data => { 
                         this.visits = (data.visits || [])
-                            .map(v => ({ ...v, visit_status: v.visit_status || 'pending' }))
+                            .map(v => ({ 
+                                ...v, 
+                                visit_status: v.visit_status || 'pending',
+                                // 👇 ИСПРАВЛЕНИЕ: Если в базе есть дата напоминания, считаем, что выбор уже сделан
+                                reminderSet: !!v.retention_date || (v.next_reminder_days !== null && v.next_reminder_days !== undefined)
+                            }))
                             .filter(v => v.visit_status !== 'cancelled'); 
                     })
                     .finally(() => this.isLoading = false); 

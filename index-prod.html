@@ -16,387 +16,254 @@
     <style>
 
         
-        [v-cloak] { display: none !important; }
+        /* 1. ГЛОБАЛЬНЫЙ СБРОС И БАЗА */
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        :root {
-            --bg-page: #FFF9F5;
-            --bg-card: #FFFFFF;
-            --primary: #FF9478;
-            --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
-            --text-main: #2E1065;
-            --text-muted: #9CA3AF;
-            --success: #10B981;
-            --error: #EF4444;
-            --radius: 16px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            --font: 'Manrope', sans-serif;
-            
-            --day-bg-work: #FFFFFF;
-            --day-bg-off: #E5E7EB;
-            --day-bg-available: #D1FAE5;
-            --day-bg-past: #F3F4F6;
-        }
-
-        body {
-            overflow-x: hidden; /* Запрещаем горизонтальный скролл всей страницы */
-    width: 100%;
-    max-width: 100vw;
-    margin: 0; padding: 0;
-    font-family: var(--font);
-    background-color: var(--bg-page);
-    color: var(--text-main);
-        }
-
-        #app { 
-            padding: 16px; 
-            padding-bottom: 160px; /* Отступ для прокрутки над клавиатурой */
-            width: 100%;
-    overflow-x: hidden; 
-        }
-
-        /* HEADER */
-        .brand-header {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 20px; padding-bottom: 10px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .logo-box {
-            width: 32px; height: 32px;
-            background: var(--primary); color: white;
-            font-weight: 800; font-size: 20px;
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            transform: rotate(3deg);
-        }
-        .brand-name { font-size: 18px; font-weight: 800; }
-
-        h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
-
-        /* --- ОБНОВЛЕННЫЕ КНОПКИ (FIX JUMPING) --- */
-        .btn, .btn-secondary, .btn-danger, .btn-warning {
-            width: 100%;
-            height: 54px; /* Фиксированная высота */
-            padding: 0 8px;
-            border: none;
-            border-radius: var(--radius);
-            
-            /* Центрирование */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            box-sizing: border-box;
-            line-height: 1.1;
-            transition: all 0.2s;
-        }
-
-        .btn {
-            background: var(--primary-grad);
-            color: white;
-            box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25);
-        }
+    :root {
+        --bg-page: #FFF9F5;
+        --bg-card: #FFFFFF;
+        --primary: #FF9478;
+        --primary-grad: linear-gradient(135deg, #FF9478, #E66E50);
+        --text-main: #2E1065;
+        --text-muted: #9CA3AF;
+        --success: #10B981;
+        --error: #EF4444;
+        --radius: 16px;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        --font: 'Manrope', sans-serif;
         
-        .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; cursor: not-allowed; }
-        
-        .btn-secondary {
-            background: white; color: var(--text-main);
-            box-shadow: var(--shadow); border: 1px solid #E5E7EB;
-        }
-        
-        .btn-danger {
-            background: #FEF2F2;
-            color: var(--error); 
-            border: 1px solid #FEE2E2;
-        }
-        
-        .btn-warning {
-            background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; font-size: 20px;
-        }
+        --day-bg-work: #FFFFFF;
+        --day-bg-off: #E5E7EB;
+        --day-bg-available: #D1FAE5;
+        --day-bg-past: #F3F4F6;
+    }
 
-        .btn:active { transform: scale(0.98); }
+    body, html {
+        overflow-x: hidden; /* Запрет горизонтальной прокрутки страницы */
+        width: 100%;
+        max-width: 100vw;
+        margin: 0; padding: 0;
+        font-family: var(--font);
+        background-color: var(--bg-page);
+        color: var(--text-main);
+        overscroll-behavior-x: none; /* Запрет свайпа "назад" в браузере */
+    }
 
-        /* INPUTS & SELECTS */
-        .input-box {
-            background: white;
-            border: 1px solid #E5E7EB;
-            border-radius: var(--radius);
-            padding: 0 14px;
-            height: 50px;
-            line-height: 50px;
-            font-size: 16px; 
-            font-weight: 700;
-            width: 100%;
-            box-sizing: border-box;
-            text-align: center;
-            color: var(--text-main);
-            outline: none;
-            -webkit-appearance: none;
-            appearance: none;
-        }
+    #app { 
+        padding: 12px; /* Чуть меньше отступы по краям для мобилок */
+        padding-bottom: 160px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
 
-        select.input-box {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.2em;
-            padding-right: 40px;
-        }
+    /* 2. ШАПКА (ВЕРНУЛИ ЛОГОТИП) */
+    .brand-header {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 16px; padding-bottom: 10px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .logo-box {
+        width: 32px; height: 32px;
+        background: var(--primary); color: white;
+        font-weight: 800; font-size: 20px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        transform: rotate(3deg);
+    }
+    .brand-name { font-size: 18px; font-weight: 800; }
 
-        /* SERVICE CARDS */
-        .service-list { margin-bottom: 20px; }
-        .service-card {
-            background: white; padding: 16px;
-            border-radius: var(--radius); margin-bottom: 12px;
-            box-shadow: var(--shadow); border: 1px solid transparent;
-            display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .service-card:active { transform: scale(0.98); }
-        .service-card.is-active { border-color: var(--primary); background: #FFF9F5; }
-        .svc-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; }
-        .svc-meta { font-size: 13px; color: var(--text-muted); font-weight: 600; }
-        .svc-price { font-weight: 700; color: var(--primary); font-size: 15px; }
-        
-        .chips-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; }
-        .chip {
-            background: #F3F4F6; padding: 8px 12px; border-radius: 20px;
-            font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer;
-        }
+    h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
-        /* CALENDAR */
-        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .month-name { font-size: 18px; font-weight: 800; text-transform: capitalize; }
-        .nav-arrow {
-            width: 36px; height: 36px; background: white; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: var(--shadow); color: var(--primary); font-size: 18px; cursor: pointer;
-        }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; margin-bottom: 20px; }
-        .cal-head { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; }
-        
-        .day-cell {
-            aspect-ratio: 1/1.3; background: var(--day-bg-work);
-            border-radius: 12px; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 4px 2px;
-            position: relative; border: 1px solid transparent;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; cursor: pointer;
-        }
-        .day-num { font-size: 13px; font-weight: 700; color: var(--text-main); margin-left: 3px; margin-top: 2px; }
-        .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 1px; margin-bottom: 3px; }
-        .time-txt { font-size: 9px; font-weight: 800; color: var(--text-main); line-height: 1; }
-        .coffee-icon { position: absolute; top: 4px; right: 4px; font-size: 12px; line-height: 1; }
+    /* 3. ВИДЖЕТ "ОДИН МОМЕНТ" (КОМПАКТНЫЙ) */
+    .smart-widget {
+        margin-bottom: 20px;
+        width: 100%;
+        animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .day-cell.is-past { background: var(--day-bg-past); box-shadow: none; opacity: 0.6; }
-        .day-cell.is-past .day-num { color: #BDC3C7; }
-        .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; border-color: transparent; }
-        .day-cell.is-off .day-num { color: #9CA3AF; }
-        .day-cell.has-slots { background: var(--day-bg-available); border: 1px solid #34D399; }
-        .day-cell.has-slots .time-txt { color: #065F46; }
-        
-        .day-cell.is-selected {
-            background: var(--primary); border-color: var(--primary);
-            box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
-            transform: translateY(-2px); z-index: 2;
-        }
-        .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
+    .widget-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0 4px; margin-bottom: 8px;
+    }
+    .widget-title { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .widget-badge { font-size: 10px; background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
 
-        /* --- ОБНОВЛЕННАЯ НИЖНЯЯ ПАНЕЛЬ --- */
-        .bottom-panel {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            padding: 12px 16px 30px 16px; /* Равномерные отступы */
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px); border-top: 1px solid rgba(0, 0, 0, 0.05);
-            z-index: 100; display: flex; flex-direction: column; gap: 10px;
-        }
-        .panel-actions { display: flex; gap: 10px; width: 100%; }
-        
-        /* Кнопки делят ширину поровну */
-        .panel-actions > .btn, 
-        .panel-actions > .btn-secondary, 
-        .panel-actions > .btn-danger,
-        .panel-actions > .btn-warning {
-            flex: 1; 
-            min-width: 0;
-        }
-        
-        .modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--bg-page); 
-            padding: 20px; 
-            padding-bottom: 160px;
-            z-index: 200; overflow-y: auto;
-        }
-        .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .slot-chip {
-            background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;
-            padding: 12px; border-radius: 12px; text-align: center; font-weight: 700;
-        }
+    .widget-scroll { 
+        display: flex; gap: 10px; 
+        overflow-x: auto; 
+        padding-bottom: 5px; 
+        scroll-snap-type: x mandatory; 
+        width: 100%;
+        -ms-overflow-style: none; scrollbar-width: none; 
+    }
+    .widget-scroll::-webkit-scrollbar { display: none; }
 
-        /* VISIT CARD */
-        .visit-card {
-            background: white; padding: 16px;
-            border-radius: 16px; margin-bottom: 10px;
-            box-shadow: var(--shadow);
-        }
-        .visit-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .visit-time { font-size: 22px; font-weight: 800; }
-        .status-row { display: flex; gap: 5px; margin-top: 10px; }
-        .status-opt {
-            flex: 1; text-align: center; padding: 10px 0; border-radius: 8px;
-            background: #f3f4f6; font-size: 16px; font-weight: 700; color: #666; cursor: pointer;
-        }
-        .status-opt.active-pending { background: white; color: black; border: 1px solid #ddd; }
-        .status-opt.active-confirmed { background: var(--success); color: white; }
-        .status-opt.active-noshow { background: var(--error); color: white; }
+    .visit-snap-card {
+        /* Ширина карточки = 100% контейнера минус кусочек, чтобы было видно следующую */
+        min-width: calc(100% - 15px); 
+        scroll-snap-align: center;
+        background: white; border-radius: 16px; padding: 10px 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #F3F4F6;
+        display: flex; align-items: center; justify-content: space-between;
+        position: relative; overflow: hidden; height: 76px;
+    }
 
-        /* RETENTION BOX */
-        .retention-box {
-            margin-top: 12px;
-            padding: 12px;
-            background: #F0FDF4;
-            border: 1px solid #BBF7D0;
-            border-radius: 12px;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    .v-time-box {
+        width: 44px; height: 44px; background: #FFF9F5; color: var(--primary);
+        border-radius: 12px; display: flex; flex-direction: column; 
+        align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;
+    }
+    .vt-hour { font-size: 14px; font-weight: 900; line-height: 1; }
+    .vt-min { font-size: 10px; font-weight: 700; line-height: 1; margin-top: 1px; }
 
-        .ret-label { font-size: 11px; color: #15803D; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
-        .ret-controls { display: flex; align-items: center; gap: 10px; }
-        .ret-select {
-            flex: 1;
-            background: white;
-            border: 1px solid #86EFAC;
-            color: #166534;
-            font-weight: 700;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            outline: none;
-            font-family: var(--font);
-        }
+    .v-info { 
+        display: flex; flex-direction: column; justify-content: center; 
+        flex: 1; min-width: 0; margin-right: 8px; 
+    }
+    .v-client { font-size: 14px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .v-service { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 
-        /* UPCOMING VISIT */
-        .upcoming-visit-card {
-            background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
-            border: 1px solid #FFDCC2; border-radius: var(--radius);
-            padding: 16px; margin-bottom: 20px; display: flex; align-items: center;
-            gap: 16px; position: relative; box-shadow: 0 4px 15px rgba(255, 148, 120, 0.08); overflow: hidden;
-            margin-top: 10px;
-        }
-        .visit-badge-top {
-            position: absolute; top: 0; right: 0; background: #FFDCC2; color: #E66E50;
-            font-size: 10px; font-weight: 800; padding: 4px 12px; border-bottom-left-radius: 12px; text-transform: uppercase;
-        }
-        .visit-date-box {
-            background: var(--primary-grad); color: white; min-width: 65px; height: 65px;
-            border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .v-day { font-size: 24px; font-weight: 800; line-height: 1; }
-        .v-month { font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.9; }
-        .visit-info { flex: 1; }
-        .visit-label { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
-        .visit-service { font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; line-height: 1.2; }
-        .visit-time-row { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #6B7280; }
-        .visit-timer { font-size: 12px; font-weight: 700; background: rgba(255, 255, 255, 0.8); padding: 2px 8px; border-radius: 20px; border: 1px solid #FFDCC2; color: #E66E50; }
+    .v-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-mini-icon {
+        width: 36px; height: 36px; border-radius: 10px; border: 1px solid #FEE2E2;
+        color: var(--error); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .btn-mini-ok {
+        height: 36px; padding: 0 14px; border-radius: 10px;
+        background: #10B981; color: white; border: none;
+        font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); cursor: pointer;
+    }
 
-        .form-row { display: flex; gap: 10px; margin-bottom: 16px; }
-        .form-group { flex: 1; }
-        .form-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        .break-row { background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
-        .break-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
-        
-        /* EMERGENCY REASON CHIPS */
-        .reason-chip {
-            background: white; border: 1px solid #E5E7EB; padding: 12px;
-            border-radius: 12px; margin-bottom: 8px; cursor: pointer;
-            font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 10px;
-        }
-        .reason-chip.selected { border-color: var(--primary); background: #FFF9F5; color: var(--primary); }
-
-     /* SMART WIDGET STYLES (FIXED) */
-.smart-widget {
-    margin-bottom: 20px;
-    width: 100%; 
-    animation: slideDown 0.3s ease;
-}
-
-.widget-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0 4px; margin-bottom: 8px;
-}
-.widget-title { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
-.widget-badge { font-size: 10px; background: #F3F4F6; color: #6B7280; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
-
-/* СКРОЛЛ */
-.widget-scroll { 
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;       
-    width: 100%;            
-    padding-bottom: 10px;   
-    scroll-snap-type: x mandatory;
-    -ms-overflow-style: none; scrollbar-width: none;
-    -webkit-overflow-scrolling: touch; 
-}
-.widget-scroll::-webkit-scrollbar { display: none; }
-
-/* КАРТОЧКА */
-.visit-snap-card {
-    /* Ширина экрана минус отступы (чтобы следующую карточку было чуть видно) */
-    min-width: calc(100vw - 40px); 
-    max-width: calc(100vw - 40px);
+    /* 4. КАЛЕНДАРЬ (ИСПРАВЛЕННЫЙ) */
+    .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .month-name { font-size: 18px; font-weight: 800; text-transform: capitalize; }
+    .nav-arrow {
+        width: 36px; height: 36px; background: white; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: var(--shadow); color: var(--primary); font-size: 18px; cursor: pointer;
+    }
     
-    flex-shrink: 0; 
-    scroll-snap-align: center;
+    .cal-grid { 
+        display: grid; 
+        grid-template-columns: repeat(7, 1fr); 
+        gap: 4px; /* Уменьшили gap чтобы влезало */
+        width: 100%; 
+        margin-bottom: 20px; 
+    }
+    .cal-head { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 6px; }
     
-    background: white; border-radius: 16px; padding: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #F3F4F6;
-    display: flex; align-items: center; justify-content: space-between;
-    position: relative; overflow: hidden; height: 80px;
-}
+    .day-cell {
+        aspect-ratio: 1/1.25; 
+        background: var(--day-bg-work);
+        border-radius: 10px; /* Чуть меньше скругление */
+        display: flex; flex-direction: column;
+        justify-content: space-between; padding: 3px 2px;
+        position: relative; border: 1px solid transparent;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; cursor: pointer;
+    }
+    .day-num { font-size: 12px; font-weight: 700; color: var(--text-main); margin-left: 2px; margin-top: 1px; }
+    .day-times-col { display: flex; flex-direction: column; align-items: center; gap: 0; margin-bottom: 2px; }
+    .time-txt { font-size: 8px; font-weight: 800; color: var(--text-main); line-height: 1.1; letter-spacing: -0.2px; }
+    .coffee-icon { position: absolute; top: 2px; right: 2px; font-size: 10px; line-height: 1; }
 
-.v-time-box {
-    width: 48px; height: 48px; background: #FFF9F5; color: var(--primary);
-    border-radius: 12px; display: flex; flex-direction: column; 
-    align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;
-}
-.vt-hour { font-size: 15px; font-weight: 900; line-height: 1; }
-.vt-min { font-size: 11px; font-weight: 700; line-height: 1; margin-top: 1px; }
+    .day-cell.is-past { background: var(--day-bg-past); box-shadow: none; opacity: 0.6; }
+    .day-cell.is-past .day-num { color: #BDC3C7; }
+    .day-cell.is-off { background: var(--day-bg-off); box-shadow: none; border-color: transparent; }
+    .day-cell.is-off .day-num { color: #9CA3AF; }
+    .day-cell.has-slots { background: var(--day-bg-available); border: 1px solid #34D399; }
+    .day-cell.has-slots .time-txt { color: #065F46; }
+    
+    .day-cell.is-selected {
+        background: var(--primary); border-color: var(--primary);
+        box-shadow: 0 4px 10px rgba(255, 148, 120, 0.4);
+        transform: translateY(-2px); z-index: 2;
+    }
+    .day-cell.is-selected .day-num, .day-cell.is-selected .time-txt { color: white; }
 
-.v-info { 
-    display: flex; flex-direction: column; justify-content: center; 
-    flex: 1; 
-    min-width: 0; 
-    margin-right: 10px;
-}
-.v-client { font-size: 15px; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.v-service { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    /* 5. КНОПКИ И ФОРМЫ */
+    .btn, .btn-secondary, .btn-danger, .btn-warning {
+        width: 100%; height: 50px; padding: 0 8px; border: none; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .btn { background: var(--primary-grad); color: white; box-shadow: 0 8px 20px rgba(255, 148, 120, 0.25); }
+    .btn:disabled { opacity: 0.6; background: #D1D5DB; box-shadow: none; }
+    .btn-secondary { background: white; color: var(--text-main); box-shadow: var(--shadow); border: 1px solid #E5E7EB; }
+    .btn-danger { background: #FEF2F2; color: var(--error); border: 1px solid #FEE2E2; }
+    .btn-warning { background: #FFF7ED; color: #C2410C; border: 1px solid #FFEDD5; font-size: 18px; }
+    .btn:active { transform: scale(0.98); }
 
-.v-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.btn-mini-icon {
-    width: 40px; height: 40px; border-radius: 12px; border: 1px solid #FEE2E2;
-    color: var(--error); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
-.btn-mini-ok {
-    height: 40px; padding: 0 16px; border-radius: 12px;
-    background: #10B981; color: white; border: none;
-    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;
-    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); cursor: pointer;
-}
+    .input-box {
+        background: white; border: 1px solid #E5E7EB; border-radius: 12px;
+        padding: 0 12px; height: 46px; line-height: 46px;
+        font-size: 15px; font-weight: 700; width: 100%; text-align: center;
+        color: var(--text-main); outline: none; appearance: none;
+    }
+    select.input-box {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF9478' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat; background-position: right 0.8rem center; background-size: 1em; padding-right: 30px;
+    }
 
-.reminder-overlay {
-    position: absolute; inset: 0; background: rgba(255,255,255,0.98);
-    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
-    z-index: 10; animation: fadeIn 0.2s;
-}
-.rem-chips { display: flex; gap: 6px; }
-.rem-chip { padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; }
-.rc-gray { background: #F3F4F6; color: var(--primary); }
-.rc-green { background: #10B981; color: white; }
-.rc-close { color: #9CA3AF; background: none; font-size: 16px; padding: 0 5px; }
+    /* 6. НИЖНЯЯ ПАНЕЛЬ И МОДАЛКИ */
+    .bottom-panel {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        padding: 12px 16px 30px 16px;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(8px); border-top: 1px solid rgba(0, 0, 0, 0.05);
+        z-index: 100; display: flex; flex-direction: column; gap: 8px;
+    }
+    .panel-actions { display: flex; gap: 8px; width: 100%; }
+    .panel-actions > * { flex: 1; }
+
+    .modal {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: var(--bg-page); padding: 20px 16px 160px 16px;
+        z-index: 200; overflow-y: auto;
+    }
+
+    /* Оверлей напоминания в виджете */
+    .reminder-overlay {
+        position: absolute; inset: 0; background: rgba(255,255,255,0.98);
+        display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
+        z-index: 10; animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .rem-chips { display: flex; gap: 6px; }
+    .rem-chip { padding: 6px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; border: none; cursor: pointer; }
+    .rc-gray { background: #F3F4F6; color: var(--primary); }
+    .rc-green { background: #10B981; color: white; }
+    .rc-close { color: #9CA3AF; background: none; font-size: 16px; padding: 0 4px; }
+
+    /* Service list styles */
+    .service-card {
+        background: white; padding: 14px; border-radius: 14px; margin-bottom: 10px;
+        box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center;
+    }
+    .svc-title { font-weight: 800; font-size: 15px; margin-bottom: 2px; }
+    .svc-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .svc-price { font-weight: 700; color: var(--primary); font-size: 14px; }
+    
+    .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+    .slot-chip { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; padding: 10px; border-radius: 10px; text-align: center; font-weight: 700; font-size: 13px; }
+    
+    .form-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .form-group { flex: 1; }
+    .form-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+    
+    .visit-card { background: white; padding: 16px; border-radius: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
+    .upcoming-visit-card {
+        background: linear-gradient(135deg, #FFF0E6, #FFFFFF);
+        border: 1px solid #FFDCC2; border-radius: 16px;
+        padding: 16px; margin-bottom: 20px; display: flex; align-items: center;
+        gap: 12px; position: relative; box-shadow: 0 4px 15px rgba(255, 148, 120, 0.08); overflow: hidden;
+    }
+    .visit-badge-top { position: absolute; top: 0; right: 0; background: #FFDCC2; color: #E66E50; font-size: 10px; font-weight: 800; padding: 2px 10px; border-bottom-left-radius: 10px; text-transform: uppercase; }
+    .visit-date-box { background: var(--primary-grad); color: white; min-width: 60px; height: 60px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .v-day { font-size: 22px; font-weight: 800; line-height: 1; }
+    .v-month { font-size: 10px; font-weight: 600; text-transform: uppercase; }
     </style>
 </head>
 

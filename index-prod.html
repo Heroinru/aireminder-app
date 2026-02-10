@@ -335,43 +335,94 @@
     </div>
 
     <script>
-    const { createApp } = Vue;
+ const { createApp } = Vue;
+    
+    // Инициализация Telegram
     let tg = { initDataUnsafe: {} };
-    try { if (window.Telegram && window.Telegram.WebApp) { tg = window.Telegram.WebApp; tg.ready(); tg.expand(); try{tg.setHeaderColor('#FFF9F5');tg.setBackgroundColor('#FFF9F5');}catch(e){} } } catch(e){}
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            tg.ready(); 
+            tg.expand();
+            // Настройка цветов шапки
+            try { 
+                if (tg.setHeaderColor) tg.setHeaderColor('#FFF9F5'); 
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#FFF9F5'); 
+            } catch(e) {}
+        }
+    } catch(e) { console.warn('TG init error:', e); }
 
     const API_BASE = 'https://aireminder.ru/webhook';
     const URLS = {
-        GET_SCHEDULE: `${API_BASE}/get-schedule-prod`, SAVE_SCHEDULE: `${API_BASE}/save-schedule-prod`, GET_SLOTS: `${API_BASE}/get-free-slots-prod`,
-        GET_VISITS: `${API_BASE}/get-day-details-prod`, SAVE_VISITS: `${API_BASE}/save-visits-prod`, GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-prod`,
-        GET_SERVICES: `${API_BASE}/get-services-prod`, MANAGE_SERVICES: `${API_BASE}/manage-services-prod`, EMERGENCY: `${API_BASE}/broadcast-emergency-prod`,
-        GET_ANALYTICS: `${API_BASE}/get-analytics-prod`, GET_SOS_DATES: `${API_BASE}/get-sos-dates-prod`
+        GET_SCHEDULE: `${API_BASE}/get-schedule-prod`,
+        SAVE_SCHEDULE: `${API_BASE}/save-schedule-prod`,
+        GET_SLOTS: `${API_BASE}/get-free-slots-prod`,
+        GET_VISITS: `${API_BASE}/get-day-details-prod`,
+        SAVE_VISITS: `${API_BASE}/save-visits-prod`,
+        GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-prod`,
+        GET_SERVICES: `${API_BASE}/get-services-prod`,     
+        MANAGE_SERVICES: `${API_BASE}/manage-services-prod`,
+        EMERGENCY: `${API_BASE}/broadcast-emergency-prod`,
+        GET_ANALYTICS: `${API_BASE}/get-analytics-prod`,
+        GET_SOS_DATES: `${API_BASE}/get-sos-dates-prod`
     };
-    const TIMES_LIST = Array.from({length:96}, (_,i) => { const h=Math.floor(i/4).toString().padStart(2,'0'); const m=((i%4)*15).toString().padStart(2,'0'); return `${h}:${m}`; });
+
+    // Генерация списка времени (00:00 - 23:45)
+    const TIMES_LIST = Array.from({length: 96}, (_, i) => {
+        const h = Math.floor(i / 4).toString().padStart(2, '0');
+        const m = ((i % 4) * 15).toString().padStart(2, '0');
+        return `${h}:${m}`;
+    });
 
     createApp({
         data() {
             return {
-                clientId:null, mode:'calendar', viewStep:'grid', editMode:false, shareMode:false, masterId:null, isClientView:false,
-                services:[], selectedServiceDuration:null, selectedServiceTitle:'', newService:{title:'', duration:60, price:''}, isEditing:false, editingId:null,
-                visits:[], isLoading:false, isSaving:false, isLoadingSlots:false,
-                currentDate:new Date(), weekDays:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'], selectedDates:[], activeDate:null, currentSlots:[],
-                startTime:'10:00', endTime:'20:00', slotDuration:60, breaks:[], dbData:{}, slotsAvailability:{}, timeOptions:TIMES_LIST, nextVisit:null,
-                emergencyReason:'sick', emergencyCustomText:'', masterUsername:null, showConflictModal:false, conflictList:[], dayVisits:[], sosMap:{},
-                analyticsData:{ revenue_fact:0, revenue_forecast:0, revenue_potential:0, visits_fact:0, visits_forecast:0 }, isLoadingAnalytics:false
+                clientId: null, mode: 'calendar', viewStep: 'grid', editMode: false, shareMode: false, masterId: null, isClientView: false,
+                services: [], 
+                selectedServiceDuration: null, 
+                selectedServiceTitle: '', 
+                newService: { title: '', duration: 60, price: '' },
+                isEditing: false, 
+                editingId: null,
+                visits: [], isLoading: false, isSaving: false, isLoadingSlots: false,
+                currentDate: new Date(), weekDays: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+                selectedDates: [], activeDate: null, currentSlots: [],
+                startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
+                dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
+                emergencyReason: 'sick', emergencyCustomText: '',
+                masterUsername: null,
+                showConflictModal: false,
+                conflictList: [],
+                conflictType: '',
+                dayVisits: [], 
+                sosMap: {}, 
+                analyticsData: { 
+                    revenue_fact: 0, revenue_forecast: 0, revenue_potential: 0, 
+                    visits_fact: 0, visits_forecast: 0, 
+                    metrics: { avg_check: 0, hour_price: 0 } 
+                },
+                isLoadingAnalytics: false
             }
         },
         computed: {
             currentYear() { return this.currentDate.getFullYear(); },
             currentMonth() { return this.currentDate.getMonth(); },
-            currentMonthName() { return this.currentDate.toLocaleString('ru',{month:'long',year:'numeric'}).replace(' г.',''); },
-            daysInMonth() { return new Date(this.currentYear, this.currentMonth+1,0).getDate(); },
-            firstDayOffset() { let d=new Date(this.currentYear,this.currentMonth,1).getDay(); return d===0?6:d-1; },
+            currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
+            daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
+            firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+            
+            // СОРТИРОВКА ДЛЯ ВИДЖЕТА
             upcomingVisits() {
                 if (!this.visits || this.visits.length === 0) return [];
+                
                 return [...this.visits].sort((a, b) => {
                     const isPriority = (v) => v.visit_status === 'pending' || (v.visit_status === 'confirmed' && !v.reminderSet);
-                    const aPrio = isPriority(a); const bPrio = isPriority(b);
-                    if (aPrio && !bPrio) return -1; if (!aPrio && bPrio) return 1;
+                    const aPrio = isPriority(a);
+                    const bPrio = isPriority(b);
+                    
+                    if (aPrio && !bPrio) return -1;
+                    if (!aPrio && bPrio) return 1;
+                    
                     return new Date(a.appointment_time) - new Date(b.appointment_time);
                 });
             }
@@ -381,128 +432,436 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const webApp = window.Telegram?.WebApp;
                 const startParam = webApp?.initDataUnsafe?.start_param;
+                
                 if (webApp?.initDataUnsafe?.user?.id) this.clientId = webApp.initDataUnsafe.user.id;
                 else if (urlParams.get('client_id')) this.clientId = urlParams.get('client_id');
 
                 let urlMode = urlParams.get('mode');
+                
+                // === ИСПРАВЛЕНО: ПРОВЕРКА НА СУЩЕСТВОВАНИЕ startParam ===
                 if (startParam) {
-                    if (startParam.startsWith('client_')) { urlMode='client'; const ex=startParam.replace('client_',''); if(ex && ex!=='undefined') this.masterId=ex; }
-                    else if (/^\d+$/.test(startParam)) this.masterId=startParam;
-                }
-                if (!this.masterId || this.masterId==='undefined') {
-                    const mp = urlParams.get('master_id');
-                    if (mp && mp!=='undefined') this.masterId=mp;
-                    else if (!this.clientId && webApp?.initDataUnsafe?.user?.id) this.masterId=String(webApp.initDataUnsafe.user.id);
-                    if (!this.masterId || this.masterId==='undefined') this.masterId='68559781';
+                    if (startParam.startsWith('client_')) { 
+                        urlMode = 'client'; 
+                        const extractedId = startParam.replace('client_', ''); 
+                        if (extractedId && extractedId !== 'undefined') this.masterId = extractedId; 
+                    }
+                    else if (startParam === 'confirm') urlMode = 'confirm';
+                    else if (/^\d+$/.test(startParam)) this.masterId = startParam;
                 }
 
-                if (urlMode==='client') {
-                    this.isClientView=true; this.loadSchedule();
-                    this.loadServices().then(()=>{if(this.services.length>0)this.viewStep='services';});
-                    if(this.clientId)this.loadClientNextVisit();
-                } else {
-                    this.viewStep='grid';
-                    if(this.masterId) { this.loadSosDates(); this.loadSchedule(); this.loadServices(); this.loadVisits(); }
+                if (!this.masterId || this.masterId === 'undefined') {
+                    const masterIdParam = urlParams.get('master_id');
+                    if (masterIdParam && masterIdParam !== 'undefined') this.masterId = masterIdParam;
+                    else if (!this.clientId && webApp?.initDataUnsafe?.user?.id) { 
+                        const userId = webApp.initDataUnsafe.user.id; 
+                        if (userId) this.masterId = String(userId); 
+                    }
+                    if (!this.masterId || this.masterId === 'undefined') this.masterId = '68559781';
                 }
-            } catch(err){console.error('Init:',err);}
+
+                // ЛОГИКА ЗАПУСКА
+                if (urlMode === 'client') { 
+                    this.isClientView = true; 
+                    this.loadSchedule(); 
+                    this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); 
+                    if (this.clientId) this.loadClientNextVisit(); 
+                }
+                else { 
+                    this.viewStep = 'grid';
+                    if (this.masterId) {
+                        this.loadSosDates();
+                        this.loadSchedule(); 
+                        this.loadServices();
+                        this.loadVisits(); // Грузим визиты для виджета
+                    }
+                }
+            } catch (err) { console.error('Init Error:', err); }
         },
+        
         methods: {
+            // --- БЕЗОПАСНОСТЬ ---
             getInitData() {
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return window.Telegram.WebApp.initData;
-                const h = window.location.hash.slice(1); const p = new URLSearchParams(h);
-                if (p.has('tgWebAppData')) return p.get('tgWebAppData');
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                    return window.Telegram.WebApp.initData;
+                }
+                const hash = window.location.hash.slice(1);
+                const urlParams = new URLSearchParams(hash);
+                if (urlParams.has('tgWebAppData')) {
+                    return urlParams.get('tgWebAppData');
+                }
                 return "";
             },
-            markVisit(v,s) { v.visit_status=s; if(s==='no_show') this.saveSingleVisit(v); },
-            setReminder(v,d) { v.next_reminder_days=d; v.reminderSet=true; this.saveSingleVisit(v); },
-            saveSingleVisit(v) {
-                fetch(URLS.SAVE_VISITS, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({initData:this.getInitData(), updates:[{event_id:v.event_id, status:v.visit_status, next_reminder_days:v.next_reminder_days}]}) })
-                .catch(e=>this.safeAlert('Ошибка: '+e));
+
+            // --- ВИДЖЕТ ---
+            markVisit(visit, status) {
+                visit.visit_status = status;
+                if (status === 'no_show') {
+                    this.saveSingleVisit(visit);
+                }
             },
-            formatMoney(v) { if(v===undefined||v===null)return '0'; return v.toLocaleString('ru-RU'); },
-            safeAlert(m) { try{if(tg.showAlert)tg.showAlert(m);else alert(m);}catch(e){alert(m);} },
-            
+
+            setReminder(visit, days) {
+                visit.next_reminder_days = days;
+                visit.reminderSet = true;
+                this.saveSingleVisit(visit);
+            },
+
+            saveSingleVisit(visit) {
+                const updateData = {
+                    event_id: visit.event_id,
+                    status: visit.visit_status,
+                    next_reminder_days: visit.next_reminder_days
+                };
+                fetch(URLS.SAVE_VISITS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        initData: this.getInitData(),
+                        updates: [updateData] 
+                    }) 
+                })
+                .then(() => console.log('Saved'))
+                .catch(err => this.safeAlert('Ошибка: ' + err));
+            },
+
+            // --- ОСНОВНЫЕ МЕТОДЫ ---
+            formatMoney(val) {
+                if (val === undefined || val === null) return '0';
+                return val.toLocaleString('ru-RU');
+            },
+
             loadServices() {
-                if(!this.masterId)return Promise.resolve([]);
-                return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&rnd=${Math.random()}`).then(r=>r.json()).then(d=>{this.services=Array.isArray(d)?d:[];}).catch(console.error);
+                if (!this.masterId) return Promise.resolve([]);
+                return fetch(`${URLS.GET_SERVICES}?master_id=${this.masterId}&rnd=${Math.random()}`)
+                    .then(res => res.json())
+                    .then(data => { this.services = Array.isArray(data) ? data : []; })
+                    .catch(err => console.error('Services error:', err));
             },
+
             loadSosDates() {
-                if(!this.masterId)return;
-                fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`).then(r=>r.text()).then(t=>{
-                    let d; try{d=JSON.parse(t); if(typeof d==='string')d=JSON.parse(d);}catch(e){return;}
-                    let rd=[]; if(Array.isArray(d)) rd=d.length>0&&d[0].dates?d[0].dates:d; else if(d&&d.dates) rd=d.dates;
-                    const nm={}; let fd=null; (rd||[]).forEach(x=>{ const ds=(typeof x==='string'&&x.includes('T'))?x.split('T')[0]:String(x); nm[ds]=true; if(!fd)fd=ds; });
-                    this.sosMap=nm;
-                    if(fd) { const fSos=new Date(fd); if(fSos.getMonth()!==this.currentDate.getMonth()) { this.currentDate=new Date(fSos.getFullYear(),fSos.getMonth(),1); this.fetchSlotsAvailability(); } }
-                }).catch(console.error);
+                if (!this.masterId) return;
+                fetch(`${URLS.GET_SOS_DATES}?master_id=${this.masterId}&rnd=${Math.random()}`)
+                    .then(res => res.text())
+                    .then(text => {
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                            if (typeof data === 'string') try { data = JSON.parse(data); } catch(e) {}
+                        } catch (e) { return; }
+
+                        let rawDates = [];
+                        if (Array.isArray(data)) rawDates = data.length > 0 && data[0].dates ? data[0].dates : data;
+                        else if (data && data.dates) rawDates = data.dates;
+
+                        const newMap = {};
+                        let firstDate = null;
+                        (rawDates || []).forEach(d => {
+                            const dateStr = (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d);
+                            newMap[dateStr] = true;
+                            if (!firstDate) firstDate = dateStr;
+                        });
+                        this.sosMap = newMap;
+
+                        if (firstDate) {
+                            const firstSos = new Date(firstDate);
+                            const current = this.currentDate;
+                            if (firstSos.getMonth() !== current.getMonth() || firstSos.getFullYear() !== current.getFullYear()) {
+                                this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
+                                this.fetchSlotsAvailability();
+                            }
+                        }
+                    })
+                    .catch(console.error);
             },
-            hasSos(d){return this.sosMap[this.formatDateKey(d)]===true;},
-            
-            editService(s){this.isEditing=true; this.editingId=s.service_id; this.newService={title:s.title, duration:parseInt(s.duration)||60, price:s.price}; setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),100);},
-            cancelEdit(){this.isEditing=false; this.editingId=null; this.newService={title:'',duration:60,price:''};},
-            manageService(a,s=null){
-                let id=a==='delete'?s.service_id:this.editingId;
-                const b={initData:this.getInitData(), action:a, master_id:this.masterId, service_id:id, ...(a!=='delete'?this.newService:{})};
-                fetch(URLS.MANAGE_SERVICES,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(r=>r.json()).then(()=>{this.loadServices();this.cancelEdit();this.safeAlert(a==='delete'?'Удалено':'Сохранено');}).catch(e=>this.safeAlert('Ошибка: '+e));
+
+            hasSos(day) {
+                const key = this.formatDateKey(day);
+                return this.sosMap[key] === true;
             },
             
-            goToSmartPost(){this.viewStep='grid'; this.editMode=false; this.selectedDates=[]; this.shareMode=true; this.safeAlert('👇 Выберите свободные дни');},
-            selectService(s){this.selectedServiceDuration=parseInt(s.duration); this.selectedServiceTitle=s.title; this.viewStep='grid'; this.fetchSlotsAvailability();},
+            editService(svc) {
+                this.isEditing = true;
+                this.editingId = svc.service_id;
+                this.newService = { title: svc.title, duration: parseInt(svc.duration) || 60, price: svc.price };
+                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+            },
+
+            cancelEdit() {
+                this.isEditing = false;
+                this.editingId = null;
+                this.newService = { title: '', duration: 60, price: '' };
+            },
+
+            manageService(action, service = null) {
+                let svcId = action === 'delete' ? service.service_id : this.editingId;
+                const body = { 
+                    initData: this.getInitData(),
+                    action, 
+                    master_id: this.masterId, 
+                    service_id: svcId, 
+                    ...(action !== 'delete' ? this.newService : {}) 
+                };
+                fetch(URLS.MANAGE_SERVICES, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                    .then(res => res.json())
+                    .then(() => { this.loadServices(); this.cancelEdit(); this.safeAlert(action === 'delete' ? 'Удалено' : 'Сохранено!'); })
+                    .catch(err => this.safeAlert('Ошибка: ' + err));
+            },
+
+            goToSmartPost() {
+                this.viewStep = 'grid'; this.editMode = false; this.selectedDates = []; this.shareMode = true;
+                this.safeAlert('👇 Выберите свободные дни для поста');
+            },
+            
+            selectService(svc) {
+                this.selectedServiceDuration = parseInt(svc.duration);
+                this.selectedServiceTitle = svc.title;
+                this.viewStep = 'grid';
+                this.fetchSlotsAvailability();
+            },
             
             fetchSlotsAvailability() {
-                if(!this.masterId)return; this.slotsAvailability={};
-                const dates=[]; for(let d=1; d<=this.daysInMonth; d++) { const ds=this.formatDateKey(d); if(!this.isPastDay(d)&&!this.isDayOff(d)) dates.push(ds); }
-                if(dates.length===0)return;
-                fetch(URLS.GET_SLOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:this.getInitData(), master_id:this.masterId, dates:dates, client_id:this.isClientView?this.clientId:null, duration:this.selectedServiceDuration})})
-                .then(r=>r.json()).then(d=>{ const m=d.slots_by_date||d; Object.keys(m).forEach(k=>{if(Array.isArray(m[k])&&m[k].length>0)this.slotsAvailability[k]=true;}); }).catch(console.error);
-            },
-            fetchSlotsForDate(ds) {
-                if(!this.masterId)return; this.viewStep='slots'; this.currentSlots=[]; this.isLoadingSlots=true;
-                fetch(URLS.GET_SLOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:this.getInitData(), master_id:this.masterId, dates:[ds], client_id:this.isClientView?this.clientId:null, duration:this.selectedServiceDuration})})
-                .then(r=>r.json()).then(d=>{const m=d.slots_by_date||d; this.currentSlots=m[ds]||m.slots||[];}).catch(e=>this.safeAlert('Ошибка: '+e)).finally(()=>this.isLoadingSlots=false);
-            },
-            bookSlot(t) {
-                if(!this.isClientView)return;
-                const ds=this.activeDate.toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'long'});
-                const txt=`Здравствуйте! Хочу записаться на ${this.selectedServiceTitle||'процедуру'}, ${ds} в ${t}.`;
-                const u=`https://t.me/${this.masterUsername||'my_remi_bot'}?text=${encodeURIComponent(txt)}`;
-                if(window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(u); else window.location.href=u;
+                if (!this.masterId) return;
+                this.slotsAvailability = {};
+                const dates = [];
+                for (let day = 1; day <= this.daysInMonth; day++) {
+                    const dateStr = this.formatDateKey(day);
+                    if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr);
+                }
+                if (dates.length === 0) return;
+                
+                const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+
+                fetch(URLS.GET_SLOTS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        initData: this.getInitData(), 
+                        master_id: this.masterId, 
+                        dates: dates, 
+                        client_id: clientId, 
+                        duration: this.selectedServiceDuration 
+                    }) 
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const map = data.slots_by_date || data;
+                    Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
+                })
+                .catch(console.error);
             },
             
-            saveSchedule(f=false) {
-                if(this.isSaving)return; this.isSaving=true;
-                const s=this.startTime==='00:00'||!this.startTime?null:this.startTime; const e=this.endTime==='00:00'||!this.endTime?null:this.endTime;
-                fetch(URLS.SAVE_SCHEDULE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:this.getInitData(), master_id:this.masterId, dates:this.selectedDates, start:s, end:e, breaks:this.breaks, slot_duration:this.slotDuration, force:f})})
-                .then(r=>r.json()).then(d=>{
-                    if(d.status==='conflict'){this.conflictList=d.conflicts||[]; this.showConflictModal=true; this.isSaving=false; return;}
-                    this.safeAlert('✅ Сохранено!'); this.selectedDates.forEach(dd=>{this.dbData[dd]={start:s, end:e, breaks:JSON.parse(JSON.stringify(this.breaks))};});
-                    this.selectedDates=[]; this.viewStep='grid'; this.editMode=false; this.showConflictModal=false; this.fetchSlotsAvailability();
-                }).catch(x=>this.safeAlert('Ошибка: '+x.message)).finally(()=>this.isSaving=false);
+            fetchSlotsForDate(dateStr) {
+                if (!this.masterId) return;
+                this.viewStep = 'slots';
+                this.currentSlots = [];
+                this.isLoadingSlots = true;
+                
+                const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+
+                fetch(URLS.GET_SLOTS, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        initData: this.getInitData(),
+                        master_id: this.masterId, 
+                        dates: [dateStr], 
+                        client_id: clientId, 
+                        duration: this.selectedServiceDuration 
+                    }) 
+                })
+                .then(res => res.json())
+                .then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; })
+                .catch(err => this.safeAlert('Ошибка: ' + err))
+                .finally(() => this.isLoadingSlots = false);
             },
             
-            loadVisits() { this.isLoading=true; fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`).then(r=>r.json()).then(d=>{this.visits=(d.visits||[]).map(v=>({...v, visit_status:v.visit_status||'pending'})).filter(v=>v.visit_status!=='cancelled');}).finally(()=>this.isLoading=false); },
+            bookSlot(time) {
+                if (!this.isClientView) return;
+                const dateStr = this.activeDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' });
+                const text = `Здравствуйте! Хочу записаться на ${this.selectedServiceTitle || 'процедуру'}, ${dateStr} в ${time}.`;
+                const url = `https://t.me/${this.masterUsername || 'my_remi_bot'}?text=${encodeURIComponent(text)}`;
+                if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url);
+                else window.location.href = url;
+            },
+
+            saveSchedule(force = false) {
+                if (this.isSaving) return;
+                this.isSaving = true;
+                const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
+                const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
+                
+                fetch(URLS.SAVE_SCHEDULE, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        initData: this.getInitData(),
+                        master_id: this.masterId, 
+                        dates: this.selectedDates, 
+                        start: startToSend, 
+                        end: endToSend, 
+                        breaks: this.breaks, 
+                        slot_duration: this.slotDuration, 
+                        force: force 
+                    }) 
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'conflict') {
+                        this.conflictList = data.conflicts || [];
+                        this.showConflictModal = true;
+                        this.isSaving = false;
+                        return;
+                    }
+                    this.safeAlert('✅ Сохранено!');
+                    this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
+                    this.selectedDates = [];
+                    this.viewStep = 'grid';
+                    this.editMode = false;
+                    this.showConflictModal = false;
+                    this.fetchSlotsAvailability();
+                })
+                .catch(err => this.safeAlert('Ошибка: ' + err.message))
+                .finally(() => this.isSaving = false);
+            },
+            
+            loadVisits() { 
+                this.isLoading = true; 
+                fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}`)
+                    .then(res => res.json())
+                    .then(data => { 
+                        this.visits = (data.visits || [])
+                            .map(v => ({ ...v, visit_status: v.visit_status || 'pending' }))
+                            .filter(v => v.visit_status !== 'cancelled'); 
+                    })
+                    .finally(() => this.isLoading = false); 
+            },
+            
             sendEmergency() {
-                if(this.isSaving)return; this.isSaving=true;
-                fetch(URLS.EMERGENCY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:this.getInitData(), master_id:this.masterId, dates:this.selectedDates, reason:this.emergencyReason, custom_text:this.emergencyCustomText})})
-                .then(r=>r.json()).then(d=>{const c=d.count!==undefined?d.count:0; this.safeAlert(c>0?`✅ Отправлено: ${c}`:'ℹ️ Нет записей.'); this.selectedDates=[]; this.viewStep='grid'; this.editMode=false;})
-                .catch(()=>this.safeAlert('Ошибка отправки')).finally(()=>this.isSaving=false);
+                if (this.isSaving) return;
+                this.isSaving = true;
+                fetch(URLS.EMERGENCY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: this.getInitData(), master_id: this.masterId, dates: this.selectedDates, reason: this.emergencyReason, custom_text: this.emergencyCustomText }) })
+                    .then(res => res.json())
+                    .then(data => {
+                        const count = (data.count !== undefined) ? data.count : 0;
+                        this.safeAlert(count > 0 ? `✅ Отправлено: ${count}` : 'ℹ️ Нет записей.');
+                        this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false;
+                    })
+                    .catch(() => { this.safeAlert('Ошибка отправки'); })
+                    .finally(() => this.isSaving = false);
             },
-            loadClientNextVisit(){if(!this.clientId)return; fetch(URLS.GET_CLIENT_VISIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:this.getInitData(),client_id:this.clientId})}).then(r=>r.json()).then(d=>{if(Array.isArray(d)&&d.length>0&&d[0].found!==false)this.nextVisit=d[0]; else if(d&&typeof d==='object'&&d.found===true)this.nextVisit=d;}).catch(console.error);},
+
+            loadClientNextVisit() { 
+                if (!this.clientId) return; 
+                fetch(URLS.GET_CLIENT_VISIT, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        initData: this.getInitData(),
+                        client_id: this.clientId 
+                    })
+                })
+                .then(res => res.json())
+                .then(data => { 
+                    if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } 
+                    else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } 
+                })
+                .catch(console.error); 
+            },
+
+            makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
+            isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
+            formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
+            formatDateFull(date) { if (!date) return ''; return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); },
+            formatTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); },
+            changeMonth(d) { 
+                this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); 
+                if (!this.isClientView && this.masterId) {
+                    this.loadSosDates(); 
+                }
+                this.fetchSlotsAvailability(); 
+            },
+            onDayClick(day) {
+                const dateStr = this.formatDateKey(day);
+                this.activeDate = new Date(this.currentYear, this.currentMonth, day);
+                if (this.isClientView) { this.fetchSlotsForDate(dateStr); } 
+                else {
+                    if (this.editMode || this.shareMode) { 
+                        const idx = this.selectedDates.indexOf(dateStr); 
+                        if (idx === -1) this.selectedDates.push(dateStr); 
+                        else this.selectedDates.splice(idx, 1); 
+                    } else { this.openDayDetails(dateStr); }
+                }
+            },
+            isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
+            isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },
+            hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
+            hasBreaks(day) { const data = this.dbData[this.formatDateKey(day)]; return data && data.breaks && data.breaks.length > 0; },
+            getWorkTimes(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data || !data.start || !data.end) return { start: '', end: '' }; return { start: data.start.slice(0, 5), end: data.end.slice(0, 5) }; },
+            safeAlert(msg) { try { if (tg.showAlert) tg.showAlert(msg); else alert(msg); } catch (e) { alert(msg); } },
+            getDaysUntil(dateStr) { const target = new Date(dateStr); const today = new Date(); const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate()); const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const diff = Math.ceil((targetDate - todayDate) / (1000 * 60 * 60 * 24)); return diff === 0 ? "Сегодня" : diff === 1 ? "Завтра" : `через ${diff} дн.`; },
+            addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
+            removeBreak(index) { this.breaks.splice(index, 1); },
             
-            makeDayOff(){this.startTime=null; this.endTime=null; this.breaks=[]; this.saveSchedule(false);},
-            isDayOff(d){const dt=this.dbData[this.formatDateKey(d)]; if(!dt)return false; const z=t=>!t||t==='null'||String(t).startsWith('00:00'); return z(dt.start)||z(dt.end);},
-            formatDateKey(d){return `${this.currentYear}-${String(this.currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;},
-            formatDateFull(d){if(!d)return''; return d.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});},
-            formatTime(iso){if(!iso)return''; return new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});},
-            changeMonth(n){this.currentDate=new Date(this.currentYear,this.currentMonth+n,1); if(!this.isClientView&&this.masterId)this.loadSosDates(); this.fetchSlotsAvailability();},
-            onDayClick(d){const s=this.formatDateKey(d); this.activeDate=new Date(this.currentYear,this.currentMonth,d); if(this.isClientView)this.fetchSlotsForDate(s); else{if(this.editMode||this.shareMode){const i=this.selectedDates.indexOf(s); if(i===-1)this.selectedDates.push(s); else this.selectedDates.splice(i,1);}else this.openDayDetails(s);}},
-            isSelected(d){return this.selectedDates.includes(this.formatDateKey(d));}, isPastDay(d){const k=this.formatDateKey(d);const t=new Date();const cur=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; return k<cur;},
-            toggleEditMode(){if(this.isClientView)return; this.editMode=!this.editMode; this.shareMode=false; this.selectedDates=[];}, toggleShareMode(){if(this.isClientView)return; this.shareMode=!this.shareMode; this.editMode=false; this.selectedDates=[];},
-            toggleColumn(ci){if((!this.editMode&&!this.shareMode)||this.isClientView)return; for(let d=1; d<=this.daysInMonth; d++){let dt=new Date(this.currentYear,this.currentMonth,d); let w=dt.getDay(); let md=w===0?6:w-1; if(md===ci){const k=this.formatDateKey(d); if(this.selectedDates.includes(k))this.selectedDates=this.selectedDates.filter(x=>x!==k); else this.selectedDates.push(k);}}},
-            goToSettings(){if(this.isClientView||this.selectedDates.length===0)return; const d=this.selectedDates[0]; const f=this.dbData[d]; const c=t=>{if(!t||t==='null'||t==='')return'10:00'; const s=String(t).trim(); return s.length>=5?s.substring(0,5):s;}; if(f){this.startTime=c(f.start); this.endTime=c(f.end); let rb=f.breaks; if(typeof rb==='string'){try{rb=JSON.parse(rb);}catch(e){rb=[];}} this.breaks=(Array.isArray(rb)?rb:[]).map(b=>({start:c(b.start),end:c(b.end)}));}else{this.startTime='10:00'; this.endTime='20:00'; this.breaks=[];} this.viewStep='settings';},
-            openDayDetails(s){this.viewStep='day_details'; this.dayVisits=[]; this.currentSlots=[]; this.isLoadingSlots=true; Promise.all([fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}&date=${s}`).then(r=>r.json()).then(d=>{this.dayVisits=d.visits||(Array.isArray(d)&&d[0]?.visits?d[0].visits:(Array.isArray(d)?d:[]));}), fetch(URLS.GET_SLOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:this.getInitData(),master_id:this.masterId,dates:[s],client_id:'MASTER_VIEW',duration:this.selectedServiceDuration||this.slotDuration||60})}).then(r=>r.json()).then(d=>{const m=d.slots_by_date||d; this.currentSlots=m[s]||m.slots||[];})]).finally(()=>this.isLoadingSlots=false);},
-            goToAnalytics(){this.viewStep='analytics'; this.loadAnalytics();}, loadAnalytics(){if(!this.masterId)return; this.isLoadingAnalytics=true; fetch(`${URLS.GET_ANALYTICS}?master_id=${this.masterId}`).then(r=>r.json()).then(d=>{if(d)this.analyticsData=d;}).finally(()=>this.isLoadingAnalytics=false);},
-            addBreak(){this.breaks.push({start:'13:00',end:'14:00'});}, removeBreak(i){this.breaks.splice(i,1);}
+            toggleEditMode() { if (this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
+            toggleShareMode() { if (this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
+            toggleColumn(colIndex) {
+                if ((!this.editMode && !this.shareMode) || this.isClientView) return;
+                for (let d = 1; d <= this.daysInMonth; d++) {
+                    let date = new Date(this.currentYear, this.currentMonth, d);
+                    let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1;
+                    if (myDay === colIndex) { const k = this.formatDateKey(d); if (this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x !== k); else this.selectedDates.push(k); }
+                }
+            },
+            goToSettings() {
+                if (this.isClientView || this.selectedDates.length === 0) return;
+                const date = this.selectedDates[0];
+                const found = this.dbData[date];
+                const cleanTime = (t) => { if (!t || t === 'null' || t === '') return '10:00'; const s = String(t).trim(); return s.length >= 5 ? s.substring(0, 5) : s; };
+
+                if (found) {
+                    this.startTime = cleanTime(found.start);
+                    this.endTime = cleanTime(found.end);
+                    let rawBreaks = found.breaks;
+                    if (typeof rawBreaks === 'string') { try { rawBreaks = JSON.parse(rawBreaks); } catch (e) { rawBreaks = []; } }
+                    this.breaks = (Array.isArray(rawBreaks) ? rawBreaks : []).map(b => ({ start: cleanTime(b.start), end: cleanTime(b.end) }));
+                } else {
+                    this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = [];
+                }
+                this.viewStep = 'settings';
+            },
+            openDayDetails(dateStr) {
+                this.viewStep = 'day_details';
+                this.dayVisits = []; this.currentSlots = []; this.isLoadingSlots = true;
+                const p1 = fetch(`${URLS.GET_VISITS}?master_id=${this.masterId}&date=${dateStr}`).then(res => res.json()).then(data => {
+                    this.dayVisits = data.visits || (Array.isArray(data) && data[0]?.visits ? data[0].visits : (Array.isArray(data) ? data : []));
+                }).catch(console.error);
+
+                const duration = this.selectedServiceDuration || this.slotDuration || 60;
+                const p2 = fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: this.getInitData(), master_id: this.masterId, dates: [dateStr], client_id: 'MASTER_VIEW', duration }) })
+                    .then(res => res.json()).then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; }).catch(console.error);
+
+                Promise.all([p1, p2]).finally(() => this.isLoadingSlots = false);
+            },
+            goToAnalytics() { this.viewStep = 'analytics'; this.loadAnalytics(); },
+            loadAnalytics() {
+                if (!this.masterId) return;
+                this.isLoadingAnalytics = true;
+                fetch(`${URLS.GET_ANALYTICS}?master_id=${this.masterId}`).then(res => res.json()).then(data => { if (data) this.analyticsData = data; }).finally(() => this.isLoadingAnalytics = false);
+            },
+            loadSchedule() {
+                fetch(`${URLS.SAVE_SCHEDULE}?master_id=${this.masterId}`).then(res => res.json()).then(data => {
+                    if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                    if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
+                    const newData = {};
+                    (data.schedule || []).forEach(row => {
+                        if (row.work_date) {
+                            let brk = []; try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
+                            newData[row.work_date.split('T')[0]] = { start: row.start_time, end: row.end_time, breaks: brk };
+                        }
+                    });
+                    this.dbData = newData; this.fetchSlotsAvailability();
+                }).catch(console.error);
+            }
         }
     }).mount('#app');
     </script>

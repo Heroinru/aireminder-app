@@ -314,6 +314,48 @@
 </head>
 
 <body>
+    <!-- === НАЧАЛО ОТЛАДКИ === -->
+<div id="debug-overlay" style="position:fixed; top:0; left:0; right:0; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; padding:10px; z-index:9999; word-break:break-all;">
+    Loading...
+</div>
+<script>
+    function updateDebug() {
+        const d = document.getElementById('debug-overlay');
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        
+        let msg = "DEBUG INFO:<br>";
+        msg += "URL: " + window.location.href + "<br><br>";
+        
+        if (!tg) {
+            msg += "<b style='color:red'>TG WebApp: MISSING</b><br>";
+        } else {
+            msg += "TG Version: " + tg.version + "<br>";
+            msg += "Platform: " + tg.platform + "<br>";
+            
+            if (tg.initData) {
+                msg += "<b style='color:#0f0'>INIT DATA: FOUND (" + tg.initData.length + " chars)</b><br>";
+                msg += "Data: " + tg.initData.substring(0, 30) + "...<br>";
+            } else {
+                msg += "<b style='color:red'>INIT DATA: EMPTY</b><br>";
+            }
+        }
+        
+        // Проверяем Хеш (резервный способ)
+        if (window.location.hash) {
+             msg += "HASH: " + window.location.hash.substring(0, 30) + "...";
+        } else {
+             msg += "HASH: Empty";
+        }
+
+        d.innerHTML = msg;
+    }
+
+    // Обновляем сразу и через 1 секунду (на случай задержки)
+    updateDebug();
+    setTimeout(updateDebug, 1000);
+    setTimeout(updateDebug, 3000);
+</script>
+<!-- === КОНЕЦ ОТЛАДКИ === -->
 
     <div id="app" v-cloak>
         <div class="brand-header">

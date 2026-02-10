@@ -1144,7 +1144,28 @@
                     .finally(() => this.isLoadingAnalytics = false);
             },
 
-            loadClientNextVisit() { if (!this.clientId) return; fetch(`${URLS.GET_CLIENT_VISIT}?client_id=${this.clientId}`).then(res => res.json()).then(data => { if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } }).catch(console.error); },
+            loadClientNextVisit() { 
+    if (!this.clientId) return; 
+    
+    // МЕНЯЕМ НА POST
+    fetch(URLS.GET_CLIENT_VISIT, { // <-- Убрали ?client_id=... из ссылки
+        method: 'POST',            // <-- Стало POST
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            initData: this.getInitData(), // Наша защита
+            client_id: this.clientId 
+        })
+    })
+    .then(res => res.json())
+    .then(data => { 
+        if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { 
+            this.nextVisit = data[0]; 
+        } else if (data && typeof data === 'object' && data.found === true) { 
+            this.nextVisit = data; 
+        } 
+    })
+    .catch(console.error); 
+},
             sendSlotsToChat() { if (this.selectedDates.length === 0) return; fetch(URLS.GET_SLOTS, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ master_id: this.masterId, dates: this.selectedDates, source: 'chat' }) }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); },
             isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },
             hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },

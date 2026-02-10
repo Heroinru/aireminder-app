@@ -278,8 +278,10 @@
 
 <body>
    
-    <div id="app" v-cloak>
-        <div class="brand-header">
+    <div class="brand-header">
+        <div class="logo-box">R</div>
+        <div class="brand-name">Remi</div>
+    </div>
             <!-- WIDGET: SMART FOCUS -->
 <div v-if="upcomingVisits.length > 0 && !isClientView" class="smart-widget">
     
@@ -324,13 +326,15 @@
                 <span v-else style="font-size:12px; font-weight:800; color:#EF4444;">⛔️ Отмена</span>
             </div>
 
-            <!-- LTV Напоминание (Появляется поверх после нажатия "Был") -->
+            <!-- LTV Напоминание (Обновленное) -->
             <div v-if="visit.visit_status === 'confirmed' && !visit.reminderSet" class="reminder-overlay">
-                <span style="font-size:11px; font-weight:700; color:#6B7280; text-transform:uppercase;">Напомнить?</span>
-                <div class="rem-chips">
+                <span style="font-size:10px; font-weight:800; color:#6B7280; text-transform:uppercase; margin-right:4px; white-space:nowrap;">Напомнить:</span>
+                <div class="rem-chips" style="overflow-x: auto; padding-bottom: 2px;"> <!-- Добавили скролл если не влезет -->
                     <button @click="setReminder(visit, 21)" class="rem-chip rc-gray">3 нед</button>
-                    <button @click="setReminder(visit, 30)" class="rem-chip rc-green">1 мес</button>
-                    <button @click="setReminder(visit, 0)" class="rem-chip rc-close">✕</button>
+                    <button @click="setReminder(visit, 28)" class="rem-chip rc-green">1 мес</button>
+                    <button @click="setReminder(visit, 180)" class="rem-chip rc-gray">6 мес</button>
+                    <button @click="setReminder(visit, 365)" class="rem-chip rc-gray">1 год</button>
+                    <button @click="setReminder(visit, 0)" class="rem-chip rc-close" style="padding: 6px 4px;">✕</button>
                 </div>
             </div>
 

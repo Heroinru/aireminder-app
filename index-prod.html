@@ -734,12 +734,15 @@
         }
     } catch(e) { console.warn('TG init error:', e); }
 
-    const API_BASE = 'https://aireminder.ru/webhook';
+  const API_BASE = 'https://aireminder.ru/webhook'; // Проверь, что домен верный!
+    
     const URLS = {
-        GET_SCHEDULE: `${API_BASE}/get-schedule-prod`,
+        // ВАЖНО: get-schedule-prod теперь отличается от save-schedule-prod
+        GET_SCHEDULE: `${API_BASE}/get-schedule-prod`, 
         SAVE_SCHEDULE: `${API_BASE}/save-schedule-prod`,
+        
         GET_SLOTS: `${API_BASE}/get-free-slots-prod`,
-        GET_VISITS: `${API_BASE}/get-day-details-prod`,
+        GET_VISITS: `${API_BASE}/get-day-details-prod`, // Проверь имя вебхука в n8n для визитов
         SAVE_VISITS: `${API_BASE}/save-visits-prod`,
         GET_CLIENT_VISIT: `${API_BASE}/get-client-visit-prod`,
         GET_SERVICES: `${API_BASE}/get-services-prod`,     
@@ -1114,19 +1117,28 @@
             .catch(err => this.safeAlert('Ошибка: ' + err.message)); 
     },
 
-    loadSchedule() {
-        this.apiCall(URLS.SAVE_SCHEDULE)
+loadSchedule() {
+        // ИСПРАВЛЕНО: Используем GET_SCHEDULE для получения данных
+        this.apiCall(URLS.GET_SCHEDULE)
             .then(data => {
+                // Если n8n вернул ошибку или пустоту
+                if (!data) return;
+
                 if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
                 if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
+                
                 const newData = {};
                 (data.schedule || []).forEach(row => {
                     if (row.work_date) {
-                        let brk = []; try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
-                        newData[row.work_date.split('T')[0]] = { start: row.start_time, end: row.end_time, breaks: brk };
+                        let brk = []; 
+                        try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
+                        // Обработка даты (обрезаем время, если есть T)
+                        const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
+                        newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
                     }
                 });
-                this.dbData = newData; this.fetchSlotsAvailability();
+                this.dbData = newData; 
+                this.fetchSlotsAvailability();
             }).catch(console.error);
     },
 

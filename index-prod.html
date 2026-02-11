@@ -391,6 +391,18 @@
 }
 .rem-chip.primary { background: #FFF0E6; color: #E66E50; }
 .rem-chip.close { background: transparent; color: #9CA3AF; font-size: 14px; padding: 8px; }
+        /* Скрываем полосу прокрутки для кнопок времени */
+.rem-chips::-webkit-scrollbar { display: none; }
+.rem-chips { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Исправление обрезания зеленой кнопки */
+.visit-snap-card {
+    padding-right: 8px; /* Чуть меньше отступ справа */
+}
+.v-actions {
+    flex-shrink: 0; /* Запрещаем кнопкам сжиматься */
+    margin-left: auto; /* Прижимаем вправо */
+}
     </style>
 </head>
 
@@ -402,7 +414,7 @@
             <div class="brand-name">Remi</div>
         </div>
 
-        <!-- WIDGET: SMART FOCUS -->
+     <!-- WIDGET: SMART FOCUS -->
 <div v-if="upcomingVisits.length > 0 && !isClientView" class="smart-widget">
     <div class="widget-header">
         <span class="widget-title">Ближайшая запись</span>
@@ -413,47 +425,41 @@
         <div v-for="visit in upcomingVisits" :key="visit.event_id" class="visit-snap-card">
             
             <!-- Левая часть: Время и Инфо -->
-            <div style="display:flex; align-items:center;">
+            <div style="display:flex; align-items:center; min-width: 0;">
                 <div class="v-time-box">
                     <span class="vt-hour">{{ formatTime(visit.appointment_time).split(':')[0] }}</span>
                     <span class="vt-min">{{ formatTime(visit.appointment_time).split(':')[1] }}</span>
                 </div>
-                <div class="v-info">
+                <div class="v-info" style="min-width: 0;">
                     <div class="v-client">{{ visit.client_name || 'Клиент' }}</div>
                     <div class="v-service">{{ visit.service_type }}</div>
                 </div>
             </div>
 
-            <!-- Правая часть: Кнопки -->
+            <!-- Правая часть: Кнопки (видим, если статус pending) -->
             <div v-if="visit.visit_status === 'pending'" class="v-actions">
                 <!-- Не пришел -->
-                <div class="btn-mini-icon" @click="markVisit(visit, 'no_show')">
+                <div class="btn-mini-icon" @click.stop="markVisit(visit, 'no_show')">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </div>
                 <!-- Был -->
-                <button class="btn-mini-ok" @click="markVisit(visit, 'confirmed')">
+                <button class="btn-mini-ok" @click.stop="markVisit(visit, 'confirmed')">
                     Был <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
             </div>
 
-            <!-- Статус (если уже нажато, но еще висит в списке) -->
-            <div v-else style="padding-right:8px;">
-                <span v-if="visit.visit_status === 'confirmed'" style="color:#10B981; font-weight:800; font-size:12px;">✅ Готово</span>
-                <span v-else style="color:#EF4444; font-weight:800; font-size:12px;">⛔ Неявка</span>
-            </div>
-
-            <!-- ОВЕРЛЕЙ: Напоминание (LTV) -->
+            <!-- ОВЕРЛЕЙ: Напоминание (Появляется поверх, если confirmed) -->
+            <!-- Добавлен overflow-x: auto для прокрутки кнопок -->
             <div v-if="visit.visit_status === 'confirmed' && !visit.reminderSet" class="reminder-overlay">
-                <span class="rem-title" style="margin-right: 8px;">Напомнить:</span>
+                <span class="rem-title" style="margin-right: 8px; white-space: nowrap;">Напомнить:</span>
                 
-                <!-- Скроллящийся список кнопок -->
-                <div class="rem-chips" style="overflow-x: auto; padding-bottom: 2px;">
-                    <button @click="setReminder(visit, 21)" class="rem-chip primary">3 нед</button>
-                    <button @click="setReminder(visit, 30)" class="rem-chip primary">1 мес</button>
-                    <button @click="setReminder(visit, 180)" class="rem-chip primary">6 мес</button>
-                    <button @click="setReminder(visit, 270)" class="rem-chip primary">9 мес</button>
-                    <button @click="setReminder(visit, 365)" class="rem-chip primary">1 год</button>
-                    <button @click="setReminder(visit, 0)" class="rem-chip close">✕</button>
+                <div class="rem-chips" style="display: flex; gap: 6px; overflow-x: auto; width: 100%; align-items: center;">
+                    <button @click.stop="setReminder(visit, 21)" class="rem-chip primary" style="flex-shrink: 0;">3 нед</button>
+                    <button @click.stop="setReminder(visit, 30)" class="rem-chip primary" style="flex-shrink: 0;">1 мес</button>
+                    <button @click.stop="setReminder(visit, 180)" class="rem-chip primary" style="flex-shrink: 0;">6 мес</button>
+                    <button @click.stop="setReminder(visit, 270)" class="rem-chip primary" style="flex-shrink: 0;">9 мес</button>
+                    <button @click.stop="setReminder(visit, 365)" class="rem-chip primary" style="flex-shrink: 0;">1 год</button>
+                    <button @click.stop="setReminder(visit, 0)" class="rem-chip close" style="flex-shrink: 0; padding: 6px 10px;">✕</button>
                 </div>
             </div>
 

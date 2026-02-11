@@ -1221,16 +1221,26 @@ saveVisitSingle(visit) {
         .finally(() => this.isSaving = false);
     },
 
-    loadVisits() { 
-        this.isLoading = true; 
-        this.apiCall(URLS.GET_VISITS)
-            .then(data => { 
-                this.visits = (data.visits || [])
-                    .map(v => ({ ...v, visit_status: v.visit_status || 'pending' }))
-                    .filter(v => v.visit_status === 'pending'); 
-            })
-            .finally(() => this.isLoading = false); 
-    },
+   loadVisits() { 
+    this.isLoading = true; 
+    console.log('Запрашиваю визиты...'); // Лог для проверки
+    
+    this.apiCall(URLS.GET_VISITS)
+        .then(data => { 
+            console.log('Получено визитов:', data.visits ? data.visits.length : 0); // Лог количества
+            
+            this.visits = (data.visits || [])
+                .map(v => ({ 
+                    ...v, 
+                    visit_status: v.visit_status || 'pending' 
+                }))
+                // УБИРАЕМ ЖЕСТКИЙ ФИЛЬТР
+                // Оставляем pending И confirmed (чтобы работала логика напоминаний)
+                // Убираем только cancelled и no_show
+                .filter(v => v.visit_status !== 'cancelled' && v.visit_status !== 'no_show');
+        })
+        .finally(() => this.isLoading = false); 
+},
 
     saveVisits() {
         this.isSaving = true;

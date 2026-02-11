@@ -920,24 +920,12 @@
             currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
             daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
             firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
-            upcomingVisits() {
+           upcomingVisits() {
     if (!this.visits) return [];
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
-
+    // ПОКАЗАТЬ ВСЁ (Для теста)
     return this.visits.filter(v => {
-        if (!v.appointment_time) return false;
-        const vDate = new Date(v.appointment_time);
-        
-        // Показываем только если:
-        // 1. Дата в будущем или "сегодня" (не старее 2 часов назад)
-        // 2. Дата не дальше чем через 24 часа
-        // 3. Статус 'pending' ИЛИ ('confirmed', но мы еще не выбрали напоминание)
-        const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
-        const isActionable = v.visit_status === 'pending' || (v.visit_status === 'confirmed' && !v.reminderSet);
-        
-        return isFresh && isActionable;
-    }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
+        return v.visit_status === 'pending' || (v.visit_status === 'confirmed' && !v.reminderSet);
+    });
 },
         },
         mounted() {

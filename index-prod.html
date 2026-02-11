@@ -310,6 +310,76 @@
             font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 10px;
         }
         .reason-chip.selected { border-color: var(--primary); background: #FFF9F5; color: var(--primary); }
+
+        /* --- WIDGET: SMART FOCUS --- */
+.smart-widget { margin-bottom: 24px; animation: slideDown 0.4s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.widget-header { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 10px; }
+.widget-title { font-size: 11px; font-weight: 800; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; }
+.widget-badge { font-size: 10px; background: #F3F4F6; color: #6B7280; padding: 4px 8px; border-radius: 20px; font-weight: 700; }
+
+.widget-scroll { 
+    display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; 
+    scroll-snap-type: x mandatory; 
+    /* Скрываем скроллбар */
+    scrollbar-width: none; -ms-overflow-style: none; 
+}
+.widget-scroll::-webkit-scrollbar { display: none; }
+
+.visit-snap-card { 
+    min-width: 92%; scroll-snap-align: center; 
+    background: white; border-radius: 18px; padding: 12px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid #F3F4F6; 
+    display: flex; justify-content: space-between; align-items: center; 
+    position: relative; overflow: hidden; height: 72px; box-sizing: border-box;
+}
+
+/* Левая часть: Время */
+.v-time-box { 
+    width: 48px; height: 48px; background: #FFF0E6; color: #E66E50; 
+    border-radius: 14px; display: flex; flex-direction: column; 
+    align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;
+}
+.vt-hour { font-size: 15px; font-weight: 900; line-height: 1; }
+.vt-min { font-size: 11px; font-weight: 700; opacity: 0.9; }
+
+/* Инфо */
+.v-info { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.v-client { font-size: 15px; font-weight: 800; color: #1F2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.v-service { font-size: 11px; color: #9CA3AF; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+
+/* Кнопки */
+.v-actions { display: flex; gap: 8px; }
+.btn-mini-icon { 
+    width: 40px; height: 40px; border: 1px solid #FEE2E2; color: #EF4444; 
+    border-radius: 12px; display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-mini-icon:active { background: #FEF2F2; transform: scale(0.95); }
+
+.btn-mini-ok { 
+    height: 40px; padding: 0 16px; background: #10B981; color: white; 
+    border-radius: 12px; font-size: 13px; font-weight: 700; 
+    display: flex; align-items: center; gap: 4px; border: none;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); cursor: pointer; transition: all 0.2s;
+}
+.btn-mini-ok:active { transform: scale(0.95); }
+
+/* Оверлей напоминания */
+.reminder-overlay { 
+    position: absolute; inset: 0; background: rgba(255,255,255,0.98); 
+    display: flex; align-items: center; justify-content: space-between; 
+    padding: 0 12px; z-index: 10; animation: fadeIn 0.2s ease;
+}
+.rem-title { font-size: 11px; font-weight: 800; color: #6B7280; text-transform: uppercase; }
+.rem-chips { display: flex; gap: 6px; }
+.rem-chip { 
+    padding: 8px 12px; background: #F3F4F6; border-radius: 10px; 
+    font-size: 11px; font-weight: 700; border: none; color: #4B5563; cursor: pointer; 
+}
+.rem-chip.primary { background: #FFF0E6; color: #E66E50; }
+.rem-chip.close { background: transparent; color: #9CA3AF; font-size: 14px; padding: 8px; }
     </style>
 </head>
 
@@ -320,6 +390,62 @@
             <div class="logo-box">R</div>
             <div class="brand-name">Remi</div>
         </div>
+
+        <!-- WIDGET: SMART FOCUS -->
+<div v-if="upcomingVisits.length > 0 && !isClientView" class="smart-widget">
+    <div class="widget-header">
+        <span class="widget-title">Ближайшая запись</span>
+        <span class="widget-badge">Осталось: {{ upcomingVisits.length }}</span>
+    </div>
+
+    <div class="widget-scroll">
+        <div v-for="visit in upcomingVisits" :key="visit.event_id" class="visit-snap-card">
+            
+            <!-- Левая часть: Время и Инфо -->
+            <div style="display:flex; align-items:center;">
+                <div class="v-time-box">
+                    <span class="vt-hour">{{ formatTime(visit.appointment_time).split(':')[0] }}</span>
+                    <span class="vt-min">{{ formatTime(visit.appointment_time).split(':')[1] }}</span>
+                </div>
+                <div class="v-info">
+                    <div class="v-client">{{ visit.client_name || 'Клиент' }}</div>
+                    <div class="v-service">{{ visit.service_type }}</div>
+                </div>
+            </div>
+
+            <!-- Правая часть: Кнопки -->
+            <div v-if="visit.visit_status === 'pending'" class="v-actions">
+                <!-- Не пришел -->
+                <div class="btn-mini-icon" @click="markVisit(visit, 'no_show')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </div>
+                <!-- Был -->
+                <button class="btn-mini-ok" @click="markVisit(visit, 'confirmed')">
+                    Был <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </button>
+            </div>
+
+            <!-- Статус (если уже нажато, но еще висит в списке) -->
+            <div v-else style="padding-right:8px;">
+                <span v-if="visit.visit_status === 'confirmed'" style="color:#10B981; font-weight:800; font-size:12px;">✅ Готово</span>
+                <span v-else style="color:#EF4444; font-weight:800; font-size:12px;">⛔ Неявка</span>
+            </div>
+
+            <!-- ОВЕРЛЕЙ: Напоминание (LTV) -->
+            <div v-if="visit.visit_status === 'confirmed' && !visit.reminderSet" class="reminder-overlay">
+                <span class="rem-title">Напомнить?</span>
+                <div class="rem-chips">
+                    <button @click="setReminder(visit, 21)" class="rem-chip primary">3 нед</button>
+                    <button @click="setReminder(visit, 30)" class="rem-chip primary">1 мес</button>
+                    <button @click="setReminder(visit, 0)" class="rem-chip close">✕</button>
+                </div>
+            </div>
+
+        </div>
+        <!-- Пустышка для отступа справа -->
+        <div style="min-width: 10px;"></div>
+    </div>
+</div>
 
         <!-- 1. КАРТОЧКА ЗАПИСИ (ДЛЯ КЛИЕНТА) -->
         <div v-if="nextVisit && isClientView" class="upcoming-visit-card">
@@ -794,6 +920,25 @@
             currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
             daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
             firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+            upcomingVisits() {
+    if (!this.visits) return [];
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
+
+    return this.visits.filter(v => {
+        if (!v.appointment_time) return false;
+        const vDate = new Date(v.appointment_time);
+        
+        // Показываем только если:
+        // 1. Дата в будущем или "сегодня" (не старее 2 часов назад)
+        // 2. Дата не дальше чем через 24 часа
+        // 3. Статус 'pending' ИЛИ ('confirmed', но мы еще не выбрали напоминание)
+        const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
+        const isActionable = v.visit_status === 'pending' || (v.visit_status === 'confirmed' && !v.reminderSet);
+        
+        return isFresh && isActionable;
+    }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
+},
         },
         mounted() {
             console.log('🚀 App Mounted');
@@ -835,6 +980,11 @@
 
                 if (urlMode === 'client' && (!this.masterId || this.masterId === 'undefined')) { this.safeAlert('Ошибка: не указан ID мастера.'); return; }
                 if (this.masterId === 'undefined') this.masterId = '68559781';
+
+                // Если мы мастер и просто зашли в календарь — подгрузим визиты для виджета
+if (!this.isClientView && this.masterId) {
+    this.loadVisits();
+}
 
                 if (urlMode === 'confirm') { 
                     this.viewStep = 'confirm'; 
@@ -900,6 +1050,39 @@
             return res.json();
         });
     },
+         markVisit(visit, status) {
+    // Меняем статус локально
+    visit.visit_status = status;
+    
+    // Если "Не пришел" — сразу сохраняем и убираем
+    if (status === 'no_show') {
+        visit.reminderSet = true; // Чтобы скрыть из списка
+        this.saveVisitSingle(visit);
+    }
+    // Если "Был" — ничего не делаем, ждем выбора напоминания (откроется оверлей)
+},
+
+setReminder(visit, days) {
+    visit.next_reminder_days = days;
+    visit.reminderSet = true; // Скрываем оверлей и саму карточку (через computed)
+    this.saveVisitSingle(visit);
+},
+
+saveVisitSingle(visit) {
+    // Отправляем только одну запись на сервер
+    const update = {
+        event_id: visit.event_id,
+        status: visit.visit_status,
+        next_reminder_days: visit.next_reminder_days
+    };
+    
+    this.apiCall(URLS.SAVE_VISITS, { updates: [update] })
+        .then(() => {
+            // Можно показать тихое уведомление
+            console.log('Saved:', visit.client_name);
+        })
+        .catch(err => this.safeAlert('Ошибка сохранения: ' + err));
+},
 
     // ==========================================
     // 📡 ЗАГРУЗКА ДАННЫХ (ОБНОВЛЕНО)

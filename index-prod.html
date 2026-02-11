@@ -424,9 +424,9 @@
                 <div v-for="n in firstDayOffset" :key="'e'+n"></div>
                 <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
                     <span class="day-num">{{ date }}</span>
-                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
+                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date) && !hasSos(date)" class="coffee-icon">☕</span>
                     <!-- Иконка SOS -->
-                    <span v-if="hasSos(date)" style="position: absolute; top: 4px; left: 4px; font-size: 14px; line-height: 1; z-index: 5;">
+                   <span v-if="hasSos(date)" style="position: absolute; top: 2px; right: 2px; font-size: 16px; line-height: 1; z-index: 10;">
     🆘
 </span>
                     <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>

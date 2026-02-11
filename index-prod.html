@@ -359,10 +359,21 @@
 .btn-mini-icon:active { background: #FEF2F2; transform: scale(0.95); }
 
 .btn-mini-ok { 
-    height: 40px; padding: 0 16px; background: #10B981; color: white; 
-    border-radius: 12px; font-size: 13px; font-weight: 700; 
-    display: flex; align-items: center; gap: 4px; border: none;
-    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); cursor: pointer; transition: all 0.2s;
+    height: 40px; 
+    padding: 0 12px; /* Было 16px, уменьшили */
+    background: #10B981; 
+    color: white; 
+    border-radius: 12px; 
+    font-size: 12px; /* Было 13px, уменьшили */
+    font-weight: 700; 
+    display: flex; 
+    align-items: center; 
+    gap: 4px; 
+    border: none;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); 
+    cursor: pointer; 
+    transition: all 0.2s;
+    white-space: nowrap; /* Запрещаем перенос текста */
 }
 .btn-mini-ok:active { transform: scale(0.95); }
 
@@ -433,10 +444,15 @@
 
             <!-- ОВЕРЛЕЙ: Напоминание (LTV) -->
             <div v-if="visit.visit_status === 'confirmed' && !visit.reminderSet" class="reminder-overlay">
-                <span class="rem-title">Напомнить?</span>
-                <div class="rem-chips">
+                <span class="rem-title" style="margin-right: 8px;">Напомнить:</span>
+                
+                <!-- Скроллящийся список кнопок -->
+                <div class="rem-chips" style="overflow-x: auto; padding-bottom: 2px;">
                     <button @click="setReminder(visit, 21)" class="rem-chip primary">3 нед</button>
                     <button @click="setReminder(visit, 30)" class="rem-chip primary">1 мес</button>
+                    <button @click="setReminder(visit, 180)" class="rem-chip primary">6 мес</button>
+                    <button @click="setReminder(visit, 270)" class="rem-chip primary">9 мес</button>
+                    <button @click="setReminder(visit, 365)" class="rem-chip primary">1 год</button>
                     <button @click="setReminder(visit, 0)" class="rem-chip close">✕</button>
                 </div>
             </div>

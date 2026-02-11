@@ -427,8 +427,8 @@
                     <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date)" class="coffee-icon">☕</span>
                     <!-- Иконка SOS -->
                     <span v-if="hasSos(date)" style="position: absolute; top: 4px; left: 4px; font-size: 14px; line-height: 1; z-index: 5;">
-                        🆘
-                    </span>
+    🆘
+</span>
                     <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
                 </div>
             </div>

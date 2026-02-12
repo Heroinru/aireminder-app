@@ -616,6 +616,10 @@
                     <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
                         📊 Отчет
                     </button>
+                    <!-- Добавь это в нижнюю панель -->
+<button class="btn btn-secondary" style="background: #FFF7ED; color: #EA580C; border-color: #FFEDD5;" @click="showPaywall = true">
+    💎 Подписка
+</button>
                 </div>
             </div>
         </div>
@@ -844,6 +848,42 @@
                 </p>
             </div>
 
+            <!-- МОДАЛКА ОПЛАТЫ (PAYWALL) -->
+        <div v-if="showPaywall" class="modal" style="z-index: 400; background: #FFF9F5;">
+            <div style="text-align: center; margin-top: 20px;">
+                <div style="font-size: 48px; margin-bottom: 10px;">💎</div>
+                <h2 style="margin-bottom: 10px;">Remi Premium</h2>
+                <p style="color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 30px;">
+                    Автоматические рассылки, умная аналитика и защита от неявок.
+                </p>
+            </div>
+
+            <!-- Тарифы -->
+            <div @click="buySubscription('month')" class="service-card" style="border: 2px solid #FF9478; background: white;">
+                <div>
+                    <div class="svc-title">1 Месяц</div>
+                    <div class="svc-meta">Полный доступ ко всем функциям</div>
+                </div>
+                <div class="svc-price">490 ₽</div>
+            </div>
+
+            <div @click="buySubscription('year')" class="service-card" style="border: 1px solid #E5E7EB; opacity: 0.8;">
+                <div>
+                    <div class="svc-title">1 Год</div>
+                    <div class="svc-meta">Выгода 20% (340 ₽/мес)</div>
+                </div>
+                <div class="svc-price">4900 ₽</div>
+            </div>
+
+            <div v-if="paymentLoading" style="text-align: center; margin-top: 20px; color: #FF9478; font-weight: 700;">
+                ⏳ Создаем ссылку на оплату...
+            </div>
+
+            <div class="bottom-panel">
+                <button class="btn btn-secondary" @click="showPaywall = false">Закрыть</button>
+            </div>
+        </div>
+
             <div style="background: #FFF5F5; border: 1px solid #FECACA; border-radius: 12px; padding: 15px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
                 <div v-for="(conf, idx) in conflictList" :key="idx" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #FEE2E2; display: flex; justify-content: space-between;">
                     <div>
@@ -934,6 +974,9 @@
                     metrics: { avg_check: 0, hour_price: 0 } 
                 },
                 isLoadingAnalytics: false
+
+                showPaywall: false,    // Показать ли окно оплаты
+        paymentLoading: false,
             }
         },
         computed: {
@@ -985,6 +1028,9 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const webApp = window.Telegram?.WebApp;
                 const startParam = webApp?.initDataUnsafe?.start_param;
+                if (startParam === 'payment') {
+    this.showPaywall = true;
+}
                 
                 if (webApp?.initDataUnsafe?.user?.id) this.clientId = webApp.initDataUnsafe.user.id;
                 else if (urlParams.get('client_id')) this.clientId = urlParams.get('client_id');
@@ -1093,6 +1139,38 @@ if (!this.isClientView && this.masterId) {
     }
     // Если "Был" — ничего не делаем, ждем выбора напоминания (откроется оверлей)
 },
+
+         buySubscription(plan) {
+        if (this.paymentLoading) return;
+        this.paymentLoading = true;
+
+        // URL для создания платежа (тот самый воркфлоу 1)
+        const CREATE_PAYMENT_URL = 'https://aireminder.ru/webhook/create-payment-prod';
+
+        this.apiCall(CREATE_PAYMENT_URL, { plan: plan })
+            .then(data => {
+                if (data.confirmation_url) {
+                    // Открываем ссылку Юкассы
+                    if (window.Telegram?.WebApp?.openLink) {
+                        window.Telegram.WebApp.openLink(data.confirmation_url, { try_instant_view: false });
+                    } else {
+                        window.location.href = data.confirmation_url;
+                    }
+                    
+                    this.showPaywall = false;
+                    this.safeAlert('Окно оплаты открыто. После оплаты функции разблокируются автоматически.');
+                } else {
+                    this.safeAlert('Ошибка: сервер не вернул ссылку.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                this.safeAlert('Ошибка создания платежа. Попробуйте позже.');
+            })
+            .finally(() => {
+                this.paymentLoading = false;
+            });
+    },
 
 setReminder(visit, days) {
     visit.next_reminder_days = days;

@@ -942,12 +942,34 @@
             currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
             daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
             firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
-           upcomingVisits() {
+          upcomingVisits() {
     if (!this.visits) return [];
-    // ПОКАЗАТЬ ВСЁ (Для теста)
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
+
     return this.visits.filter(v => {
-        return v.visit_status === 'pending' || (v.visit_status === 'confirmed' && !v.reminderSet);
-    });
+        if (!v.appointment_time) return false;
+        const vDate = new Date(v.appointment_time);
+        
+        // 1. Фильтр по времени (сегодня/завтра)
+        // (Если ты отключал его для тестов — можешь убрать эту строку)
+        const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
+
+        // 2. Логика показа
+        // Показываем, если:
+        // А) Статус "Ожидает" (pending)
+        // Б) Статус "Подтвержден", НО в базе нет даты напоминания (retention_date)
+        
+        const isPending = v.visit_status === 'pending';
+        
+        const isConfirmedButNoReminder = v.visit_status === 'confirmed' 
+                                         && !v.reminderSet       // Локально не нажали только что
+                                         && !v.retention_date;   // В базе пусто
+
+        // Если ты убрал isFresh для тестов, оставь только (isPending || isConfirmedButNoReminder)
+        return isFresh && (isPending || isConfirmedButNoReminder);
+        
+    }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
 },
         },
         mounted() {

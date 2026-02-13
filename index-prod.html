@@ -903,6 +903,24 @@
                 ⏳ Создаем ссылку на оплату...
             </div>
 
+            <!-- ИНФО О ПОДПИСКЕ -->
+            <div v-if="subStatusDisplay" style="margin-top: 25px; background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-size: 12px; font-weight: 700; color: #9CA3AF; text-transform: uppercase;">Текущий статус</span>
+                    <span v-if="subStatusDisplay.days > 0" style="font-size: 11px; background: #ECFDF5; color: #059669; padding: 2px 8px; border-radius: 10px; font-weight: 700;">
+                        Осталось дней: {{ subStatusDisplay.days }}
+                    </span>
+                </div>
+                
+                <div style="font-size: 15px; font-weight: 800;" :style="{ color: subStatusDisplay.color }">
+                    {{ subStatusDisplay.text }}
+                </div>
+                
+                <div v-if="subStatusDisplay.days === 0" style="font-size: 13px; color: #6B7280; margin-top: 5px;">
+                    Функции рассылки и аналитики заблокированы.
+                </div>
+            </div>
+
             <div class="bottom-panel">
                 <button class="btn btn-secondary" @click="showPaywall = false">Закрыть</button>
             </div>
@@ -962,6 +980,7 @@
                 startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                 dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
                 emergencyReason: 'sick', emergencyCustomText: '',
+                subscriptionInfo: null,
                 masterUsername: null,
                 showConflictModal: false,
                 conflictList: [],
@@ -978,42 +997,79 @@
                 paymentLoading: false, // Крутилка загрузки
             }
         },
-        computed: {
-            currentYear() { return this.currentDate.getFullYear(); },
-            currentMonth() { return this.currentDate.getMonth(); },
-            currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
-            daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
-            firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
-          upcomingVisits() {
-    if (!this.visits) return [];
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
+       computed: {
+    currentYear() { return this.currentDate.getFullYear(); },
+    currentMonth() { return this.currentDate.getMonth(); },
+    currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
+    daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
+    firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+    upcomingVisits() {
+        if (!this.visits) return [];
+        const now = new Date();
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
 
-    return this.visits.filter(v => {
-        if (!v.appointment_time) return false;
-        const vDate = new Date(v.appointment_time);
-        
-        // 1. Фильтр по времени (сегодня/завтра)
-        // (Если ты отключал его для тестов — можешь убрать эту строку)
-        const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
+        return this.visits.filter(v => {
+            if (!v.appointment_time) return false;
+            const vDate = new Date(v.appointment_time);
+            
+            // 1. Фильтр по времени (сегодня/завтра)
+            // (Если ты отключал его для тестов — можешь убрать эту строку)
+            const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
 
-        // 2. Логика показа
-        // Показываем, если:
-        // А) Статус "Ожидает" (pending)
-        // Б) Статус "Подтвержден", НО в базе нет даты напоминания (retention_date)
-        
-        const isPending = v.visit_status === 'pending';
-        
-        const isConfirmedButNoReminder = v.visit_status === 'confirmed' 
-                                         && !v.reminderSet       // Локально не нажали только что
-                                         && !v.retention_date;   // В базе пусто
+            // 2. Логика показа
+            // Показываем, если:
+            // А) Статус "Ожидает" (pending)
+            // Б) Статус "Подтвержден", НО в базе нет даты напоминания (retention_date)
+            
+            const isPending = v.visit_status === 'pending';
+            
+            const isConfirmedButNoReminder = v.visit_status === 'confirmed' 
+                                             && !v.reminderSet       // Локально не нажали только что
+                                             && !v.retention_date;   // В базе пусто
 
-        // Если ты убрал isFresh для тестов, оставь только (isPending || isConfirmedButNoReminder)
-        return isFresh && (isPending || isConfirmedButNoReminder);
+            // Если ты убрал isFresh для тестов, оставь только (isPending || isConfirmedButNoReminder)
+            return isFresh && (isPending || isConfirmedButNoReminder);
+            
+        }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
+    },
+    
+    // Красивый статус для Пэйволла
+    subStatusDisplay() {
+        if (!this.subscriptionInfo) return null;
         
-    }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
+        const s = this.subscriptionInfo;
+        const now = new Date();
+        
+        // Парсим даты
+        const trialDate = s.trial_ends_at ? new Date(s.trial_ends_at) : null;
+        const paidDate = s.paid_until ? new Date(s.paid_until) : null;
+        
+        let endDate = null;
+        let type = '';
+        
+        // Определяем, какая дата актуальна
+        if (paidDate && paidDate > now) {
+            endDate = paidDate;
+            type = 'Подписка активна';
+        } else if (trialDate && trialDate > now) {
+            endDate = trialDate;
+            type = 'Пробный период';
+        } else {
+            return { text: 'Срок действия истек', color: '#EF4444', days: 0 };
+        }
+        
+        // Считаем разницу в днях
+        const diffTime = Math.abs(endDate - now);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return {
+            text: `${type} до ${endDate.toLocaleDateString('ru-RU')}`,
+            days: diffDays,
+            color: '#10B981' // Зеленый
+        };
+    },
 },
-        },
+
         mounted() {
             console.log('🚀 App Mounted');
             try {
@@ -1390,29 +1446,33 @@ saveVisitSingle(visit) {
     },
 
 loadSchedule() {
-        // ИСПРАВЛЕНО: Используем GET_SCHEDULE для получения данных
-        this.apiCall(URLS.GET_SCHEDULE)
-            .then(data => {
-                // Если n8n вернул ошибку или пустоту
-                if (!data) return;
+    // ИСПРАВЛЕНО: Используем GET_SCHEDULE для получения данных
+    this.apiCall(URLS.GET_SCHEDULE)
+        .then(data => {
+            // Если n8n вернул ошибку или пустоту
+            if (!data) return;
 
-                if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-                if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
-                
-                const newData = {};
-                (data.schedule || []).forEach(row => {
-                    if (row.work_date) {
-                        let brk = []; 
-                        try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
-                        // Обработка даты (обрезаем время, если есть T)
-                        const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
-                        newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
-                    }
-                });
-                this.dbData = newData; 
-                this.fetchSlotsAvailability();
-            }).catch(console.error);
-    },
+            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+            if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
+            
+            // ДОБАВЛЕНО: сохранение данных подписки
+            if (data.subscription) this.subscriptionInfo = data.subscription;
+            
+            const newData = {};
+            (data.schedule || []).forEach(row => {
+                if (row.work_date) {
+                    let brk = []; 
+                    try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
+                    // Обработка даты (обрезаем время, если есть T)
+                    const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
+                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
+                }
+            });
+            this.dbData = newData; 
+            this.fetchSlotsAvailability();
+        }).catch(console.error);
+},
+
 
     openDayDetails(dateStr) {
         this.viewStep = 'day_details';

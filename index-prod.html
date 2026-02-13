@@ -727,8 +727,7 @@
             <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
         </div>
 
-      <!-- 4.5. АНАЛИТИКА (ФИНАЛ) -->
-<div v-if="viewStep === 'analytics'">
+     <div v-if="viewStep === 'analytics'">
     <h2 style="margin-bottom: 20px;">Мой доход: {{ currentMonthName }}</h2>
     
     <div v-if="isLoadingAnalytics" style="text-align:center; margin-top:50px; color:#999;">
@@ -766,21 +765,15 @@
             </div>
         </div>
 
-        <!-- МЕТРИКИ (Безопасный вывод) -->
+        <!-- МЕТРИКИ -->
         <h3 style="margin-bottom: 12px;">Эффективность</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
             <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; background: #F3F4F6;">
-                <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">
-                    <!-- Проверяем наличие metrics перед выводом -->
-                    {{ (analyticsData.metrics && analyticsData.metrics.avg_check) ? formatMoney(analyticsData.metrics.avg_check) : '0' }} ₽
-                </div>
+                <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">{{ formatMoney(analyticsData.metrics?.avg_check) }} ₽</div>
                 <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Средний чек</div>
             </div>
             <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; background: #F3F4F6;">
-                <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">
-                    <!-- Проверяем наличие metrics перед выводом -->
-                    {{ (analyticsData.metrics && analyticsData.metrics.hour_price) ? formatMoney(analyticsData.metrics.hour_price) : '0' }} ₽
-                </div>
+                <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">{{ formatMoney(analyticsData.metrics?.hour_price) }} ₽</div>
                 <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Цена часа</div>
             </div>
         </div>
@@ -991,11 +984,17 @@
                 conflictType: '',
                 dayVisits: [], 
                 sosMap: {}, // Используем словарь для быстрого поиска
-                analyticsData: { 
-                    revenue_fact: 0, revenue_forecast: 0, revenue_potential: 0, 
-                    visits_fact: 0, visits_forecast: 0, 
-                    metrics: { avg_check: 0, hour_price: 0 } 
-                },
+                // Внутри data()
+analyticsData: { 
+    revenue_fact: 0, 
+    revenue_forecast: 0, 
+    revenue_potential: 0, 
+    visits_fact: 0, 
+    visits_forecast: 0, 
+    // ВАЖНО: metrics должен быть объявлен сразу
+    metrics: { avg_check: 0, hour_price: 0 } 
+},
+isLoadingAnalytics: false,
                 isLoadingAnalytics: false,
                 showPaywall: false,    // Показать ли окно оплаты
                 paymentLoading: false, // Крутилка загрузки
@@ -1424,23 +1423,21 @@ saveVisitSingle(visit) {
         .finally(() => this.isSaving = false);
     },
 
-    loadAnalytics() {
+  loadAnalytics() {
     if (!this.masterId) return;
     this.isLoadingAnalytics = true;
     
     this.apiCall(URLS.GET_ANALYTICS)
-        .then(data => {
+        .then(data => { 
             if (data) {
-                // Безопасное обновление: сохраняем старые поля, накладываем новые
-                this.analyticsData = {
-                    ...this.analyticsData, // Берем значения по умолчанию (0)
-                    ...data,               // Накладываем то, что пришло с сервера
-                    // Особая проверка для metrics, чтобы не потерять объект
-                    metrics: (data.metrics) ? data.metrics : this.analyticsData.metrics
-                };
+                // Если с сервера пришел объект без metrics, подставим заглушку, чтобы не было ошибок
+                if (!data.metrics) {
+                    data.metrics = { avg_check: 0, hour_price: 0 };
+                }
+                // Просто присваиваем данные, как в файле 7
+                this.analyticsData = data; 
             }
         })
-        .catch(err => console.error('Analytics load error:', err))
         .finally(() => this.isLoadingAnalytics = false);
 },
 

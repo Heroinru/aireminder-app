@@ -70,17 +70,17 @@
         /* --- ОБНОВЛЕННЫЕ КНОПКИ (FIX JUMPING) --- */
         .btn, .btn-secondary, .btn-danger, .btn-warning {
             width: 100%;
-            height: 54px; /* Фиксированная высота */
+            height: 44px; /* Фиксированная высота */
             padding: 0 8px;
             border: none;
-            border-radius: var(--radius);
+            border-radius: 12px;
             
             /* Центрирование */
             display: flex;
             align-items: center;
             justify-content: center;
             
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             cursor: pointer;
             box-sizing: border-box;
@@ -567,62 +567,68 @@
 
             
             
-            <div class="cal-grid">
-                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
-                <div v-for="n in firstDayOffset" :key="'e'+n"></div>
-                <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
-                    <span class="day-num">{{ date }}</span>
-                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date) && !hasSos(date)" class="coffee-icon">☕</span>
-                    <!-- Иконка SOS -->
-                   <span v-if="hasSos(date)" style="position: absolute; top: 2px; right: 2px; font-size: 16px; line-height: 1; z-index: 10;">
-    🆘
+          <div class="cal-grid">
+    <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
+    <div v-for="n in firstDayOffset" :key="'e'+n"></div>
+    <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
+        <span class="day-num">{{ date }}</span>
+        <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date) && !hasSos(date)" class="coffee-icon">☕</span>
+        <!-- Иконка SOS -->
+       <span v-if="hasSos(date)" style="position: absolute; top: 2px; right: 2px; font-size: 16px; line-height: 1; z-index: 10;">
+🆘
 </span>
-                    <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
-                </div>
-            </div>
+        <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
+    </div>
+</div>
 
-            <!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ С АНАЛИТИКОЙ -->
-            <div class="bottom-panel">
-                <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
-                
-                <div v-else-if="editMode" class="panel-actions">
-                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
-                        ⚙️ График <span v-if="selectedDates.length > 0">&nbsp;({{ selectedDates.length }})</span>
-                    </button>
-                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0">
-                        🆘
-                    </button>
-                    <button class="btn btn-secondary" @click="toggleEditMode">
-                        ✖
-                    </button>
-                </div>
-                
-                <div v-else-if="shareMode" class="panel-actions">
-                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
-                        🚀 Отправить ({{ selectedDates.length }})
-                    </button>
-                    <button class="btn btn-secondary" @click="toggleShareMode">
-                        Отмена
-                    </button>
-                </div>
-                
-                <div v-else class="panel-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <!-- Верхний ряд -->
-                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
-                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
-                    
-                    <!-- Нижний ряд -->
-                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
-                    <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
-                        📊 Отчет
-                    </button>
-                    <!-- Добавь это в нижнюю панель -->
-                    <button class="btn btn-secondary" style="background: #FFF7ED; color: #EA580C; border-color: #FFEDD5;" @click="showPaywall = true">
-                        💎 Подписка
-                    </button>
-                </div>
-            </div>
+<!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ С АНАЛИТИКОЙ -->
+<div class="bottom-panel">
+    <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
+    
+    <div v-else-if="editMode" class="panel-actions">
+        <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+            ⚙️ График <span v-if="selectedDates.length > 0">&nbsp;({{ selectedDates.length }})</span>
+        </button>
+        <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0">
+            🆘
+        </button>
+        <button class="btn btn-secondary" @click="toggleEditMode">
+            ✖
+        </button>
+    </div>
+    
+    <div v-else-if="shareMode" class="panel-actions">
+        <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
+            🚀 Отправить ({{ selectedDates.length }})
+        </button>
+        <button class="btn btn-secondary" @click="toggleShareMode">
+            Отмена
+        </button>
+    </div>
+    
+    <div v-else class="bottom-panel" style="padding-bottom: 20px;"> <!-- Уменьшили padding снизу -->
+        
+        <!-- Ряд 1: График и Услуги -->
+        <div class="panel-actions" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
+            <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
         </div>
+        
+        <!-- Ряд 2: Пост и Отчет -->
+        <div class="panel-actions" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+            <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
+                📊 Отчет
+            </button>
+        </div>
+
+        <!-- Ряд 3: Подписка (На всю ширину) -->
+        <button class="btn btn-secondary" style="background: #FFF7ED; color: #EA580C; border-color: #FFEDD5; width: 100%;" @click="showPaywall = true">
+            💎 Управление подпиской
+        </button>
+    </div>
+</div>
+
 
        <!-- ДЕТАЛИ ДНЯ (Deep Dive) -->
         <div v-if="viewStep === 'day_details'">

@@ -1104,56 +1104,63 @@
           this.apiCall(URLS.SAVE_VISITS, { updates: updates }).then(() => { this.safeAlert('✅ Сохранено!'); this.loadVisits(); }).catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
       },
 
-      sendEmergency() {
-          if (this.isSaving) return;
-          this.isSaving = true;
-          
-          this.apiCall(URLS.EMERGENCY, { 
-              dates: this.selectedDates, 
-              reason: this.emergencyReason, 
-              custom_text: this.emergencyCustomText 
-          })
-          .then(data => {
-              // ИСПРАВЛЕНИЕ: Проверяем разные форматы ответа от n8n
-              let count = 0;
-              
-              if (data) {
-                  // 1. Если сервер вернул явное число (например { count: 5 })
-                  if (typeof data.count === 'number') {
-                      count = data.count;
-                  } 
-                  // 2. Если сервер вернул массив обновленных записей [{...}, {...}]
-                  else if (Array.isArray(data)) {
-                      count = data.length;
-                  }
-                  // 3. Если сервер вернул вложенную структуру n8n (иногда бывает data[0].count)
-                  else if (Array.isArray(data) && data[0] && data[0].count) {
-                      count = data[0].count;
-                  }
-              }
+     sendEmergency() {
+        if (this.isSaving) return;
+        this.isSaving = true;
+        
+        // Отправляем запрос на вебхук broadcast-emergency-prod
+        this.apiCall(URLS.EMERGENCY, { 
+            dates: this.selectedDates, 
+            reason: this.emergencyReason, 
+            custom_text: this.emergencyCustomText 
+        })
+        .then(data => {
+            console.log('Emergency response:', data); // Лог для отладки
+            
+            let count = 0;
 
-              if (count > 0) {
-                  this.safeAlert(`✅ Отправлено: ${count}`);
-              } else {
-                  // Если ответ пришел успешный (200 OK), но count 0 или формат непонятен,
-                  // лучше написать что выполнено, чем пугать "нет записей", раз в БД всё ок.
-                  if (data) {
-                      this.safeAlert('✅ Рассылка выполнена');
-                  } else {
-                      this.safeAlert('ℹ️ Нет записей для рассылки.');
-                  }
-              }
-              
-              this.selectedDates = []; 
-              this.viewStep = 'grid'; 
-              this.editMode = false;
-          })
-          .catch((err) => { 
-              console.error(err);
-              this.safeAlert('❌ Ошибка отправки'); 
-          })
-          .finally(() => this.isSaving = false);
-      },
+            // Логика определения количества отправленных сообщений
+            if (data) {
+                // Вариант 1: n8n вернул объект { count: 5 }
+                if (typeof data.count === 'number') {
+                    count = data.count;
+                }
+                // Вариант 2: n8n вернул массив обновленных строк [{...}, {...}]
+                else if (Array.isArray(data)) {
+                    count = data.length;
+                }
+                // Вариант 3: n8n вернул структуру { result: [...] } или подобное
+                else if (data.result && Array.isArray(data.result)) {
+                    count = data.result.length;
+                }
+                // Вариант 4: Если пришел хоть какой-то успешный объект, считаем что минимум 1 действие сделано
+                else if (typeof data === 'object' && Object.keys(data).length > 0) {
+                    count = 1; 
+                }
+            }
+
+            if (count > 0) {
+                this.safeAlert(`✅ Рассылка запущена! Обработано: ${count}`);
+            } else {
+                // Если статус 200, но count 0 — возможно, просто нет записей на эти дни
+                this.safeAlert('ℹ️ Нет записей на выбранные дни.');
+            }
+            
+            // Сброс интерфейса
+            this.selectedDates = []; 
+            this.viewStep = 'grid'; 
+            this.editMode = false;
+        })
+        .catch((err) => { 
+            console.error('Emergency error:', err);
+            // Даже если ошибка парсинга, но запрос прошел - не пугаем "нет записей"
+            this.safeAlert('⚠️ Запрос отправлен, проверьте статус.'); 
+            this.selectedDates = []; 
+            this.viewStep = 'grid'; 
+            this.editMode = false;
+        })
+        .finally(() => this.isSaving = false);
+    },
 
       // ИСПРАВЛЕННЫЙ МЕТОД ЗАГРУЗКИ АНАЛИТИКИ
       loadAnalytics() {

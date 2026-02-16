@@ -975,100 +975,37 @@
         } catch (err) { console.error('Init Error:', err); }
     },
       
-   methods: {
-      getInitData() {
-          if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return window.Telegram.WebApp.initData;
-          const hash = window.location.hash.slice(1);
-          const urlParams = new URLSearchParams(hash);
-          if (urlParams.has('tgWebAppData')) return urlParams.get('tgWebAppData');
-          return "";
-      },
+ methods: {
+    // --- 1. БАЗОВЫЕ МЕТОДЫ ---
+    getInitData() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return window.Telegram.WebApp.initData;
+        const hash = window.location.hash.slice(1);
+        const urlParams = new URLSearchParams(hash);
+        if (urlParams.has('tgWebAppData')) return urlParams.get('tgWebAppData');
+        return "";
+    },
 
-      apiCall(url, payload = {}) {
-          const initData = this.getInitData();
-          if (this.masterId && !payload.master_id) payload.master_id = this.masterId;
-          const body = { initData: initData, payload: payload };
-          return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-              .then(res => { if (!res.ok) throw new Error(`Server error: ${res.status}`); return res.json(); });
-      },
-      
-      markVisit(visit, status) {
-          visit.visit_status = status;
-          if (status === 'no_show') { visit.reminderSet = true; this.saveVisitSingle(visit); }
-      },
+    apiCall(url, payload = {}) {
+        const initData = this.getInitData();
+        if (this.masterId && !payload.master_id) payload.master_id = this.masterId;
+        const body = { initData: initData, payload: payload };
+        return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(res => { if (!res.ok) throw new Error(`Server error: ${res.status}`); return res.json(); });
+    },
+    
+    safeAlert(msg) { try { if (tg.showAlert) tg.showAlert(msg); else alert(msg); } catch (e) { alert(msg); } },
 
-      setReminder(visit, days) {
-          visit.next_reminder_days = days;
-          visit.reminderSet = true;
-          this.saveVisitSingle(visit);
-      },
-
-      saveVisitSingle(visit) {
-          const update = { event_id: visit.event_id, status: visit.visit_status, next_reminder_days: visit.next_reminder_days };
-          this.apiCall(URLS.SAVE_VISITS, { updates: [update] }).then(() => console.log('Saved:', visit.client_name)).catch(err => this.safeAlert('Ошибка сохранения: ' + err));
-      },
-
-      loadServices() {
-          if (!this.masterId) return Promise.resolve([]);
-          return this.apiCall(URLS.GET_SERVICES).then(data => { this.services = Array.isArray(data) ? data : []; }).catch(err => console.error('Services error:', err));
-      },
-
-      loadSosDates() {
-          if (!this.masterId) return;
-          this.apiCall(URLS.GET_SOS_DATES).then(data => {
-              let rawDates = [];
-              if (Array.isArray(data)) { if (data.length > 0) { if (data[0].dates) rawDates = data[0].dates; else if (typeof data[0] === 'string') rawDates = data; } } 
-              else if (data && data.dates) { rawDates = data.dates; } 
-              else if (typeof data === 'string') { try { const parsed = JSON.parse(data); rawDates = parsed.dates || parsed; } catch(e) {} }
-
-              const newMap = {};
-              let firstDate = null;
-              rawDates.forEach(d => {
-                  const dateStr = (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d);
-                  newMap[dateStr] = true;
-                  if (!firstDate) firstDate = dateStr;
-              });
-              this.sosMap = newMap;
-              if (firstDate) {
-                  const firstSos = new Date(firstDate);
-                  const current = this.currentDate;
-                  if (firstSos.getMonth() !== current.getMonth() || firstSos.getFullYear() !== current.getFullYear()) {
-                      this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
-                      this.fetchSlotsAvailability();
-                  }
-              }
-          }).catch(console.error);
-      },
-
-      manageService(action, service = null) {
-          let svcId = action === 'delete' ? service.service_id : this.editingId;
-          const payload = { action, service_id: svcId, ...(action !== 'delete' ? this.newService : {}) };
-          this.apiCall(URLS.MANAGE_SERVICES, payload).then(() => { this.loadServices(); this.cancelEdit(); this.safeAlert(action === 'delete' ? 'Удалено' : 'Сохранено!'); }).catch(err => this.safeAlert('Ошибка: ' + err));
-      },
-
-      fetchSlotsAvailability() {
-          if (!this.masterId) return;
-          this.slotsAvailability = {};
-          const dates = [];
-          for (let day = 1; day <= this.daysInMonth; day++) {
-              const dateStr = this.formatDateKey(day);
-              if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr);
-          }
-          if (dates.length === 0) return;
-          const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-          this.apiCall(URLS.GET_SLOTS, { dates: dates, client_id: clientId, duration: this.selectedServiceDuration }).then(data => {
-              const map = data.slots_by_date || data;
-              Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
-          }).catch(console.error);
-      },
-loadClientNextVisit() { 
+    // --- 2. ЛОГИКА ВИЗИТОВ И SOS (ВАЖНОЕ) ---
+    
+    // Загрузка визита клиента + ПРОВЕРКА СТАТУСА
+    loadClientNextVisit() { 
         if (!this.clientId) return; 
         
         console.log('1. Запрашиваю визит для:', this.clientId);
 
         this.apiCall(URLS.GET_CLIENT_VISIT, { client_id: this.clientId })
             .then(data => { 
-                console.log('2. Ответ сервера (Raw):', data); // Посмотрим, что пришло
+                console.log('2. Ответ сервера (Raw):', data);
 
                 let visit = null;
                 if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { 
@@ -1081,218 +1018,279 @@ loadClientNextVisit() {
                 if (visit) {
                     this.nextVisit = visit;
                     
-                    // ВАЖНО: Смотрим, какое значение у поля sos_status
-                    console.log('3. Визит найден. Поле sos_status =', visit.sos_status);
-
-                    // Приводим к нижнему регистру и убираем пробелы, если они есть
+                    // Проверка статуса (sent -> seen)
                     const status = visit.sos_status ? String(visit.sos_status).trim().toLowerCase() : '';
+                    console.log('3. Визит найден. Статус SOS:', status);
 
                     if (status === 'sent') {
-                        console.log('4. Условие выполнено! Начинаю отправку SEEN...');
+                        console.log('4. Условие выполнено! Отправляю SEEN...');
                         this.sendActivitySeen(visit);
-                    } else {
-                        console.log('4. Условие НЕ выполнено. Ожидалось "sent", получено:', status);
                     }
-                } else {
-                    console.log('3. Визит не найден в ответе.');
                 }
             })
             .catch(err => console.error('❌ Ошибка в loadClientNextVisit:', err)); 
     },
 
+    // Отправка статуса SEEN
     sendActivitySeen(visit) {
-        // Убедитесь, что адрес верный
         const PROD_URL = 'https://aireminder.ru/webhook/track-activity-prod';
-
         const payload = {
             user_id: this.clientId, 
             event_id: visit.event_id,
             action: 'sos_seen'
         };
 
-        console.log('5. Отправляю POST запрос на:', PROD_URL);
-        console.log('5. Payload:', payload);
-
         this.apiCall(PROD_URL, payload)
             .then(res => {
-                console.log('6. УСПЕХ! Ответ от n8n:', res);
+                console.log('✅ УСПЕХ! Статус обновлен на SEEN');
                 if (this.nextVisit) this.nextVisit.sos_status = 'seen';
             })
-            .catch(err => {
-                // Если здесь ошибка - смотрите вкладку Network в браузере!
-                console.error('❌ ОШИБКА ОТПРАВКИ (проверьте CORS):', err);
-            });
+            .catch(err => console.error('❌ ОШИБКА ОТПРАВКИ:', err));
     },
-      loadVisits() { 
-          this.isLoading = true; 
-          this.apiCall(URLS.GET_VISITS).then(data => { 
-              this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })).filter(v => v.visit_status !== 'cancelled' && v.visit_status !== 'no_show');
-          }).finally(() => this.isLoading = false); 
-      },
 
-      saveVisits() {
-          this.isSaving = true;
-          const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
-          this.apiCall(URLS.SAVE_VISITS, { updates: updates }).then(() => { this.safeAlert('✅ Сохранено!'); this.loadVisits(); }).catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
-      },
+    markVisit(visit, status) {
+        visit.visit_status = status;
+        if (status === 'no_show') { visit.reminderSet = true; this.saveVisitSingle(visit); }
+    },
 
-     sendEmergency() {
+    setReminder(visit, days) {
+        visit.next_reminder_days = days;
+        visit.reminderSet = true;
+        this.saveVisitSingle(visit);
+    },
+
+    saveVisitSingle(visit) {
+        const update = { event_id: visit.event_id, status: visit.visit_status, next_reminder_days: visit.next_reminder_days };
+        this.apiCall(URLS.SAVE_VISITS, { updates: [update] }).then(() => console.log('Saved:', visit.client_name)).catch(err => this.safeAlert('Ошибка сохранения: ' + err));
+    },
+
+    // --- 3. ЛОГИКА КАЛЕНДАРЯ И СЛОТОВ (ТО ЧТО ВЫ ПОТЕРЯЛИ) ---
+
+    fetchSlotsAvailability() {
+        if (!this.masterId) return;
+        this.slotsAvailability = {};
+        const dates = [];
+        for (let day = 1; day <= this.daysInMonth; day++) {
+            const dateStr = this.formatDateKey(day);
+            if (!this.isPastDay(day) && !this.isDayOff(day)) dates.push(dateStr);
+        }
+        if (dates.length === 0) return;
+        const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+        this.apiCall(URLS.GET_SLOTS, { dates: dates, client_id: clientId, duration: this.selectedServiceDuration }).then(data => {
+            const map = data.slots_by_date || data;
+            Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
+        }).catch(console.error);
+    },
+
+    // ВОТ ЭТОЙ ФУНКЦИИ НЕ БЫЛО - ПОЭТОМУ НЕ ОТКРЫВАЛИСЬ СЛОТЫ
+    fetchSlotsForDate(dateStr) {
+        if (!this.masterId) return;
+        this.viewStep = 'slots';
+        this.currentSlots = [];
+        this.isLoadingSlots = true;
+        const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
+        
+        this.apiCall(URLS.GET_SLOTS, { 
+            dates: [dateStr], 
+            client_id: clientId, 
+            duration: this.selectedServiceDuration 
+        })
+        .then(data => { 
+            const map = data.slots_by_date || data; 
+            this.currentSlots = map[dateStr] || map.slots || []; 
+        })
+        .catch(err => this.safeAlert('Ошибка: ' + err))
+        .finally(() => this.isLoadingSlots = false);
+    },
+
+    onDayClick(day) { 
+        const dateStr = this.formatDateKey(day); 
+        this.activeDate = new Date(this.currentYear, this.currentMonth, day); 
+        
+        if (this.isClientView) { 
+            this.fetchSlotsForDate(dateStr); // Вызов функции, которую вернули
+        } else { 
+            if (this.editMode || this.shareMode) { 
+                const idx = this.selectedDates.indexOf(dateStr); 
+                if (idx === -1) this.selectedDates.push(dateStr); 
+                else this.selectedDates.splice(idx, 1); 
+            } else { 
+                this.openDayDetails(dateStr); 
+            } 
+        } 
+    },
+
+    // --- 4. ОСТАЛЬНЫЕ МЕТОДЫ (СЕРВИСЫ, ГРАФИК, РАССЫЛКА) ---
+
+    loadServices() {
+        if (!this.masterId) return Promise.resolve([]);
+        return this.apiCall(URLS.GET_SERVICES).then(data => { this.services = Array.isArray(data) ? data : []; }).catch(err => console.error('Services error:', err));
+    },
+
+    loadSosDates() {
+        if (!this.masterId) return;
+        this.apiCall(URLS.GET_SOS_DATES).then(data => {
+            let rawDates = [];
+            if (Array.isArray(data)) { if (data.length > 0) { if (data[0].dates) rawDates = data[0].dates; else if (typeof data[0] === 'string') rawDates = data; } } 
+            else if (data && data.dates) { rawDates = data.dates; } 
+            else if (typeof data === 'string') { try { const parsed = JSON.parse(data); rawDates = parsed.dates || parsed; } catch(e) {} }
+
+            const newMap = {};
+            let firstDate = null;
+            rawDates.forEach(d => {
+                const dateStr = (typeof d === 'string' && d.includes('T')) ? d.split('T')[0] : String(d);
+                newMap[dateStr] = true;
+                if (!firstDate) firstDate = dateStr;
+            });
+            this.sosMap = newMap;
+            if (firstDate) {
+                const firstSos = new Date(firstDate);
+                const current = this.currentDate;
+                if (firstSos.getMonth() !== current.getMonth() || firstSos.getFullYear() !== current.getFullYear()) {
+                    this.currentDate = new Date(firstSos.getFullYear(), firstSos.getMonth(), 1);
+                    this.fetchSlotsAvailability();
+                }
+            }
+        }).catch(console.error);
+    },
+
+    manageService(action, service = null) {
+        let svcId = action === 'delete' ? service.service_id : this.editingId;
+        const payload = { action, service_id: svcId, ...(action !== 'delete' ? this.newService : {}) };
+        this.apiCall(URLS.MANAGE_SERVICES, payload).then(() => { this.loadServices(); this.cancelEdit(); this.safeAlert(action === 'delete' ? 'Удалено' : 'Сохранено!'); }).catch(err => this.safeAlert('Ошибка: ' + err));
+    },
+
+    loadVisits() { 
+        this.isLoading = true; 
+        this.apiCall(URLS.GET_VISITS).then(data => { 
+            this.visits = (data.visits || []).map(v => ({ ...v, visit_status: v.visit_status || 'pending' })).filter(v => v.visit_status !== 'cancelled' && v.visit_status !== 'no_show');
+        }).finally(() => this.isLoading = false); 
+    },
+
+    saveVisits() {
+        this.isSaving = true;
+        const updates = this.visits.map(v => ({ event_id: v.event_id, status: v.visit_status, next_reminder_days: v.visit_status === 'confirmed' ? v.next_reminder_days : null }));
+        this.apiCall(URLS.SAVE_VISITS, { updates: updates }).then(() => { this.safeAlert('✅ Сохранено!'); this.loadVisits(); }).catch(err => { this.safeAlert('Ошибка: ' + err); this.isSaving = false; });
+    },
+
+    sendEmergency() {
         if (this.isSaving) return;
         this.isSaving = true;
-        
-        // Отправляем запрос на вебхук broadcast-emergency-prod
         this.apiCall(URLS.EMERGENCY, { 
             dates: this.selectedDates, 
             reason: this.emergencyReason, 
             custom_text: this.emergencyCustomText 
         })
         .then(data => {
-            console.log('Emergency response:', data); // Лог для отладки
-            
             let count = 0;
-
-            // Логика определения количества отправленных сообщений
             if (data) {
-                // Вариант 1: n8n вернул объект { count: 5 }
-                if (typeof data.count === 'number') {
-                    count = data.count;
-                }
-                // Вариант 2: n8n вернул массив обновленных строк [{...}, {...}]
-                else if (Array.isArray(data)) {
-                    count = data.length;
-                }
-                // Вариант 3: n8n вернул структуру { result: [...] } или подобное
-                else if (data.result && Array.isArray(data.result)) {
-                    count = data.result.length;
-                }
-                // Вариант 4: Если пришел хоть какой-то успешный объект, считаем что минимум 1 действие сделано
-                else if (typeof data === 'object' && Object.keys(data).length > 0) {
-                    count = 1; 
-                }
+                if (typeof data.count === 'number') { count = data.count; }
+                else if (Array.isArray(data)) { count = data.length; }
+                else if (data.result && Array.isArray(data.result)) { count = data.result.length; }
+                else if (typeof data === 'object' && Object.keys(data).length > 0) { count = 1; }
             }
-
-            if (count > 0) {
-                this.safeAlert(`✅ Рассылка запущена! Обработано: ${count}`);
-            } else {
-                // Если статус 200, но count 0 — возможно, просто нет записей на эти дни
-                this.safeAlert('ℹ️ Нет записей на выбранные дни.');
-            }
-            
-            // Сброс интерфейса
-            this.selectedDates = []; 
-            this.viewStep = 'grid'; 
-            this.editMode = false;
+            if (count > 0) { this.safeAlert(`✅ Рассылка запущена! Обработано: ${count}`); } 
+            else { if (data) this.safeAlert('✅ Команда отправлена.'); else this.safeAlert('ℹ️ Нет записей.'); }
+            this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false;
         })
-        .catch((err) => { 
-            console.error('Emergency error:', err);
-            // Даже если ошибка парсинга, но запрос прошел - не пугаем "нет записей"
-            this.safeAlert('⚠️ Запрос отправлен, проверьте статус.'); 
-            this.selectedDates = []; 
-            this.viewStep = 'grid'; 
-            this.editMode = false;
-        })
+        .catch((err) => { this.safeAlert('⚠️ Запрос отправлен.'); this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false; })
         .finally(() => this.isSaving = false);
     },
 
-      // ИСПРАВЛЕННЫЙ МЕТОД ЗАГРУЗКИ АНАЛИТИКИ
-      loadAnalytics() {
-          if (!this.masterId) return;
-          this.isLoadingAnalytics = true;
-          this.apiCall(URLS.GET_ANALYTICS).then(data => { 
-              if (data) {
-                  // Если пришел массив (как в вашем примере), берем первый элемент
-                  let payload = Array.isArray(data) ? data[0] : data;
-                  if (!payload.metrics) payload.metrics = { avg_check: 0, hour_price: 0 };
-                  this.analyticsData = payload; 
-              }
-          }).finally(() => this.isLoadingAnalytics = false);
-      },
+    loadAnalytics() {
+        if (!this.masterId) return;
+        this.isLoadingAnalytics = true;
+        this.apiCall(URLS.GET_ANALYTICS).then(data => { 
+            if (data) {
+                let payload = Array.isArray(data) ? data[0] : data;
+                if (!payload.metrics) payload.metrics = { avg_check: 0, hour_price: 0 };
+                this.analyticsData = payload; 
+            }
+        }).finally(() => this.isLoadingAnalytics = false);
+    },
 
-     
+    sendSlotsToChat() { 
+        if (this.selectedDates.length === 0) return; 
+        this.apiCall(URLS.GET_SLOTS, { dates: this.selectedDates, source: 'chat' }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); 
+    },
 
-      sendSlotsToChat() { 
-          if (this.selectedDates.length === 0) return; 
-          this.apiCall(URLS.GET_SLOTS, { dates: this.selectedDates, source: 'chat' }).then(() => { this.safeAlert('Окошки отправлены в чат!'); this.selectedDates = []; this.shareMode = false; }).catch(err => this.safeAlert('Ошибка: ' + err.message)); 
-      },
+    loadSchedule() {
+        this.apiCall(URLS.GET_SCHEDULE).then(data => {
+            if (!data) return;
+            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+            if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
+            if (data.subscription) this.subscriptionInfo = data.subscription;
+            
+            const newData = {};
+            (data.schedule || []).forEach(row => {
+                if (row.work_date) {
+                    let brk = []; 
+                    try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
+                    const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
+                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
+                }
+            });
+            this.dbData = newData; 
+            this.fetchSlotsAvailability();
+        }).catch(console.error);
+    },
 
-      loadSchedule() {
-          this.apiCall(URLS.GET_SCHEDULE).then(data => {
-              if (!data) return;
-              if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-              if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
-              if (data.subscription) this.subscriptionInfo = data.subscription;
-              
-              const newData = {};
-              (data.schedule || []).forEach(row => {
-                  if (row.work_date) {
-                      let brk = []; 
-                      try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
-                      const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
-                      newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
-                  }
-              });
-              this.dbData = newData; 
-              this.fetchSlotsAvailability();
-          }).catch(console.error);
-      },
+    openDayDetails(dateStr) {
+        this.viewStep = 'day_details';
+        this.dayVisits = []; this.currentSlots = []; this.isLoadingSlots = true;
+        const p1 = this.apiCall(URLS.GET_VISITS, { date: dateStr }).then(data => {
+            this.dayVisits = data.visits || (Array.isArray(data) && data[0]?.visits ? data[0].visits : (Array.isArray(data) ? data : []));
+        }).catch(console.error);
+        const duration = this.selectedServiceDuration || this.slotDuration || 60;
+        const p2 = this.apiCall(URLS.GET_SLOTS, { dates: [dateStr], client_id: 'MASTER_VIEW', duration }).then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; }).catch(console.error);
+        Promise.all([p1, p2]).finally(() => this.isLoadingSlots = false);
+    },
 
-      openDayDetails(dateStr) {
-          this.viewStep = 'day_details';
-          this.dayVisits = []; this.currentSlots = []; this.isLoadingSlots = true;
-          const p1 = this.apiCall(URLS.GET_VISITS, { date: dateStr }).then(data => {
-              this.dayVisits = data.visits || (Array.isArray(data) && data[0]?.visits ? data[0].visits : (Array.isArray(data) ? data : []));
-          }).catch(console.error);
-          const duration = this.selectedServiceDuration || this.slotDuration || 60;
-          const p2 = this.apiCall(URLS.GET_SLOTS, { dates: [dateStr], client_id: 'MASTER_VIEW', duration }).then(data => { const map = data.slots_by_date || data; this.currentSlots = map[dateStr] || map.slots || []; }).catch(console.error);
-          Promise.all([p1, p2]).finally(() => this.isLoadingSlots = false);
-      },
+    buySubscription(plan) {
+        if (this.paymentLoading) return;
+        this.paymentLoading = true;
+        const CREATE_PAYMENT_URL = 'https://aireminder.ru/webhook/create-payment-prod';
+        this.apiCall(CREATE_PAYMENT_URL, { plan: plan }).then(data => {
+            if (data.confirmation_url) {
+                if (window.Telegram?.WebApp?.openLink) { window.Telegram.WebApp.openLink(data.confirmation_url, { try_instant_view: false }); } 
+                else { window.location.href = data.confirmation_url; }
+                this.showPaywall = false;
+                this.safeAlert('Окно оплаты открыто. После оплаты функции разблокируются автоматически.');
+            } else { this.safeAlert('Ошибка: сервер не вернул ссылку.'); }
+        }).catch(err => { console.error(err); this.safeAlert('Ошибка создания платежа. Попробуйте позже.'); }).finally(() => { this.paymentLoading = false; });
+    },
 
-      buySubscription(plan) {
-          if (this.paymentLoading) return;
-          this.paymentLoading = true;
-          const CREATE_PAYMENT_URL = 'https://aireminder.ru/webhook/create-payment-prod';
-          this.apiCall(CREATE_PAYMENT_URL, { plan: plan }).then(data => {
-              if (data.confirmation_url) {
-                  if (window.Telegram?.WebApp?.openLink) { window.Telegram.WebApp.openLink(data.confirmation_url, { try_instant_view: false }); } 
-                  else { window.location.href = data.confirmation_url; }
-                  this.showPaywall = false;
-                  this.safeAlert('Окно оплаты открыто. После оплаты функции разблокируются автоматически.');
-              } else { this.safeAlert('Ошибка: сервер не вернул ссылку.'); }
-          }).catch(err => { console.error(err); this.safeAlert('Ошибка создания платежа. Попробуйте позже.'); }).finally(() => { this.paymentLoading = false; });
-      },
-
-      formatMoney(val) { if (val === undefined || val === null) return '0'; return val.toLocaleString('ru-RU'); },
-      hasSos(day) { const key = this.formatDateKey(day); return this.sosMap[key] === true; },
-      editService(svc) { this.isEditing = true; this.editingId = svc.service_id; this.newService = { title: svc.title, duration: parseInt(svc.duration) || 60, price: svc.price }; setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100); },
-      cancelEdit() { this.isEditing = false; this.editingId = null; this.newService = { title: '', duration: 60, price: '' }; },
-      goToSmartPost() { this.viewStep = 'grid'; this.editMode = false; this.selectedDates = []; this.shareMode = true; this.safeAlert('👇 Выберите свободные дни для поста'); },
-      selectService(svc) { this.selectedServiceDuration = parseInt(svc.duration); this.selectedServiceTitle = svc.title; this.viewStep = 'grid'; this.fetchSlotsAvailability(); },
-      bookSlot(time) { if (!this.isClientView) return; const dateStr = this.activeDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' }); const text = `Здравствуйте! Хочу записаться на ${this.selectedServiceTitle || 'процедуру'}, ${dateStr} в ${time}.`; const url = `https://t.me/${this.masterUsername || 'my_remi_bot'}?text=${encodeURIComponent(text)}`; if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url); else window.location.href = url; },
-      setConfirmed(visit) { visit.visit_status = 'confirmed'; if (!visit.next_reminder_days) visit.next_reminder_days = 28; },
-      makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
-      isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
-      formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
-      changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); if (!this.isClientView && this.masterId) { this.loadSosDates(); } this.fetchSlotsAvailability(); },
-      onDayClick(day) { const dateStr = this.formatDateKey(day); this.activeDate = new Date(this.currentYear, this.currentMonth, day); if (this.isClientView) { this.fetchSlotsForDate(dateStr); } else { if (this.editMode || this.shareMode) { const idx = this.selectedDates.indexOf(dateStr); if (idx === -1) this.selectedDates.push(dateStr); else this.selectedDates.splice(idx, 1); } else { this.openDayDetails(dateStr); } } },
-      isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
-      toggleEditMode() { if (this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
-      toggleShareMode() { if (this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
-      toggleColumn(colIndex) { if ((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if (this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x !== k); else this.selectedDates.push(k); } } },
-      goToSettings() { if (this.isClientView || this.selectedDates.length === 0) return; const date = this.selectedDates[0]; const found = this.dbData[date]; const cleanTime = (t) => { if (!t || t === 'null' || t === '') return '10:00'; const s = String(t).trim(); return s.length >= 5 ? s.substring(0, 5) : s; }; if (found) { this.startTime = cleanTime(found.start); this.endTime = cleanTime(found.end); let rawBreaks = found.breaks; if (typeof rawBreaks === 'string') { try { rawBreaks = JSON.parse(rawBreaks); } catch (e) { rawBreaks = []; } } this.breaks = (Array.isArray(rawBreaks) ? rawBreaks : []).map(b => ({ start: cleanTime(b.start), end: cleanTime(b.end) })); } else { this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = []; } this.viewStep = 'settings'; },
-      goToVisits() { this.viewStep = 'confirm'; this.loadVisits(); },
-      goToAnalytics() { this.viewStep = 'analytics'; this.loadAnalytics(); },
-      isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },
-      hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
-      hasBreaks(day) { const data = this.dbData[this.formatDateKey(day)]; return data && data.breaks && data.breaks.length > 0; },
-      getWorkTimes(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data || !data.start || !data.end) return { start: '', end: '' }; return { start: data.start.slice(0, 5), end: data.end.slice(0, 5) }; },
-      safeAlert(msg) { try { if (tg.showAlert) tg.showAlert(msg); else alert(msg); } catch (e) { alert(msg); } },
-      formatTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); },
-      formatDatePretty(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); },
-      formatDateFull(date) { if (!date) return ''; return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); },
-      getDaysUntil(dateStr) { const target = new Date(dateStr); const today = new Date(); const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate()); const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const diff = Math.ceil((targetDate - todayDate) / (1000 * 60 * 60 * 24)); return diff === 0 ? "Сегодня" : diff === 1 ? "Завтра" : `через ${diff} дн.`; },
-      addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
-      removeBreak(index) { this.breaks.splice(index, 1); }
-  }
+    // --- 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (КОТОРЫЕ ВЫ ПОТЕРЯЛИ) ---
+    formatMoney(val) { if (val === undefined || val === null) return '0'; return val.toLocaleString('ru-RU'); },
+    hasSos(day) { const key = this.formatDateKey(day); return this.sosMap[key] === true; },
+    editService(svc) { this.isEditing = true; this.editingId = svc.service_id; this.newService = { title: svc.title, duration: parseInt(svc.duration) || 60, price: svc.price }; setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100); },
+    cancelEdit() { this.isEditing = false; this.editingId = null; this.newService = { title: '', duration: 60, price: '' }; },
+    goToSmartPost() { this.viewStep = 'grid'; this.editMode = false; this.selectedDates = []; this.shareMode = true; this.safeAlert('👇 Выберите свободные дни для поста'); },
+    selectService(svc) { this.selectedServiceDuration = parseInt(svc.duration); this.selectedServiceTitle = svc.title; this.viewStep = 'grid'; this.fetchSlotsAvailability(); },
+    bookSlot(time) { if (!this.isClientView) return; const dateStr = this.activeDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' }); const text = `Здравствуйте! Хочу записаться на ${this.selectedServiceTitle || 'процедуру'}, ${dateStr} в ${time}.`; const url = `https://t.me/${this.masterUsername || 'my_remi_bot'}?text=${encodeURIComponent(text)}`; if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url); else window.location.href = url; },
+    setConfirmed(visit) { visit.visit_status = 'confirmed'; if (!visit.next_reminder_days) visit.next_reminder_days = 28; },
+    makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
+    isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
+    formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
+    changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); if (!this.isClientView && this.masterId) { this.loadSosDates(); } this.fetchSlotsAvailability(); },
+    isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },
+    toggleEditMode() { if (this.isClientView) return; this.editMode = !this.editMode; this.shareMode = false; this.selectedDates = []; },
+    toggleShareMode() { if (this.isClientView) return; this.shareMode = !this.shareMode; this.editMode = false; this.selectedDates = []; },
+    toggleColumn(colIndex) { if ((!this.editMode && !this.shareMode) || this.isClientView) return; for (let d = 1; d <= this.daysInMonth; d++) { let date = new Date(this.currentYear, this.currentMonth, d); let jsDay = date.getDay(); let myDay = jsDay === 0 ? 6 : jsDay - 1; if (myDay === colIndex) { const k = this.formatDateKey(d); if (this.selectedDates.includes(k)) this.selectedDates = this.selectedDates.filter(x => x !== k); else this.selectedDates.push(k); } } },
+    goToSettings() { if (this.isClientView || this.selectedDates.length === 0) return; const date = this.selectedDates[0]; const found = this.dbData[date]; const cleanTime = (t) => { if (!t || t === 'null' || t === '') return '10:00'; const s = String(t).trim(); return s.length >= 5 ? s.substring(0, 5) : s; }; if (found) { this.startTime = cleanTime(found.start); this.endTime = cleanTime(found.end); let rawBreaks = found.breaks; if (typeof rawBreaks === 'string') { try { rawBreaks = JSON.parse(rawBreaks); } catch (e) { rawBreaks = []; } } this.breaks = (Array.isArray(rawBreaks) ? rawBreaks : []).map(b => ({ start: cleanTime(b.start), end: cleanTime(b.end) })); } else { this.startTime = '10:00'; this.endTime = '20:00'; this.breaks = []; } this.viewStep = 'settings'; },
+    goToVisits() { this.viewStep = 'confirm'; this.loadVisits(); },
+    goToAnalytics() { this.viewStep = 'analytics'; this.loadAnalytics(); },
+    isPastDay(day) { const k = this.formatDateKey(day); const t = new Date(); const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; return k < today; },
+    hasAvailableSlots(day) { return this.slotsAvailability[this.formatDateKey(day)] === true; },
+    hasBreaks(day) { const data = this.dbData[this.formatDateKey(day)]; return data && data.breaks && data.breaks.length > 0; },
+    getWorkTimes(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data || !data.start || !data.end) return { start: '', end: '' }; return { start: data.start.slice(0, 5), end: data.end.slice(0, 5) }; },
+    formatTime(iso) { if (!iso) return ''; return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); },
+    formatDatePretty(iso) { if (!iso) return ''; return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }); },
+    formatDateFull(date) { if (!date) return ''; return date.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); },
+    getDaysUntil(dateStr) { const target = new Date(dateStr); const today = new Date(); const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate()); const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const diff = Math.ceil((targetDate - todayDate) / (1000 * 60 * 60 * 24)); return diff === 0 ? "Сегодня" : diff === 1 ? "Завтра" : `через ${diff} дн.`; },
+    addBreak() { this.breaks.push({ start: '13:00', end: '14:00' }); },
+    removeBreak(index) { this.breaks.splice(index, 1); }
+}
   }).mount('#app');
 </script>
 </body>

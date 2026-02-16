@@ -1061,16 +1061,16 @@
               Object.keys(map).forEach(key => { if (Array.isArray(map[key]) && map[key].length > 0) this.slotsAvailability[key] = true; });
           }).catch(console.error);
       },
-
-       // 1. Загрузка визита и проверка статуса
-    loadClientNextVisit() { 
+loadClientNextVisit() { 
         if (!this.clientId) return; 
         
+        console.log('1. Запрашиваю визит для:', this.clientId);
+
         this.apiCall(URLS.GET_CLIENT_VISIT, { client_id: this.clientId })
             .then(data => { 
+                console.log('2. Ответ сервера (Raw):', data); // Посмотрим, что пришло
+
                 let visit = null;
-                
-                // Обработка ответа (массив или объект)
                 if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { 
                     visit = data[0]; 
                 } 
@@ -1080,70 +1080,49 @@
 
                 if (visit) {
                     this.nextVisit = visit;
+                    
+                    // ВАЖНО: Смотрим, какое значение у поля sos_status
+                    console.log('3. Визит найден. Поле sos_status =', visit.sos_status);
 
-                    // Логика: Если статус "sent", значит клиент открыл приложение и увидел SOS.
-                    // Нужно срочно сообщить базе данных, что статус теперь "seen".
-                    if (visit.sos_status === 'sent') {
-                        console.log('⚡ Обнаружен статус SENT. Отправляю запрос на SEEN...');
+                    // Приводим к нижнему регистру и убираем пробелы, если они есть
+                    const status = visit.sos_status ? String(visit.sos_status).trim().toLowerCase() : '';
+
+                    if (status === 'sent') {
+                        console.log('4. Условие выполнено! Начинаю отправку SEEN...');
                         this.sendActivitySeen(visit);
+                    } else {
+                        console.log('4. Условие НЕ выполнено. Ожидалось "sent", получено:', status);
                     }
+                } else {
+                    console.log('3. Визит не найден в ответе.');
                 }
             })
-            .catch(err => console.error('Ошибка загрузки визита:', err)); 
+            .catch(err => console.error('❌ Ошибка в loadClientNextVisit:', err)); 
     },
 
-    // 2. Отправка статуса SEEN на PROD вебхук
     sendActivitySeen(visit) {
-        // URL, который вы указали
+        // Убедитесь, что адрес верный
         const PROD_URL = 'https://aireminder.ru/webhook/track-activity-prod';
 
-        // Данные для n8n. 
-        // В вашем n8n фильтр ищет по {{ $json.body.user_id }}, поэтому поле user_id обязательно.
         const payload = {
             user_id: this.clientId, 
             event_id: visit.event_id,
             action: 'sos_seen'
         };
 
+        console.log('5. Отправляю POST запрос на:', PROD_URL);
+        console.log('5. Payload:', payload);
+
         this.apiCall(PROD_URL, payload)
-            .then(() => {
-                console.log('✅ Статус успешно обновлен на SEEN');
-                // Меняем статус локально, чтобы интерфейс знал, что мы уже все сделали
+            .then(res => {
+                console.log('6. УСПЕХ! Ответ от n8n:', res);
                 if (this.nextVisit) this.nextVisit.sos_status = 'seen';
             })
             .catch(err => {
-                console.error('❌ Ошибка при смене статуса:', err);
+                // Если здесь ошибка - смотрите вкладку Network в браузере!
+                console.error('❌ ОШИБКА ОТПРАВКИ (проверьте CORS):', err);
             });
     },
-      fetchSlotsForDate(dateStr) {
-          if (!this.masterId) return;
-          this.viewStep = 'slots';
-          this.currentSlots = [];
-          this.isLoadingSlots = true;
-          const clientId = this.isClientView ? (this.clientId || 'TEST_CLIENT') : null;
-          this.apiCall(URLS.GET_SLOTS, { dates: [dateStr], client_id: clientId, duration: this.selectedServiceDuration }).then(data => { 
-              const map = data.slots_by_date || data; 
-              this.currentSlots = map[dateStr] || map.slots || []; 
-          }).catch(err => this.safeAlert('Ошибка: ' + err)).finally(() => this.isLoadingSlots = false);
-      },
-
-      saveSchedule(force = false) {
-          if (this.isSaving) return;
-          this.isSaving = true;
-          const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
-          const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
-          this.apiCall(URLS.SAVE_SCHEDULE, { dates: this.selectedDates, start: startToSend, end: endToSend, breaks: this.breaks, slot_duration: this.slotDuration, force: force }).then(data => {
-              if (data.status === 'conflict') { this.conflictList = data.conflicts || []; this.showConflictModal = true; this.isSaving = false; return; }
-              this.safeAlert('✅ Сохранено!');
-              this.selectedDates.forEach(date => { this.dbData[date] = { start: startToSend, end: endToSend, breaks: JSON.parse(JSON.stringify(this.breaks)) }; });
-              this.selectedDates = [];
-              this.viewStep = 'grid';
-              this.editMode = false;
-              this.showConflictModal = false;
-              this.fetchSlotsAvailability();
-          }).catch(err => this.safeAlert('Ошибка: ' + err.message)).finally(() => this.isSaving = false);
-      },
-
       loadVisits() { 
           this.isLoading = true; 
           this.apiCall(URLS.GET_VISITS).then(data => { 

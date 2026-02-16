@@ -1062,6 +1062,59 @@
           }).catch(console.error);
       },
 
+       // 1. Метод загрузки визита (проверяет, нужно ли менять статус)
+    loadClientNextVisit() { 
+        if (!this.clientId) return; 
+        
+        this.apiCall(URLS.GET_CLIENT_VISIT, { client_id: this.clientId })
+            .then(data => { 
+                let visit = null;
+                // Обработка ответа (массив или объект)
+                if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { 
+                    visit = data[0]; 
+                } 
+                else if (data && typeof data === 'object' && data.found === true) { 
+                    visit = data; 
+                } 
+
+                if (visit) {
+                    this.nextVisit = visit;
+
+                    // Если статус "sent" (отправлено), значит клиент только что открыл приложение
+                    // и увидел сообщение. Отправляем сигнал в n8n.
+                    if (visit.sos_status === 'sent') {
+                        this.sendActivitySeen(visit);
+                    }
+                }
+            })
+            .catch(console.error); 
+    },
+
+    // 2. Метод отправки статуса SEEN (Адаптирован под ваш n8n)
+    sendActivitySeen(visit) {
+        // Используем базовый URL + путь из вашего вебхука
+        // Если вы тестируете через webhook-test, замените API_BASE вручную или активируйте воркфлоу
+        const URL = `${API_BASE}/track-activity-prod`;
+
+        // ВАЖНО: Ваш n8n фильтрует по {{ $json.body.user_id }}
+        // Поэтому мы передаем user_id равным this.clientId
+        const payload = {
+            user_id: this.clientId,  // <--- Ключевое исправление для фильтра n8n
+            event_id: visit.event_id,
+            action: 'sos_seen'
+        };
+
+        console.log('Sending SEEN status...', payload);
+
+        this.apiCall(URL, payload)
+            .then(() => {
+                console.log('✅ Status updated to SEEN');
+                // Обновляем статус локально, чтобы не отправлять запрос повторно при перерисовке
+                if (this.nextVisit) this.nextVisit.sos_status = 'seen';
+            })
+            .catch(err => console.error('❌ Error tracking activity:', err));
+    },
+
       fetchSlotsForDate(dateStr) {
           if (!this.masterId) return;
           this.viewStep = 'slots';

@@ -1208,13 +1208,7 @@ loadClientNextVisit() {
           }).finally(() => this.isLoadingAnalytics = false);
       },
 
-      loadClientNextVisit() { 
-          if (!this.clientId) return; 
-          this.apiCall(URLS.GET_CLIENT_VISIT, { client_id: this.clientId }).then(data => { 
-              if (Array.isArray(data) && data.length > 0 && data[0].found !== false) { this.nextVisit = data[0]; } 
-              else if (data && typeof data === 'object' && data.found === true) { this.nextVisit = data; } 
-          }).catch(console.error); 
-      },
+     
 
       sendSlotsToChat() { 
           if (this.selectedDates.length === 0) return; 

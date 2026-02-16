@@ -67,22 +67,26 @@
 
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
 
+        /* --- ОБНОВЛЕННЫЕ КНОПКИ (FIX JUMPING) --- */
         .btn, .btn-secondary, .btn-danger, .btn-warning {
-    width: 100%;
-    height: 40px; /* <-- Еще меньше (было 54 -> 44 -> 40) */
-    padding: 0 4px;
-    border: none;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    box-sizing: border-box;
-    line-height: 1;
-    transition: all 0.2s;
-}
+            width: 100%;
+            height: 54px; /* Фиксированная высота */
+            padding: 0 8px;
+            border: none;
+            border-radius: var(--radius);
+            
+            /* Центрирование */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-sizing: border-box;
+            line-height: 1.1;
+            transition: all 0.2s;
+        }
 
         .btn {
             background: var(--primary-grad);
@@ -563,64 +567,58 @@
 
             
             
-          <div class="cal-grid">
-    <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
-    <div v-for="n in firstDayOffset" :key="'e'+n"></div>
-    <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
-        <span class="day-num">{{ date }}</span>
-        <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date) && !hasSos(date)" class="coffee-icon">☕</span>
-        <!-- Иконка SOS -->
-       <span v-if="hasSos(date)" style="position: absolute; top: 2px; right: 2px; font-size: 16px; line-height: 1; z-index: 10;">
-🆘
+            <div class="cal-grid">
+                <div v-for="(d, index) in weekDays" :key="d" class="cal-head" @click="toggleColumn(index)" :style="{ opacity: (editMode && !isClientView) ? 1 : 0.5 }">{{ d }}</div>
+                <div v-for="n in firstDayOffset" :key="'e'+n"></div>
+                <div v-for="date in daysInMonth" :key="date" class="day-cell" :class="{ 'is-selected': isSelected(date), 'is-past': isPastDay(date) && !isSelected(date), 'is-off': isDayOff(date) && !isSelected(date) && !isPastDay(date), 'has-slots': !editMode && hasAvailableSlots(date) && !isSelected(date) && !isPastDay(date) && !isDayOff(date) }" @click="onDayClick(date)">
+                    <span class="day-num">{{ date }}</span>
+                    <span v-if="hasBreaks(date) && !isPastDay(date) && !isDayOff(date) && !hasSos(date)" class="coffee-icon">☕</span>
+                    <!-- Иконка SOS -->
+                   <span v-if="hasSos(date)" style="position: absolute; top: 2px; right: 2px; font-size: 16px; line-height: 1; z-index: 10;">
+    🆘
 </span>
-        <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
-    </div>
-</div>
+                    <div v-if="!isDayOff(date) && (!isPastDay(date) || isSelected(date))" class="day-times-col"><span class="time-txt">{{ getWorkTimes(date).start }}</span><span class="time-txt">{{ getWorkTimes(date).end }}</span></div>
+                </div>
+            </div>
 
-<!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ С АНАЛИТИКОЙ -->
-<div class="bottom-panel">
-    <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
-    
-    <div v-else-if="editMode" class="panel-actions">
-        <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
-            ⚙️ График <span v-if="selectedDates.length > 0">&nbsp;({{ selectedDates.length }})</span>
-        </button>
-        <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0">
-            🆘
-        </button>
-        <button class="btn btn-secondary" @click="toggleEditMode">
-            ✖
-        </button>
-    </div>
-    
-    <div v-else-if="shareMode" class="panel-actions">
-        <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
-            🚀 Отправить ({{ selectedDates.length }})
-        </button>
-        <button class="btn btn-secondary" @click="toggleShareMode">
-            Отмена
-        </button>
-    </div>
-    
-   <div v-else class="bottom-panel" style="padding: 10px 16px 20px 16px; gap: 6px;">
-                    
-                    <!-- Сетка 2x2 для основных кнопок -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
-                        <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
-                        <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
-                        <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
-                            📊 Отчет
-                        </button>
-                    </div>
-
-                    <!-- Подписка (отдельно) -->
-                    <button class="btn btn-secondary" style="background: #FFF7ED; color: #EA580C; border-color: #FFEDD5;" @click="showPaywall = true">
-                        💎 Подписка
+            <!-- ОБНОВЛЕННАЯ ПАНЕЛЬ ДЕЙСТВИЙ С АНАЛИТИКОЙ -->
+            <div class="bottom-panel">
+                <div v-if="isClientView" style="width:100%; text-align:center; font-size:13px; color:var(--text-muted); font-weight:600;">👆 Выберите дату для записи</div>
+                
+                <div v-else-if="editMode" class="panel-actions">
+                    <button class="btn" @click="goToSettings" :disabled="selectedDates.length === 0">
+                        ⚙️ График <span v-if="selectedDates.length > 0">&nbsp;({{ selectedDates.length }})</span>
+                    </button>
+                    <button class="btn btn-warning" @click="viewStep = 'emergency'" :disabled="selectedDates.length === 0">
+                        🆘
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleEditMode">
+                        ✖
                     </button>
                 </div>
-</div>
-
+                
+                <div v-else-if="shareMode" class="panel-actions">
+                    <button class="btn" @click="sendSlotsToChat" :disabled="selectedDates.length === 0">
+                        🚀 Отправить ({{ selectedDates.length }})
+                    </button>
+                    <button class="btn btn-secondary" @click="toggleShareMode">
+                        Отмена
+                    </button>
+                </div>
+                
+                <div v-else class="panel-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <!-- Верхний ряд -->
+                    <button class="btn btn-secondary" @click="toggleEditMode">✏️ График</button>
+                    <button class="btn btn-secondary" @click="viewStep = 'services'">📝 Услуги</button>
+                    
+                    <!-- Нижний ряд -->
+                    <button class="btn btn-secondary" @click="toggleShareMode">📢 Пост</button>
+                    <button class="btn btn-secondary" style="background: #F0FDF4; color: #059669; border-color: #BBF7D0;" @click="goToAnalytics">
+                        📊 Отчет
+                    </button>
+                </div>
+            </div>
+        </div>
 
        <!-- ДЕТАЛИ ДНЯ (Deep Dive) -->
         <div v-if="viewStep === 'day_details'">
@@ -727,62 +725,63 @@
             <div class="bottom-panel" v-if="visits.length > 0"><button class="btn" @click="saveVisits" :disabled="isSaving">Сохранить изменения</button></div>
         </div>
 
-     <div v-if="viewStep === 'analytics'">
-    <h2 style="margin-bottom: 20px;">Мой доход: {{ currentMonthName }}</h2>
-    
-    <div v-if="isLoadingAnalytics" style="text-align:center; margin-top:50px; color:#999;">
-        Считаем деньги... ⏳
-    </div>
+       <!-- 4.5. АНАЛИТИКА (ФИНАЛ) -->
+        <div v-if="viewStep === 'analytics'">
+            <h2 style="margin-bottom: 20px;">Мой доход: {{ currentMonthName }}</h2>
+            
+            <div v-if="isLoadingAnalytics" style="text-align:center; margin-top:50px; color:#999;">
+                Считаем деньги... ⏳
+            </div>
 
-    <div v-else>
-        <!-- 1. В КАРМАНЕ (Зеленая) -->
-        <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(135deg, #10B981, #059669); border: none; color: white; margin-bottom: 12px; padding: 20px;">
-            <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">✅ Заработано</div>
-            <div style="font-size: 36px; font-weight: 800; line-height: 1;">{{ formatMoney(analyticsData.revenue_fact) }} ₽</div>
-            <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">
-                {{ analyticsData.visits_fact }} визитов (завершено)
+            <div v-else>
+                <!-- 1. В КАРМАНЕ (Зеленая) -->
+                <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(135deg, #10B981, #059669); border: none; color: white; margin-bottom: 12px; padding: 20px;">
+                    <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">✅ Заработано</div>
+                    <div style="font-size: 36px; font-weight: 800; line-height: 1;">{{ formatMoney(analyticsData.revenue_fact) }} ₽</div>
+                    <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">
+                        {{ analyticsData.visits_fact }} визитов (завершено)
+                    </div>
+                </div>
+
+                <!-- 2. ДОФАМИН (Золотая) -->
+                <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(135deg, #F59E0B, #D97706); border: none; color: white; margin-bottom: 12px; padding: 20px;">
+                    <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">🔜 Будущие записи</div>
+                    <div style="font-size: 36px; font-weight: 800; line-height: 1;">+ {{ formatMoney(analyticsData.revenue_forecast) }} ₽</div>
+                    <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">
+                        {{ analyticsData.visits_forecast }} клиентов записано
+                    </div>
+                </div>
+
+                <!-- 3. ПОТЕНЦИАЛ (КЛИКАБЕЛЬНАЯ) -->
+                <div class="upcoming-visit-card" @click="goToSmartPost" style="flex-direction: column; align-items: flex-start; gap: 5px; background: white; border: 2px dashed #F97316; color: #EA580C; margin-bottom: 25px; padding: 20px; cursor: pointer; transition: transform 0.1s;">
+                    <div style="display:flex; justify-content:space-between; width:100%;">
+                        <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">🔥 Свободные окна</div>
+                        <div style="font-size: 16px;">📢</div>
+                    </div>
+                    <div style="font-size: 36px; font-weight: 800; line-height: 1;">+ {{ formatMoney(analyticsData.revenue_potential) }} ₽</div>
+                    <div style="font-size: 12px; font-weight: 700; margin-top: 5px; text-decoration: underline;">
+                        Нажмите, чтобы заполнить окна
+                    </div>
+                </div>
+
+                <!-- МЕТРИКИ -->
+                <h3 style="margin-bottom: 12px;">Эффективность</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; background: #F3F4F6;">
+                        <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">{{ formatMoney(analyticsData.metrics?.avg_check) }} ₽</div>
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Средний чек</div>
+                    </div>
+                    <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; background: #F3F4F6;">
+                        <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">{{ formatMoney(analyticsData.metrics?.hour_price) }} ₽</div>
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Цена часа</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-panel">
+                <button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button>
             </div>
         </div>
-
-        <!-- 2. ДОФАМИН (Золотая) -->
-        <div class="upcoming-visit-card" style="flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(135deg, #F59E0B, #D97706); border: none; color: white; margin-bottom: 12px; padding: 20px;">
-            <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">🔜 Будущие записи</div>
-            <div style="font-size: 36px; font-weight: 800; line-height: 1;">+ {{ formatMoney(analyticsData.revenue_forecast) }} ₽</div>
-            <div style="font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 5px;">
-                {{ analyticsData.visits_forecast }} клиентов записано
-            </div>
-        </div>
-
-        <!-- 3. ПОТЕНЦИАЛ (КЛИКАБЕЛЬНАЯ) -->
-        <div class="upcoming-visit-card" @click="goToSmartPost" style="flex-direction: column; align-items: flex-start; gap: 5px; background: white; border: 2px dashed #F97316; color: #EA580C; margin-bottom: 25px; padding: 20px; cursor: pointer; transition: transform 0.1s;">
-            <div style="display:flex; justify-content:space-between; width:100%;">
-                <div style="font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase;">🔥 Свободные окна</div>
-                <div style="font-size: 16px;">📢</div>
-            </div>
-            <div style="font-size: 36px; font-weight: 800; line-height: 1;">+ {{ formatMoney(analyticsData.revenue_potential) }} ₽</div>
-            <div style="font-size: 12px; font-weight: 700; margin-top: 5px; text-decoration: underline;">
-                Нажмите, чтобы заполнить окна
-            </div>
-        </div>
-
-        <!-- МЕТРИКИ -->
-        <h3 style="margin-bottom: 12px;">Эффективность</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-            <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; background: #F3F4F6;">
-                <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">{{ formatMoney(analyticsData.metrics?.avg_check) }} ₽</div>
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Средний чек</div>
-            </div>
-            <div class="service-card" style="flex-direction: column; align-items: flex-start; gap: 5px; margin: 0; background: #F3F4F6;">
-                <div style="font-size: 22px; font-weight: 800; color: var(--text-main);">{{ formatMoney(analyticsData.metrics?.hour_price) }} ₽</div>
-                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted);">Цена часа</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="bottom-panel">
-        <button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button>
-    </div>
-</div>
         <!-- 5. МОДАЛКИ -->
         <div v-if="viewStep === 'emergency'" class="modal">
             <h2>🆘 Форс-мажор</h2>
@@ -869,60 +868,6 @@
             </div>
         </div>
 
-        <!-- МОДАЛКА ОПЛАТЫ (PAYWALL) -->
-        <div v-if="showPaywall" class="modal" style="z-index: 400; background: #FFF9F5;">
-            <div style="text-align: center; margin-top: 20px;">
-                <div style="font-size: 48px; margin-bottom: 10px;">💎</div>
-                <h2 style="margin-bottom: 10px;">Remi Premium</h2>
-                <p style="color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 30px;">
-                    Автоматические рассылки, умная аналитика и защита от неявок.
-                </p>
-            </div>
-
-            <!-- Тарифы -->
-            <div @click="buySubscription('month')" class="service-card" style="border: 2px solid #FF9478; background: white;">
-                <div>
-                    <div class="svc-title">1 Месяц</div>
-                    <div class="svc-meta">Полный доступ ко всем функциям</div>
-                </div>
-                <div class="svc-price">490 ₽</div>
-            </div>
-
-            <div @click="buySubscription('year')" class="service-card" style="border: 1px solid #E5E7EB; opacity: 0.8;">
-                <div>
-                    <div class="svc-title">1 Год</div>
-                    <div class="svc-meta">Выгода 20% (340 ₽/мес)</div>
-                </div>
-                <div class="svc-price">4900 ₽</div>
-            </div>
-
-            <div v-if="paymentLoading" style="text-align: center; margin-top: 20px; color: #FF9478; font-weight: 700;">
-                ⏳ Создаем ссылку на оплату...
-            </div>
-
-            <!-- ИНФО О ПОДПИСКЕ -->
-            <div v-if="subStatusDisplay" style="margin-top: 25px; background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <span style="font-size: 12px; font-weight: 700; color: #9CA3AF; text-transform: uppercase;">Текущий статус</span>
-                    <span v-if="subStatusDisplay.days > 0" style="font-size: 11px; background: #ECFDF5; color: #059669; padding: 2px 8px; border-radius: 10px; font-weight: 700;">
-                        Осталось дней: {{ subStatusDisplay.days }}
-                    </span>
-                </div>
-                
-                <div style="font-size: 15px; font-weight: 800;" :style="{ color: subStatusDisplay.color }">
-                    {{ subStatusDisplay.text }}
-                </div>
-                
-                <div v-if="subStatusDisplay.days === 0" style="font-size: 13px; color: #6B7280; margin-top: 5px;">
-                    Функции рассылки и аналитики заблокированы.
-                </div>
-            </div>
-
-            <div class="bottom-panel">
-                <button class="btn btn-secondary" @click="showPaywall = false">Закрыть</button>
-            </div>
-        </div>
-
     </div>
 
   <script>
@@ -977,102 +922,56 @@
                 startTime: '10:00', endTime: '20:00', slotDuration: 60, breaks: [],
                 dbData: {}, slotsAvailability: {}, timeOptions: TIMES_LIST, nextVisit: null,
                 emergencyReason: 'sick', emergencyCustomText: '',
-                subscriptionInfo: null,
                 masterUsername: null,
                 showConflictModal: false,
                 conflictList: [],
                 conflictType: '',
                 dayVisits: [], 
                 sosMap: {}, // Используем словарь для быстрого поиска
-                // Внутри data()
-analyticsData: { 
-    revenue_fact: 0, 
-    revenue_forecast: 0, 
-    revenue_potential: 0, 
-    visits_fact: 0, 
-    visits_forecast: 0, 
-    // ВАЖНО: metrics должен быть объявлен сразу
-    metrics: { avg_check: 0, hour_price: 0 } 
-},
-isLoadingAnalytics: false,
-                isLoadingAnalytics: false,
-                showPaywall: false,    // Показать ли окно оплаты
-                paymentLoading: false, // Крутилка загрузки
+                analyticsData: { 
+                    revenue_fact: 0, revenue_forecast: 0, revenue_potential: 0, 
+                    visits_fact: 0, visits_forecast: 0, 
+                    metrics: { avg_check: 0, hour_price: 0 } 
+                },
+                isLoadingAnalytics: false
             }
         },
-       computed: {
-    currentYear() { return this.currentDate.getFullYear(); },
-    currentMonth() { return this.currentDate.getMonth(); },
-    currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
-    daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
-    firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
-    upcomingVisits() {
-        if (!this.visits) return [];
-        const now = new Date();
-        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
+        computed: {
+            currentYear() { return this.currentDate.getFullYear(); },
+            currentMonth() { return this.currentDate.getMonth(); },
+            currentMonthName() { return this.currentDate.toLocaleString('ru', { month: 'long', year: 'numeric' }).replace(' г.', ''); },
+            daysInMonth() { return new Date(this.currentYear, this.currentMonth + 1, 0).getDate(); },
+            firstDayOffset() { let day = new Date(this.currentYear, this.currentMonth, 1).getDay(); return day === 0 ? 6 : day - 1; },
+          upcomingVisits() {
+    if (!this.visits) return [];
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 часа
 
-        return this.visits.filter(v => {
-            if (!v.appointment_time) return false;
-            const vDate = new Date(v.appointment_time);
-            
-            // 1. Фильтр по времени (сегодня/завтра)
-            // (Если ты отключал его для тестов — можешь убрать эту строку)
-            const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
+    return this.visits.filter(v => {
+        if (!v.appointment_time) return false;
+        const vDate = new Date(v.appointment_time);
+        
+        // 1. Фильтр по времени (сегодня/завтра)
+        // (Если ты отключал его для тестов — можешь убрать эту строку)
+        const isFresh = vDate > new Date(now.getTime() - 2 * 60 * 60 * 1000) && vDate < tomorrow;
 
-            // 2. Логика показа
-            // Показываем, если:
-            // А) Статус "Ожидает" (pending)
-            // Б) Статус "Подтвержден", НО в базе нет даты напоминания (retention_date)
-            
-            const isPending = v.visit_status === 'pending';
-            
-            const isConfirmedButNoReminder = v.visit_status === 'confirmed' 
-                                             && !v.reminderSet       // Локально не нажали только что
-                                             && !v.retention_date;   // В базе пусто
+        // 2. Логика показа
+        // Показываем, если:
+        // А) Статус "Ожидает" (pending)
+        // Б) Статус "Подтвержден", НО в базе нет даты напоминания (retention_date)
+        
+        const isPending = v.visit_status === 'pending';
+        
+        const isConfirmedButNoReminder = v.visit_status === 'confirmed' 
+                                         && !v.reminderSet       // Локально не нажали только что
+                                         && !v.retention_date;   // В базе пусто
 
-            // Если ты убрал isFresh для тестов, оставь только (isPending || isConfirmedButNoReminder)
-            return isFresh && (isPending || isConfirmedButNoReminder);
-            
-        }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
-    },
-    
-    // Красивый статус для Пэйволла
-    subStatusDisplay() {
-        if (!this.subscriptionInfo) return null;
+        // Если ты убрал isFresh для тестов, оставь только (isPending || isConfirmedButNoReminder)
+        return isFresh && (isPending || isConfirmedButNoReminder);
         
-        const s = this.subscriptionInfo;
-        const now = new Date();
-        
-        // Парсим даты
-        const trialDate = s.trial_ends_at ? new Date(s.trial_ends_at) : null;
-        const paidDate = s.paid_until ? new Date(s.paid_until) : null;
-        
-        let endDate = null;
-        let type = '';
-        
-        // Определяем, какая дата актуальна
-        if (paidDate && paidDate > now) {
-            endDate = paidDate;
-            type = 'Подписка активна';
-        } else if (trialDate && trialDate > now) {
-            endDate = trialDate;
-            type = 'Пробный период';
-        } else {
-            return { text: 'Срок действия истек', color: '#EF4444', days: 0 };
-        }
-        
-        // Считаем разницу в днях
-        const diffTime = Math.abs(endDate - now);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        return {
-            text: `${type} до ${endDate.toLocaleDateString('ru-RU')}`,
-            days: diffDays,
-            color: '#10B981' // Зеленый
-        };
-    },
+    }).sort((a, b) => new Date(a.appointment_time) - new Date(b.appointment_time));
 },
-
+        },
         mounted() {
             console.log('🚀 App Mounted');
             try {
@@ -1087,11 +986,6 @@ isLoadingAnalytics: false,
                 const webApp = window.Telegram?.WebApp;
                 const startParam = webApp?.initDataUnsafe?.start_param;
                 
-                // Если пришли по кнопке "Оплатить" из чата
-                if (startParam === 'payment') {
-                    this.showPaywall = true;
-                }
-
                 if (webApp?.initDataUnsafe?.user?.id) this.clientId = webApp.initDataUnsafe.user.id;
                 else if (urlParams.get('client_id')) this.clientId = urlParams.get('client_id');
 
@@ -1423,23 +1317,13 @@ saveVisitSingle(visit) {
         .finally(() => this.isSaving = false);
     },
 
-  loadAnalytics() {
-    if (!this.masterId) return;
-    this.isLoadingAnalytics = true;
-    
-    this.apiCall(URLS.GET_ANALYTICS)
-        .then(data => { 
-            if (data) {
-                // Если с сервера пришел объект без metrics, подставим заглушку, чтобы не было ошибок
-                if (!data.metrics) {
-                    data.metrics = { avg_check: 0, hour_price: 0 };
-                }
-                // Просто присваиваем данные, как в файле 7
-                this.analyticsData = data; 
-            }
-        })
-        .finally(() => this.isLoadingAnalytics = false);
-},
+    loadAnalytics() {
+        if (!this.masterId) return;
+        this.isLoadingAnalytics = true;
+        this.apiCall(URLS.GET_ANALYTICS)
+            .then(data => { if (data) this.analyticsData = data; })
+            .finally(() => this.isLoadingAnalytics = false);
+    },
 
     loadClientNextVisit() { 
         if (!this.clientId) return; 
@@ -1459,33 +1343,29 @@ saveVisitSingle(visit) {
     },
 
 loadSchedule() {
-    // ИСПРАВЛЕНО: Используем GET_SCHEDULE для получения данных
-    this.apiCall(URLS.GET_SCHEDULE)
-        .then(data => {
-            // Если n8n вернул ошибку или пустоту
-            if (!data) return;
+        // ИСПРАВЛЕНО: Используем GET_SCHEDULE для получения данных
+        this.apiCall(URLS.GET_SCHEDULE)
+            .then(data => {
+                // Если n8n вернул ошибку или пустоту
+                if (!data) return;
 
-            if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
-            if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
-            
-            // ДОБАВЛЕНО: сохранение данных подписки
-            if (data.subscription) this.subscriptionInfo = data.subscription;
-            
-            const newData = {};
-            (data.schedule || []).forEach(row => {
-                if (row.work_date) {
-                    let brk = []; 
-                    try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
-                    // Обработка даты (обрезаем время, если есть T)
-                    const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
-                    newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
-                }
-            });
-            this.dbData = newData; 
-            this.fetchSlotsAvailability();
-        }).catch(console.error);
-},
-
+                if (data.settings?.slot_duration) this.slotDuration = parseInt(data.settings.slot_duration);
+                if (data.settings?.master_username) this.masterUsername = data.settings.master_username;
+                
+                const newData = {};
+                (data.schedule || []).forEach(row => {
+                    if (row.work_date) {
+                        let brk = []; 
+                        try { brk = typeof row.breaks === 'string' ? JSON.parse(row.breaks) : (row.breaks || []); } catch (e) {}
+                        // Обработка даты (обрезаем время, если есть T)
+                        const dateKey = row.work_date.includes('T') ? row.work_date.split('T')[0] : row.work_date;
+                        newData[dateKey] = { start: row.start_time, end: row.end_time, breaks: brk };
+                    }
+                });
+                this.dbData = newData; 
+                this.fetchSlotsAvailability();
+            }).catch(console.error);
+    },
 
     openDayDetails(dateStr) {
         this.viewStep = 'day_details';
@@ -1507,38 +1387,6 @@ loadSchedule() {
         .catch(console.error);
 
         Promise.all([p1, p2]).finally(() => this.isLoadingSlots = false);
-    },
-
-    buySubscription(plan) {
-        if (this.paymentLoading) return;
-        this.paymentLoading = true;
-
-        // URL для создания платежа (тот самый воркфлоу 1)
-        const CREATE_PAYMENT_URL = 'https://aireminder.ru/webhook/create-payment-prod';
-
-        this.apiCall(CREATE_PAYMENT_URL, { plan: plan })
-            .then(data => {
-                if (data.confirmation_url) {
-                    // Открываем ссылку Юкассы
-                    if (window.Telegram?.WebApp?.openLink) {
-                        window.Telegram.WebApp.openLink(data.confirmation_url, { try_instant_view: false });
-                    } else {
-                        window.location.href = data.confirmation_url;
-                    }
-                    
-                    this.showPaywall = false;
-                    this.safeAlert('Окно оплаты открыто. После оплаты функции разблокируются автоматически.');
-                } else {
-                    this.safeAlert('Ошибка: сервер не вернул ссылку.');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                this.safeAlert('Ошибка создания платежа. Попробуйте позже.');
-            })
-            .finally(() => {
-                this.paymentLoading = false;
-            });
     },
 
     // ==========================================

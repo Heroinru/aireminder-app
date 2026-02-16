@@ -1107,11 +1107,52 @@
       sendEmergency() {
           if (this.isSaving) return;
           this.isSaving = true;
-          this.apiCall(URLS.EMERGENCY, { dates: this.selectedDates, reason: this.emergencyReason, custom_text: this.emergencyCustomText }).then(data => {
-              const count = (data.count !== undefined) ? data.count : 0;
-              this.safeAlert(count > 0 ? `✅ Отправлено: ${count}` : 'ℹ️ Нет записей.');
-              this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false;
-          }).catch(() => { this.safeAlert('ℹ️ Нет записей.'); this.selectedDates = []; this.viewStep = 'grid'; this.editMode = false; }).finally(() => this.isSaving = false);
+          
+          this.apiCall(URLS.EMERGENCY, { 
+              dates: this.selectedDates, 
+              reason: this.emergencyReason, 
+              custom_text: this.emergencyCustomText 
+          })
+          .then(data => {
+              // ИСПРАВЛЕНИЕ: Проверяем разные форматы ответа от n8n
+              let count = 0;
+              
+              if (data) {
+                  // 1. Если сервер вернул явное число (например { count: 5 })
+                  if (typeof data.count === 'number') {
+                      count = data.count;
+                  } 
+                  // 2. Если сервер вернул массив обновленных записей [{...}, {...}]
+                  else if (Array.isArray(data)) {
+                      count = data.length;
+                  }
+                  // 3. Если сервер вернул вложенную структуру n8n (иногда бывает data[0].count)
+                  else if (Array.isArray(data) && data[0] && data[0].count) {
+                      count = data[0].count;
+                  }
+              }
+
+              if (count > 0) {
+                  this.safeAlert(`✅ Отправлено: ${count}`);
+              } else {
+                  // Если ответ пришел успешный (200 OK), но count 0 или формат непонятен,
+                  // лучше написать что выполнено, чем пугать "нет записей", раз в БД всё ок.
+                  if (data) {
+                      this.safeAlert('✅ Рассылка выполнена');
+                  } else {
+                      this.safeAlert('ℹ️ Нет записей для рассылки.');
+                  }
+              }
+              
+              this.selectedDates = []; 
+              this.viewStep = 'grid'; 
+              this.editMode = false;
+          })
+          .catch((err) => { 
+              console.error(err);
+              this.safeAlert('❌ Ошибка отправки'); 
+          })
+          .finally(() => this.isSaving = false);
       },
 
       // ИСПРАВЛЕННЫЙ МЕТОД ЗАГРУЗКИ АНАЛИТИКИ

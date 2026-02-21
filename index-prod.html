@@ -962,6 +962,9 @@
             if (urlMode === 'confirm') { this.viewStep = 'confirm'; this.loadVisits(); }
             else if (urlMode === 'client') { 
                 this.isClientView = true; 
+                // ДОБАВЛЕНО: Загружаем SOS-даты для клиента
+                if (this.masterId) this.loadSosDates();
+
                 this.loadSchedule(); 
                 this.loadServices().then(() => { if (this.services.length > 0) this.viewStep = 'services'; }); 
                 if (this.clientId) this.loadClientNextVisit(); 
@@ -1107,8 +1110,11 @@
         const dateStr = this.formatDateKey(day); 
         this.activeDate = new Date(this.currentYear, this.currentMonth, day); 
         
+        // БЛОКИРОВКА: Если это SOS день и смотрит клиент — ничего не делаем
+        if (this.isClientView && this.hasSos(day)) return;
+
         if (this.isClientView) { 
-            this.fetchSlotsForDate(dateStr); // Вызов функции, которую вернули
+            this.fetchSlotsForDate(dateStr); 
         } else { 
             if (this.editMode || this.shareMode) { 
                 const idx = this.selectedDates.indexOf(dateStr); 
@@ -1119,7 +1125,6 @@
             } 
         } 
     },
-
     // --- 4. ОСТАЛЬНЫЕ МЕТОДЫ (СЕРВИСЫ, ГРАФИК, РАССЫЛКА) ---
 
     loadServices() {
@@ -1270,7 +1275,16 @@
     bookSlot(time) { if (!this.isClientView) return; const dateStr = this.activeDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'long' }); const text = `Здравствуйте! Хочу записаться на ${this.selectedServiceTitle || 'процедуру'}, ${dateStr} в ${time}.`; const url = `https://t.me/${this.masterUsername || 'my_remi_bot'}?text=${encodeURIComponent(text)}`; if (window.Telegram?.WebApp?.openTelegramLink) window.Telegram.WebApp.openTelegramLink(url); else window.location.href = url; },
     setConfirmed(visit) { visit.visit_status = 'confirmed'; if (!visit.next_reminder_days) visit.next_reminder_days = 28; },
     makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
-    isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
+    isDayOff(day) { 
+        // 1. Если день помечен как SOS — это выходной для всех
+        if (this.hasSos(day)) return true;
+
+        // 2. Проверка по графику работы
+        const data = this.dbData[this.formatDateKey(day)]; 
+        if (!data) return false; 
+        const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); 
+        return isZero(data.start) || isZero(data.end); 
+    },
     formatDateKey(day) { return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; },
     changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); if (!this.isClientView && this.masterId) { this.loadSosDates(); } this.fetchSlotsAvailability(); },
     isSelected(day) { return this.selectedDates.includes(this.formatDateKey(day)); },

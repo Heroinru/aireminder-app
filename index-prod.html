@@ -1235,6 +1235,56 @@
         }).catch(console.error);
     },
 
+     saveSchedule(force = false) {
+        if (this.isSaving) return;
+        this.isSaving = true;
+
+        // Подготовка данных (если 00:00 или пусто, отправляем null)
+        const startToSend = (this.startTime === '00:00' || !this.startTime) ? null : this.startTime;
+        const endToSend = (this.endTime === '00:00' || !this.endTime) ? null : this.endTime;
+        
+        this.apiCall(URLS.SAVE_SCHEDULE, { 
+            dates: this.selectedDates, 
+            start: startToSend, 
+            end: endToSend, 
+            breaks: this.breaks, 
+            slot_duration: this.slotDuration, 
+            force: force // Важно для модалки конфликтов
+        })
+        .then(data => {
+            // 1. Если сервер вернул конфликт (есть записи на это время)
+            if (data.status === 'conflict') {
+                this.conflictList = data.conflicts || [];
+                this.showConflictModal = true; // Показываем модалку
+                this.isSaving = false;
+                return;
+            }
+
+            // 2. Успешное сохранение
+            this.safeAlert('✅ Сохранено!');
+            
+            // Обновляем локальные данные, чтобы график перерисовался сразу
+            this.selectedDates.forEach(date => { 
+                this.dbData[date] = { 
+                    start: startToSend, 
+                    end: endToSend, 
+                    breaks: JSON.parse(JSON.stringify(this.breaks)) 
+                }; 
+            });
+
+            // Сброс интерфейса
+            this.selectedDates = [];
+            this.viewStep = 'grid';
+            this.editMode = false;
+            this.showConflictModal = false;
+            
+            // Обновляем зеленые точки (свободные слоты)
+            this.fetchSlotsAvailability();
+        })
+        .catch(err => this.safeAlert('Ошибка: ' + err.message))
+        .finally(() => this.isSaving = false);
+    },
+
     openDayDetails(dateStr) {
         this.viewStep = 'day_details';
         this.dayVisits = []; this.currentSlots = []; this.isLoadingSlots = true;

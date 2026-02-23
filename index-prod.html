@@ -525,9 +525,15 @@
 
         <div class="bottom-panel" v-if="!isClientView"><button class="btn btn-secondary" @click="viewStep = 'grid'">← К календарю</button></div>
     </div>
-
+   
     <!-- 3. КАЛЕНДАРЬ -->
     <div v-else-if="viewStep === 'grid'">
+        <!-- НАВИГАЦИЯ ПО МЕСЯЦАМ (ВЕРНУЛИ) -->
+            <div class="calendar-nav">
+                <div class="nav-arrow" @click="changeMonth(-1)">‹</div>
+                <div class="month-name">{{ currentMonthName }}</div>
+                <div class="nav-arrow" @click="changeMonth(1)">›</div>
+            </div>
         <div v-if="isClientView && selectedServiceDuration" @click="viewStep = 'services'" style="background:#F3F4F6; padding:12px; border-radius:12px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
             <div style="display:flex; flex-direction:column;">
                 <span style="font-weight:800; font-size:15px; color:var(--text-main);">{{ selectedServiceTitle }}</span>

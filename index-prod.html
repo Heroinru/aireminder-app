@@ -1322,14 +1322,15 @@
     makeDayOff() { this.startTime = null; this.endTime = null; this.breaks = []; this.saveSchedule(false); },
     isDayOff(day) { const data = this.dbData[this.formatDateKey(day)]; if (!data) return false; const isZero = (t) => !t || t === 'null' || String(t).startsWith('00:00'); return isZero(data.start) || isZero(data.end); },
     formatDateKey(day) {
-        // Создаем дату в локальном времени (год, месяц, день)
-        const date = new Date(this.currentYear, this.currentMonth, day);
+        // Берем год и месяц из текущего состояния календаря
+        const year = this.currentYear;
         
-        // Вручную собираем строку YYYY-MM-DD, чтобы избежать сдвигов часовых поясов
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы с 0
-        const d = String(date.getDate()).padStart(2, '0');
+        // Месяцы в JS от 0 до 11, поэтому +1. 
+        // padStart добавляет ноль в начале (чтобы было 02, а не 2)
+        const month = String(this.currentMonth + 1).padStart(2, '0');
+        const d = String(day).padStart(2, '0');
         
+        // Возвращаем строго локальную дату, которую видит глаз пользователя
         return `${year}-${month}-${d}`;
     },
     changeMonth(d) { this.currentDate = new Date(this.currentYear, this.currentMonth + d, 1); if (!this.isClientView && this.masterId) { this.loadSosDates(); } this.fetchSlotsAvailability(); },

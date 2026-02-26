@@ -13,6 +13,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
 
+    <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Remi">
+<link rel="apple-touch-icon" href="https://heroinru.github.io/aireminder-app/logo.png">
+<link rel="manifest" href="https://heroinru.github.io/aireminder-app/manifest.json">
+
+
     <style>
         [v-cloak] { display: none !important; }
 
@@ -394,9 +401,10 @@
 
     <div id="app" v-cloak>
         <div class="brand-header">
-            <div class="logo-box">R</div>
-            <div class="brand-name">Remi</div>
-        </div>
+    <!-- Добавили @click и cursor: pointer -->
+    <div class="logo-box" @click="addToHomeScreen" style="cursor: pointer;" title="Добавить на главный экран">R</div>
+    <div class="brand-name">Remi</div>
+</div>
 
      <!-- WIDGET: SMART FOCUS -->
     <div v-if="upcomingVisits.length > 0 && !isClientView" class="smart-widget">
@@ -983,6 +991,17 @@
     },
       
  methods: {
+
+     // --- НОВЫЙ МЕТОД ---
+    addToHomeScreen() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.addToHomeScreen) {
+            // Вызываем нативное окно Telegram
+            window.Telegram.WebApp.addToHomeScreen();
+        } else {
+            // Если версия Telegram старая и не поддерживает эту функцию
+            this.safeAlert('Нажмите на меню (три точки) в правом верхнем углу и выберите "Добавить на главный экран"');
+        }
+    },
     // --- 1. БАЗОВЫЕ МЕТОДЫ ---
     getInitData() {
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return window.Telegram.WebApp.initData;

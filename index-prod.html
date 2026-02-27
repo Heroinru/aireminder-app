@@ -1223,17 +1223,28 @@
         .finally(() => this.isSaving = false);
     },
 
-    loadAnalytics() {
-        if (!this.masterId) return;
-        this.isLoadingAnalytics = true;
-        this.apiCall(URLS.GET_ANALYTICS).then(data => { 
+  loadAnalytics() {
+    if (!this.masterId) return;
+    this.isLoadingAnalytics = true;
+    
+    // Формируем дату первого числа выбранного в календаре месяца (например: "2026-03-01")
+    const selectedMonthDate = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-01`;
+    
+    // Отправляем target_date в n8n
+    this.apiCall(URLS.GET_ANALYTICS, { target_date: selectedMonthDate })
+        .then(data => {
             if (data) {
-                let payload = Array.isArray(data) ? data[0] : data;
-                if (!payload.metrics) payload.metrics = { avg_check: 0, hour_price: 0 };
-                this.analyticsData = payload; 
+                const newMetrics = data.metrics || this.analyticsData.metrics || {};
+                this.analyticsData = {
+                    ...this.analyticsData,
+                    ...data,
+                    metrics: newMetrics
+                };
             }
-        }).finally(() => this.isLoadingAnalytics = false);
-    },
+        })
+        .catch(err => console.error('Analytics error:', err))
+        .finally(() => this.isLoadingAnalytics = false);
+},
 
     sendSlotsToChat() { 
         if (this.selectedDates.length === 0) return; 
